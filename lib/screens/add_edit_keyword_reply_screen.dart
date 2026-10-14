@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/keyword_reply.dart';
+import '../services/auto_reply_engine.dart';
 import '../widgets/glassmorphism_modal.dart';
 
 class AddEditKeywordReplyScreen extends StatefulWidget {
@@ -59,6 +60,38 @@ class _AddEditKeywordReplyScreenState extends State<AddEditKeywordReplyScreen> {
       _replyController.selection = TextSelection.collapsed(offset: _replyController.text.length);
     }
     setState(() {});
+  }
+
+  String _formatPreviewText() {
+    final rawText = _replyController.text.trim();
+    if (rawText.isEmpty) {
+      if (_useMenuReply) {
+        return '📋 [Menu Balas Aktif]\n(Pohon menu otomatis terkirim)';
+      }
+      if (_useAiReply) {
+        return '🤖 [Balasan AI Aktif]\n(Dijawab otomatis oleh AI)';
+      }
+      if (_useGoogleSheets) {
+        return '📊 [Google Sheets Aktif]\n(Data spreadsheet terkirim)';
+      }
+      return 'Ketik pesan balasan Anda';
+    }
+
+    // Resolusi tag dinamis (nama contoh, jam saat ini, tanggal hari ini, hari ini)
+    var rendered = AutoReplyEngine.applyTags(
+      rawText,
+      senderId: 'Budi Santoso',
+    );
+
+    if (_useMenuReply) {
+      rendered = '$rendered\n\n📋 [+ Menu Balas terlampir]';
+    } else if (_useAiReply) {
+      rendered = '$rendered\n\n🤖 [+ Jawaban AI terlampir]';
+    } else if (_useGoogleSheets) {
+      rendered = '$rendered\n\n📊 [+ Data Sheets terlampir]';
+    }
+
+    return rendered;
   }
 
   void _saveRule() {
@@ -201,21 +234,7 @@ class _AddEditKeywordReplyScreenState extends State<AddEditKeywordReplyScreen> {
                         ],
                       ),
                       child: Text(
-                        _replyController.text.trim().isEmpty
-                            ? (_useMenuReply
-                                ? '📋 [Menu Balas Aktif]\n(Pohon menu otomatis terkirim)'
-                                : (_useAiReply
-                                    ? '🤖 [Balasan AI Aktif]\n(Dijawab otomatis oleh AI)'
-                                    : (_useGoogleSheets
-                                        ? '📊 [Google Sheets Aktif]\n(Data spreadsheet terkirim)'
-                                        : 'Ketik pesan balasan Anda')))
-                            : (_useMenuReply
-                                ? '${_replyController.text.trim()}\n\n📋 [+ Menu Balas terlampir]'
-                                : (_useAiReply
-                                    ? '${_replyController.text.trim()}\n\n🤖 [+ Jawaban AI terlampir]'
-                                    : (_useGoogleSheets
-                                        ? '${_replyController.text.trim()}\n\n📊 [+ Data Sheets terlampir]'
-                                        : _replyController.text.trim()))),
+                        _formatPreviewText(),
                         style: TextStyle(
                           color: _replyController.text.trim().isEmpty
                               ? const Color(0xFF4B6E55)
@@ -293,11 +312,11 @@ class _AddEditKeywordReplyScreenState extends State<AddEditKeywordReplyScreen> {
                   ),
                   const SizedBox(height: 22),
 
-                  // Section: Tag
+                  // Section: Tag (Slider horizontal 1 baris)
                   Row(
                     children: [
                       const Text(
-                        'Tag',
+                        'Tag Variabel',
                         style: TextStyle(
                           color: Color(0xFF00A884),
                           fontSize: 15,
@@ -311,22 +330,43 @@ class _AddEditKeywordReplyScreenState extends State<AddEditKeywordReplyScreen> {
                             context: context,
                             title: 'Tag Variabel Pesan',
                             message:
-                                'Gunakan tag untuk menyisipkan nama pelanggan secara dinamis di dalam pesan balasan otomatis.',
+                                'Gunakan tag untuk menyisipkan variabel dinamis ke pesan balasan:\n\n'
+                                '• {{nama}} : Nama kontak pengirim (atau "Kak" jika belum disimpan)\n'
+                                '• {{nama_depan}} : Nama depan kontak\n'
+                                '• {{nama_belakang}} : Nama belakang kontak\n'
+                                '• {{jam}} : Waktu saat ini (contoh: 14:30)\n'
+                                '• {{tanggal}} : Tanggal hari ini (contoh: 15 Oktober 2026)\n'
+                                '• {{hari}} : Nama hari ini (contoh: Kamis)',
                           );
                         },
                         child: const Icon(Icons.info_outline, color: Colors.white54, size: 18),
                       ),
+                      const Spacer(),
+                      const Text(
+                        'Geser ➡️',
+                        style: TextStyle(color: Colors.white38, fontSize: 11),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 10),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      _buildTagChip('nama', 'nama'),
-                      _buildTagChip('nama depan', 'nama_depan'),
-                      _buildTagChip('nama belakang', 'nama_belakang'),
-                    ],
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    child: Row(
+                      children: [
+                        _buildTagChip('nama', 'nama', Icons.person_outline),
+                        const SizedBox(width: 8),
+                        _buildTagChip('nama depan', 'nama_depan', Icons.badge_outlined),
+                        const SizedBox(width: 8),
+                        _buildTagChip('nama belakang', 'nama_belakang', Icons.assignment_ind_outlined),
+                        const SizedBox(width: 8),
+                        _buildTagChip('jam', 'jam', Icons.access_time),
+                        const SizedBox(width: 8),
+                        _buildTagChip('tanggal', 'tanggal', Icons.calendar_today_outlined),
+                        const SizedBox(width: 8),
+                        _buildTagChip('hari', 'hari', Icons.today_outlined),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 24),
 
@@ -449,24 +489,33 @@ class _AddEditKeywordReplyScreenState extends State<AddEditKeywordReplyScreen> {
     );
   }
 
-  Widget _buildTagChip(String displayLabel, String tagKey) {
+  Widget _buildTagChip(String displayLabel, String tagKey, [IconData? icon]) {
     return InkWell(
       onTap: () => _insertTag(tagKey),
       borderRadius: BorderRadius.circular(20),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
           color: const Color(0xFF111B21),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: const Color(0xFF00A884).withOpacity(0.6)),
         ),
-        child: Text(
-          displayLabel,
-          style: const TextStyle(
-            color: Color(0xFF00A884),
-            fontSize: 13,
-            fontWeight: FontWeight.w500,
-          ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (icon != null) ...[
+              Icon(icon, color: const Color(0xFF00A884), size: 14),
+              const SizedBox(width: 6),
+            ],
+            Text(
+              displayLabel,
+              style: const TextStyle(
+                color: Color(0xFF00A884),
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
         ),
       ),
     );

@@ -14,6 +14,57 @@ class AutoReplyEngine {
     required this.settings,
   });
 
+  static Map<String, String> resolveSenderAndDateTime({
+    required String senderId,
+    DateTime? now,
+  }) {
+    final current = now ?? DateTime.now();
+
+    // 1. Bersihkan nama pengirim & tangani kontak tanpa nama / nomor telepon
+    var cleanName = senderId.trim();
+    if (cleanName.startsWith('~')) {
+      cleanName = cleanName.substring(1).trim();
+    }
+    // Jika hanya nomor telepon (angka, +, spasi, minus, kurung), fallback ke 'Kak'
+    final isPhone = RegExp(r'^[+0-9\s\-()]+$').hasMatch(cleanName);
+    final displayName = (isPhone || cleanName.isEmpty) ? 'Kak' : cleanName;
+
+    final parts = displayName.split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
+    final firstName = parts.isNotEmpty ? parts.first : displayName;
+    final lastName = parts.length > 1 ? parts.sublist(1).join(' ') : '';
+
+    // 2. Format jam & tanggal Indonesia hari ini
+    final jam = '${current.hour.toString().padLeft(2, '0')}:${current.minute.toString().padLeft(2, '0')}';
+    const days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+    const months = [
+      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    ];
+    final hari = days[current.weekday - 1];
+    final tanggal = '${current.day} ${months[current.month - 1]} ${current.year}';
+
+    return {
+      'nama': displayName,
+      'nama_depan': firstName,
+      'nama_belakang': lastName,
+      'jam': jam,
+      'tanggal': tanggal,
+      'hari': hari,
+    };
+  }
+
+  static String applyTags(String template, {required String senderId, DateTime? now}) {
+    final tags = resolveSenderAndDateTime(senderId: senderId, now: now);
+    var rep = template;
+    rep = rep.replaceAll(RegExp(r'\{\{nama\}\}', caseSensitive: false), tags['nama']!);
+    rep = rep.replaceAll(RegExp(r'\{\{nama_depan\}\}', caseSensitive: false), tags['nama_depan']!);
+    rep = rep.replaceAll(RegExp(r'\{\{nama_belakang\}\}', caseSensitive: false), tags['nama_belakang']!);
+    rep = rep.replaceAll(RegExp(r'\{\{jam\}\}', caseSensitive: false), tags['jam']!);
+    rep = rep.replaceAll(RegExp(r'\{\{tanggal\}\}', caseSensitive: false), tags['tanggal']!);
+    rep = rep.replaceAll(RegExp(r'\{\{hari\}\}', caseSensitive: false), tags['hari']!);
+    return rep;
+  }
+
   void resetSession(String senderId) {
     _sessions[senderId] = 'idle';
   }
@@ -108,16 +159,8 @@ class AutoReplyEngine {
         } else {
           isMatch = keywords.any((k) => lowerMsg.contains(k));
         }
-
         if (isMatch) {
-          var reply = rule.replyMessage;
-          final senderParts = senderId.split(' ');
-          final firstName = senderParts.first;
-          final lastName = senderParts.length > 1 ? senderParts.sublist(1).join(' ') : '';
-
-          reply = reply.replaceAll(RegExp(r'\{\{nama\}\}', caseSensitive: false), senderId);
-          reply = reply.replaceAll(RegExp(r'\{\{nama_depan\}\}', caseSensitive: false), firstName);
-          reply = reply.replaceAll(RegExp(r'\{\{nama_belakang\}\}', caseSensitive: false), lastName);
+          var reply = applyTags(rule.replyMessage, senderId: senderId);
 
           // Jika aturan ini memanggil Menu Balas -> Aktifkan sesi menu!
           if (rule.useMenuReply) {
@@ -144,7 +187,7 @@ class AutoReplyEngine {
       // Diam / jangan balas apapun jika bukan kata kunci terdaftar!
       return '';
     }
-    return settings.defaultReply;
+    return applyTags(settings.defaultReply, senderId: senderId);
   }
 
   String renderMenu(String parentId) {

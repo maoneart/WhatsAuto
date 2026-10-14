@@ -81,7 +81,7 @@ class _TestReplySimulatorScreenState extends State<TestReplySimulatorScreen> {
     // Simulasi delay pengetikan bot (250ms)
     Future.delayed(const Duration(milliseconds: 250), () {
       final reply = _engine!.processMessage(
-        senderId: 'simulator_user',
+        senderId: 'Budi Santoso',
         incomingMessage: clean,
       );
 

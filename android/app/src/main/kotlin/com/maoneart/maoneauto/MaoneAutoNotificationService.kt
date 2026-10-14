@@ -9,6 +9,9 @@ import android.os.Bundle
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import android.util.Log
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Locale
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -110,66 +113,56 @@ class MaoneAutoNotificationService : NotificationListenerService() {
         }
     }
 
+    private fun formatTags(
+        template: String,
+        sender: String,
+        calendar: Calendar = Calendar.getInstance()
+    ): String {
+        // 1. Bersihkan nama & tangani kontak tanpa nama / nomor telepon
+        var cleanSender = sender.trim()
+        if (cleanSender.startsWith("~")) {
+            cleanSender = cleanSender.removePrefix("~").trim()
+        }
+        val isPhone = cleanSender.matches(Regex("^[+0-9\\s\\-()]+$"))
+        val displayName = if (isPhone || cleanSender.isEmpty()) "Kak" else cleanSender
+
+        val senderParts = displayName.split(Regex("\\s+")).filter { it.isNotEmpty() }
+        val firstName = senderParts.firstOrNull() ?: displayName
+        val lastName = if (senderParts.size > 1) senderParts.drop(1).joinToString(" ") else ""
+
+        // 2. Format jam & tanggal Indonesia hari ini
+        val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+        val currentJam = timeFormat.format(calendar.time)
+
+        val dayNames = arrayOf("Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu")
+        val monthNames = arrayOf(
+            "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+            "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+        )
+        val currentHari = dayNames[calendar.get(Calendar.DAY_OF_WEEK) - 1]
+        val currentTanggal = "${calendar.get(Calendar.DAY_OF_MONTH)} ${monthNames[calendar.get(Calendar.MONTH)]} ${calendar.get(Calendar.YEAR)}"
+
+        var rep = template
+        rep = rep.replace("{{nama}}", displayName, ignoreCase = true)
+        rep = rep.replace("{{nama_depan}}", firstName, ignoreCase = true)
+        rep = rep.replace("{{nama_belakang}}", lastName, ignoreCase = true)
+        rep = rep.replace("{{jam}}", currentJam, ignoreCase = true)
+        rep = rep.replace("{{tanggal}}", currentTanggal, ignoreCase = true)
+        rep = rep.replace("{{hari}}", currentHari, ignoreCase = true)
+        return rep
+    }
+
     private fun computeReply(sender: String, messageText: String, prefs: android.content.SharedPreferences): String? {
         val cleanMsg = messageText.trim()
         val treeJsonStr = prefs.getString("flutter.menu_nodes_cache", null)
         val defaultReply = prefs.getString("flutter.default_reply", "Halo! Terima kasih telah menghubungi kami.") ?: "Halo!"
 
         if (treeJsonStr.isNullOrEmpty()) {
-            return defaultReply
+            val onlyKeywords = prefs.getBoolean("flutter.only_reply_keywords", true)
+            return if (onlyKeywords) null else formatTags(defaultReply, sender)
         }
 
         try {
-            // 0. Cek Balasan Kata Kunci (Keyword Replies)
-            val isKeywordEnabled = prefs.getBoolean("flutter.is_keyword_reply_enabled", true)
-            val keywordJsonStr = prefs.getString("flutter.keyword_replies_cache", null)
-            if (isKeywordEnabled && !keywordJsonStr.isNullOrEmpty()) {
-                try {
-                    val kwArray = JSONArray(keywordJsonStr)
-                    for (i in 0 until kwArray.length()) {
-                        val rule = kwArray.getJSONObject(i)
-                        if (!rule.optBoolean("isEnabled", true)) continue
-                        val rawKeywords = rule.optString("incomingKeywords", "")
-                        val isExact = rule.optBoolean("isExactMatch", true)
-                        val keywordsList = rawKeywords.split(",").map { it.trim().lowercase() }.filter { it.isNotEmpty() }
-                        val lowerMsg = cleanMsg.lowercase()
-
-                        val isMatch = if (isExact) {
-                            keywordsList.any { lowerMsg == it }
-                        } else {
-                            keywordsList.any { lowerMsg.contains(it) }
-                        }
-
-                        if (isMatch) {
-                            var rep = rule.optString("replyMessage", "")
-                            val senderParts = sender.split(" ")
-                            val firstName = senderParts.firstOrNull() ?: sender
-                            val lastName = if (senderParts.size > 1) senderParts.drop(1).joinToString(" ") else ""
-
-                            rep = rep.replace("{{nama}}", sender, ignoreCase = true)
-                            rep = rep.replace("{{nama_depan}}", firstName, ignoreCase = true)
-                            rep = rep.replace("{{nama_belakang}}", lastName, ignoreCase = true)
-
-                            if (rule.optBoolean("useMenuReply", false)) {
-                                val nodesArray = JSONArray(treeJsonStr)
-                                val nodes = mutableListOf<JSONObject>()
-                                for (j in 0 until nodesArray.length()) {
-                                    nodes.add(nodesArray.getJSONObject(j))
-                                }
-                                prefs.edit().putString("flutter.session_$sender", "parent").apply()
-                                val menuText = renderMenu(nodes, "parent")
-                                return if (rep.isBlank()) menuText else "$rep\n\n$menuText"
-                            }
-                            if (rep.isNotBlank()) {
-                                return rep
-                            }
-                        }
-                    }
-                } catch (e: Exception) {
-                    Log.e(TAG, "Error checking keyword replies: ${e.message}")
-                }
-            }
-
             val nodesArray = JSONArray(treeJsonStr)
             val nodes = mutableListOf<JSONObject>()
             for (i in 0 until nodesArray.length()) {
@@ -243,6 +236,8 @@ class MaoneAutoNotificationService : NotificationListenerService() {
             // =========================================================================
 
             // A. Cek Balasan Kata Kunci (Keyword Replies)
+            val isKeywordEnabled = prefs.getBoolean("flutter.is_keyword_reply_enabled", true)
+            val keywordJsonStr = prefs.getString("flutter.keyword_replies_cache", null)
             if (isKeywordEnabled && !keywordJsonStr.isNullOrEmpty()) {
                 try {
                     val kwArray = JSONArray(keywordJsonStr)
@@ -261,14 +256,7 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                         }
 
                         if (isMatch) {
-                            var rep = rule.optString("replyMessage", "")
-                            val senderParts = sender.split(" ")
-                            val firstName = senderParts.firstOrNull() ?: sender
-                            val lastName = if (senderParts.size > 1) senderParts.drop(1).joinToString(" ") else ""
-
-                            rep = rep.replace("{{nama}}", sender, ignoreCase = true)
-                            rep = rep.replace("{{nama_depan}}", firstName, ignoreCase = true)
-                            rep = rep.replace("{{nama_belakang}}", lastName, ignoreCase = true)
+                            val rep = formatTags(rule.optString("replyMessage", ""), sender)
 
                             // Jika aturan ini memanggil Menu Balas -> Aktifkan sesi menu!
                             if (rule.optBoolean("useMenuReply", false)) {
@@ -300,10 +288,11 @@ class MaoneAutoNotificationService : NotificationListenerService() {
             if (onlyKeywords) {
                 return null
             }
-            return defaultReply
+            return formatTags(defaultReply, sender)
         } catch (e: Exception) {
             Log.e(TAG, "Error in computeReply: ${e.message}")
-            return defaultReply
+            val onlyKeywords = prefs.getBoolean("flutter.only_reply_keywords", true)
+            return if (onlyKeywords) null else formatTags(defaultReply, sender)
         }
     }
 
