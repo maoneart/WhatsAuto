@@ -52,6 +52,7 @@
   1. Service diatur `android:enabled="false"` di `AndroidManifest.xml` agar tidak di-flag oleh static scanner saat install.
   2. Service diaktifkan secara dinamis saat runtime (`PackageManager.COMPONENT_ENABLED_STATE_ENABLED`) ketika aplikasi sudah dibuka oleh pengguna.
   3. Versi dinaikkan ke `v1.0.2+3`.
+  4. APK `MaoneAuto.apk` (v1.0.2) berhasil dikompilasi via GitHub Actions (Run ID `38572778717`) dan tersimpan di `/sdcard/Download/MaoneAuto.apk` (52 MB).
 
 ---
 
