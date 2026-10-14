@@ -16,7 +16,7 @@ class MaoneAutoNotificationService : NotificationListenerService() {
 
     private val TAG = "MaoneAutoService"
     private val processedKeys = mutableMapOf<String, Long>()
-    private val sessionState = mutableMapOf<String, String>() // senderId -> current parentId
+    private val lastReplyPerSender = mutableMapOf<String, Long>()
 
     override fun onNotificationPosted(sbn: StatusBarNotification?) {
         super.onNotificationPosted(sbn)
@@ -32,34 +32,54 @@ class MaoneAutoNotificationService : NotificationListenerService() {
 
         if (!supportedPackages.contains(packageName)) return
 
-        // Read settings from Flutter SharedPreferences
+        val notification = sbn.notification ?: return
+
+        // 1. Abaikan notifikasi ringkasan grup/thread WhatsApp (mencegah balasan ganda)
+        if ((notification.flags and Notification.FLAG_GROUP_SUMMARY) != 0) return
+        if ((notification.flags and Notification.FLAG_ONGOING_EVENT) != 0) return
+
+        // 2. Baca pengaturan dari Flutter SharedPreferences
         val prefs = getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
         val isEnabled = prefs.getBoolean("flutter.is_auto_reply_enabled", false)
         if (!isEnabled) return
 
-        val notification = sbn.notification ?: return
         val extras = notification.extras ?: return
 
-        val title = extras.getString(Notification.EXTRA_TITLE) ?: ""
-        val text = extras.getCharSequence(Notification.EXTRA_TEXT)?.toString() ?: ""
+        val rawTitle = extras.getString(Notification.EXTRA_TITLE) ?: ""
+        var rawText = extras.getCharSequence(Notification.EXTRA_TEXT)?.toString() ?: ""
+        if (rawText.isEmpty()) {
+            rawText = extras.getCharSequence(Notification.EXTRA_BIG_TEXT)?.toString() ?: ""
+        }
 
-        if (title.isEmpty() || text.isEmpty()) return
-        if (title.contains("WhatsApp", ignoreCase = true) && text.contains("checking for new messages", ignoreCase = true)) return
+        if (rawTitle.isEmpty() || rawText.isEmpty()) return
+        if (rawTitle.contains("WhatsApp", ignoreCase = true) && rawText.contains("checking for new messages", ignoreCase = true)) return
 
-        // Deduplication (ignore identical message from same sender within 2 seconds)
-        val messageKey = "$packageName:$title:$text"
+        // Bersihkan title pengirim dari embel-embel "(1 pesan)"
+        val cleanSender = rawTitle.replace(Regex("\\s*\\(\\d+\\s+pesan\\)", RegexOption.IGNORE_CASE), "").trim()
+        val cleanMsg = rawText.trim()
+
         val now = System.currentTimeMillis()
+
+        // 3. Debounce per-pengirim: jangan balas lebih dari 1 kali dalam 2.5 detik untuk pengirim yang sama
+        val lastSenderReply = lastReplyPerSender[cleanSender] ?: 0L
+        if (now - lastSenderReply < 2500) return
+
+        // 4. Deduplikasi pesan identik
+        val messageKey = "$packageName:$cleanSender:$cleanMsg"
         val lastSeen = processedKeys[messageKey] ?: 0L
-        if (now - lastSeen < 2500) return
+        if (now - lastSeen < 3000) return
         processedKeys[messageKey] = now
 
-        // Find Quick Reply Action with RemoteInput
+        // 5. Cari Quick Reply Action dengan RemoteInput
         val quickReplyAction = findQuickReplyAction(notification) ?: return
 
-        // Compute reply text using Tree Menu & Rules
-        val replyText = computeReply(title, text, prefs) ?: return
+        // 6. Hitung teks balasan dengan Tree Menu & Rule
+        val replyText = computeReply(cleanSender, cleanMsg, prefs) ?: return
 
-        // Send Auto Reply!
+        // 7. Catat waktu sebelum kirim agar event susulan langsung di-drop
+        lastReplyPerSender[cleanSender] = now
+
+        // 8. Kirim Balasan Otomatis
         sendReply(this, quickReplyAction, replyText)
     }
 
@@ -106,24 +126,30 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                 nodes.add(nodesArray.getJSONObject(i))
             }
 
-            // Check if sender wants to restart/menu
-            val currentParent = sessionState[sender] ?: "parent"
-            if (cleanMsg.equals("menu", ignoreCase = true) || cleanMsg.equals("halo", ignoreCase = true) || cleanMsg.equals("batal", ignoreCase = true) || cleanMsg == "0") {
-                sessionState[sender] = "parent"
+            val sessionPrefKey = "flutter.session_$sender"
+            val currentParent = prefs.getString(sessionPrefKey, "parent") ?: "parent"
+
+            // A. Cek apakah pengirim ingin reset ke menu utama
+            if (cleanMsg.equals("menu", ignoreCase = true) ||
+                cleanMsg.equals("halo", ignoreCase = true) ||
+                cleanMsg.equals("hi", ignoreCase = true) ||
+                cleanMsg.equals("batal", ignoreCase = true) ||
+                cleanMsg == "0") {
+                prefs.edit().putString(sessionPrefKey, "parent").apply()
                 return renderMenu(nodes, "parent")
             }
 
-            // Try matching user choice with options under currentParent
+            // B. Cocokkan pilihan dengan opsi di bawah currentParent
             val options = nodes.filter { it.optString("parentId") == currentParent && it.optInt("type") == 2 }
 
             var matchedOption: JSONObject? = null
 
-            // 1. Check if user typed a number (1, 2, 3...)
+            // 1. Cek kecocokan berdasarkan nomor urut (1, 2, 3...)
             val numChoice = cleanMsg.toIntOrNull()
             if (numChoice != null && numChoice in 1..options.size) {
                 matchedOption = options[numChoice - 1]
             } else {
-                // 2. Check if user typed text matching the option title
+                // 2. Cek kecocokan berdasarkan teks judul opsi
                 matchedOption = options.firstOrNull {
                     val optText = it.optString("text").trim()
                     optText.equals(cleanMsg, ignoreCase = true) || optText.contains(cleanMsg, ignoreCase = true)
@@ -132,27 +158,29 @@ class MaoneAutoNotificationService : NotificationListenerService() {
 
             if (matchedOption != null) {
                 val matchedId = matchedOption.optString("id")
-                // Check if this option has children (submenu)
+                // Cek apakah node ini memiliki anak opsi (submenu)
                 val subPrompt = nodes.firstOrNull { it.optString("parentId") == matchedId && it.optInt("type") == 1 }
                 val subOptions = nodes.filter { it.optString("parentId") == matchedId && it.optInt("type") == 2 }
 
                 if (subOptions.isNotEmpty()) {
-                    sessionState[sender] = matchedId
+                    prefs.edit().putString(sessionPrefKey, matchedId).apply()
                     return renderMenu(nodes, matchedId)
                 } else if (subPrompt != null) {
-                    // Leaf response (e.g. Price or Spec detail)
-                    sessionState[sender] = "parent" // Reset to root for next interaction
+                    // Leaf response (detail harga / info)
+                    prefs.edit().putString(sessionPrefKey, "parent").apply()
                     val returnPrompt = "\n\n*(Ketik 0 atau 'menu' untuk kembali ke menu utama)*"
                     return subPrompt.optString("text") + returnPrompt
+                } else {
+                    prefs.edit().putString(sessionPrefKey, "parent").apply()
+                    return matchedOption.optString("text") + "\n\n*(Ketik 0 atau 'menu' untuk kembali ke menu utama)*"
                 }
             }
 
-            // If not in session or invalid input at root, show root menu
+            // C. Jika input tidak cocok
             if (currentParent == "parent") {
                 return renderMenu(nodes, "parent")
             } else {
-                // Invalid input at submenu, re-show current submenu
-                return "Pilihan tidak valid. Silakan pilih nomor yang sesuai:\n\n" + renderMenu(nodes, currentParent)
+                return "⚠️ *Pilihan tidak ditemukan.*\nSilakan balas dengan *Nomor* opsi yang tertera di bawah:\n\n" + renderMenu(nodes, currentParent)
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error in computeReply: ${e.message}")
