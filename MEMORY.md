@@ -35,3 +35,10 @@
   3. Mengembangkan engine auto-reply pohon hierarki dan simulator chat interaktif.
   4. Menyiapkan integrasi native Android `NotificationListenerService`.
   5. Menyiapkan pipeline CI/CD GitHub Actions auto-build APK.
+  6. APK v1.0.0 berhasil dikompilasi via GitHub Actions (Run ID `38548860532`) dan tersimpan di `/sdcard/Download/WhatsAuto.apk` (52 MB).
+
+---
+
+## 📋 Active Tasks / Next Steps
+- [ ] Opsi pengujian langsung di perangkat fisik WhatsApp.
+- [ ] Integrasi tambahan Webhook API lokal Termux (Port 8085 / 3000).
