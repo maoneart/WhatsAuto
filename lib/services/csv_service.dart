@@ -39,11 +39,13 @@ class CsvService {
 
   /// Mengonversi list of MenuNode menjadi string CSV format WhatsAuto yang 100% kompatibel
   static String exportToWhatsAutoCsv(List<MenuNode> nodes) {
-    final List<List<dynamic>> rows = nodes.map((n) => n.toCsvRow()).toList();
-    return const ListToCsvConverter(
-      eol: '\n',
-      quoteMode: QuoteMode.always,
-    ).convert(rows);
+    final sb = StringBuffer();
+    for (final n in nodes) {
+      final safeText = n.text.replaceAll('"', '""');
+      final safeParent = n.parentId.replaceAll('"', '""');
+      sb.writeln('"${n.id}","$safeText","$safeParent",${n.type}');
+    }
+    return sb.toString().trim();
   }
 
   /// Memuat sampel CSV bawaan Kaido dari assets jika database lokal masih kosong
