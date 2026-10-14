@@ -157,9 +157,12 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                                     nodes.add(nodesArray.getJSONObject(j))
                                 }
                                 prefs.edit().putString("flutter.session_$sender", "parent").apply()
-                                return "$rep\n\n" + renderMenu(nodes, "parent")
+                                val menuText = renderMenu(nodes, "parent")
+                                return if (rep.isBlank()) menuText else "$rep\n\n$menuText"
                             }
-                            return rep
+                            if (rep.isNotBlank()) {
+                                return rep
+                            }
                         }
                     }
                 } catch (e: Exception) {

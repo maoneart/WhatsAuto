@@ -54,9 +54,14 @@ class AutoReplyEngine {
 
           if (rule.useMenuReply) {
             _sessions[senderId] = 'parent';
+            if (reply.trim().isEmpty) {
+              return renderMenu('parent');
+            }
             return '$reply\n\n${renderMenu('parent')}';
           }
-          return reply;
+          if (reply.trim().isNotEmpty) {
+            return reply;
+          }
         }
       }
     }

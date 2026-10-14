@@ -75,10 +75,11 @@ class _AddEditKeywordReplyScreenState extends State<AddEditKeywordReplyScreen> {
       return;
     }
 
-    if (reply.isEmpty) {
+    final hasDynamicSource = _useMenuReply || _useAiReply || _useGoogleSheets;
+    if (reply.isEmpty && !hasDynamicSource) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Pesan balasan tidak boleh kosong!'),
+          content: Text('Tulis pesan balasan, atau centang salah satu Opsi Balasan (Menu Balas / AI / Google Sheets)!'),
           backgroundColor: Colors.redAccent,
         ),
       );
@@ -201,8 +202,20 @@ class _AddEditKeywordReplyScreenState extends State<AddEditKeywordReplyScreen> {
                       ),
                       child: Text(
                         _replyController.text.trim().isEmpty
-                            ? 'Ketik pesan balasan Anda'
-                            : _replyController.text.trim(),
+                            ? (_useMenuReply
+                                ? '📋 [Menu Balas Aktif]\n(Pohon menu otomatis terkirim)'
+                                : (_useAiReply
+                                    ? '🤖 [Balasan AI Aktif]\n(Dijawab otomatis oleh AI)'
+                                    : (_useGoogleSheets
+                                        ? '📊 [Google Sheets Aktif]\n(Data spreadsheet terkirim)'
+                                        : 'Ketik pesan balasan Anda')))
+                            : (_useMenuReply
+                                ? '${_replyController.text.trim()}\n\n📋 [+ Menu Balas terlampir]'
+                                : (_useAiReply
+                                    ? '${_replyController.text.trim()}\n\n🤖 [+ Jawaban AI terlampir]'
+                                    : (_useGoogleSheets
+                                        ? '${_replyController.text.trim()}\n\n📊 [+ Data Sheets terlampir]'
+                                        : _replyController.text.trim()))),
                         style: TextStyle(
                           color: _replyController.text.trim().isEmpty
                               ? const Color(0xFF4B6E55)
@@ -264,7 +277,7 @@ class _AddEditKeywordReplyScreenState extends State<AddEditKeywordReplyScreen> {
                       maxLines: 4,
                       onChanged: (_) => setState(() {}),
                       decoration: const InputDecoration(
-                        hintText: 'Balas pesan',
+                        hintText: 'Balas pesan (opsional jika memilih opsi di bawah)',
                         hintStyle: TextStyle(color: Colors.white54, fontSize: 15),
                         border: InputBorder.none,
                       ),
@@ -274,7 +287,7 @@ class _AddEditKeywordReplyScreenState extends State<AddEditKeywordReplyScreen> {
                   const Padding(
                     padding: EdgeInsets.only(left: 4),
                     child: Text(
-                      'Contoh: Harga kami mulai dari 100.',
+                      'Contoh: Harga kami mulai dari 100. (Boleh kosong jika Menu Balas / AI dicentang)',
                       style: TextStyle(color: Colors.white38, fontSize: 12),
                     ),
                   ),
