@@ -54,8 +54,22 @@
   3. Versi dinaikkan ke `v1.0.2+3`.
   4. APK `MaoneAuto.apk` (v1.0.2) berhasil dikompilasi via GitHub Actions (Run ID `38572778717`) dan tersimpan di `/sdcard/Download/MaoneAuto.apk` (52 MB).
 
+### ⚡ Eliminasi Balasan Ganda (v1.0.3+4 - 14 Oktober 2026)
+- **Problem**: Saat pengguna membalas pilihan submenu, bot membalas dua kali sekaligus (menu awal dan submenu).
+- **Akar Masalah**:
+  1. WhatsApp di Android memancarkan 2 notifikasi untuk 1 pesan masuk: notifikasi individual pesan dan notifikasi thread summary (`FLAG_GROUP_SUMMARY`).
+  2. Tanpa filter summary dan cooldown pengirim, service merespons notifikasi kedua yang menyebabkan pesan menu awal terkirim ulang.
+  3. `sessionState` sebelumnya hanya di memori in-memory Map sehingga rentan ter-reset saat service di-refresh oleh Android.
+- **Solusi**:
+  1. Menambahkan filter `(notification.flags and Notification.FLAG_GROUP_SUMMARY) != 0` dan `FLAG_ONGOING_EVENT` di `MaoneAutoNotificationService.kt`.
+  2. Menerapkan debounce per-pengirim (`lastReplyPerSender`) dengan cooldown 2.5 detik.
+  3. Mengubah penyimpanan state posisi submenu menjadi persisten di `SharedPreferences` (`flutter.session_$sender`).
+  4. Versi dinaikkan ke `v1.0.3+4`.
+
 ---
 
 ## 📋 Active Tasks / Next Steps
-- [ ] Opsi pengujian langsung di perangkat fisik WhatsApp.
-- [ ] Integrasi tambahan Webhook API lokal Termux (Port 8085 / 3000).
+- [x] Build APK v1.0.3+4 selesai dan tersimpan di `/sdcard/Download/MaoneAuto.apk` (52 MB).
+- [ ] Verifikasi uji coba chat WhatsApp (pastikan tidak ada duplikasi balasan).
+- [ ] Integrasi webhook lokal opsional (Termux Port 3000 / 8085).
+
