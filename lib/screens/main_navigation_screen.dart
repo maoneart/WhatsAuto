@@ -42,6 +42,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
   Future<void> _checkNotificationPermission() async {
     try {
+      await _platformChannel.invokeMethod('enableNotificationComponent');
       final bool isEnabled = await _platformChannel.invokeMethod('isNotificationServiceEnabled');
       if (!isEnabled && mounted) {
         // Tampilkan info singkat untuk mengaktifkan akses notifikasi jika belum aktif

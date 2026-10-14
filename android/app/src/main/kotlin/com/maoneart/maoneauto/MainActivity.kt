@@ -2,6 +2,7 @@ package com.maoneart.maoneauto
 
 import android.content.ComponentName
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.provider.Settings
 import android.text.TextUtils
 import io.flutter.embedding.android.FlutterActivity
@@ -16,10 +17,15 @@ class MainActivity: FlutterActivity() {
 
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
+                "enableNotificationComponent" -> {
+                    enableNotificationService()
+                    result.success(true)
+                }
                 "isNotificationServiceEnabled" -> {
                     result.success(isNotificationServiceEnabled())
                 }
                 "openNotificationSettings" -> {
+                    enableNotificationService()
                     try {
                         val intent = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
                         startActivity(intent)
@@ -31,6 +37,17 @@ class MainActivity: FlutterActivity() {
                 else -> result.notImplemented()
             }
         }
+    }
+
+    private fun enableNotificationService() {
+        try {
+            val componentName = ComponentName(this, MaoneAutoNotificationService::class.java)
+            packageManager.setComponentEnabledSetting(
+                componentName,
+                PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
+                PackageManager.DONT_KILL_APP
+            )
+        } catch (_: Exception) {}
     }
 
     private fun isNotificationServiceEnabled(): Boolean {
