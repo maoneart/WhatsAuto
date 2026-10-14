@@ -105,7 +105,7 @@
 ---
 
 ## 📋 Active Tasks / Next Steps
-- [ ] Pantau build APK v1.0.7+8 dan unduh otomatis ke `/sdcard/Download/MaoneAuto.apk`.
+- [x] Build APK v1.0.7+8 selesai dan tersimpan di `/sdcard/Download/MaoneAuto.apk` (52 MB).
 - [ ] Verifikasi uji coba mode diam dan respon kata kunci di WhatsApp & Simulator.
 - [ ] Integrasi webhook lokal opsional (Termux Port 3000 / 8085).
 
