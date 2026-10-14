@@ -86,11 +86,19 @@ class _TestReplySimulatorScreenState extends State<TestReplySimulatorScreen> {
       );
 
       setState(() {
-        _messages.add(_ChatMessage(
-          text: reply,
-          isUser: false,
-          time: _getCurrentTime(),
-        ));
+        if (reply.trim().isEmpty) {
+          _messages.add(_ChatMessage(
+            text: '🔇 *(Pesan diabaikan: Tidak cocok dengan kata kunci terdaftar)*',
+            isUser: false,
+            time: _getCurrentTime(),
+          ));
+        } else {
+          _messages.add(_ChatMessage(
+            text: reply,
+            isUser: false,
+            time: _getCurrentTime(),
+          ));
+        }
       });
 
       _scrollToBottom();

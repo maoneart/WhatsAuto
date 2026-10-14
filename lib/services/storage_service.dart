@@ -38,6 +38,7 @@ class StorageService {
     await prefs.setBool(_keyNativeEnabled, settings.isAutoReplyEnabled);
     await prefs.setString(_keyNativeDefaultReply, settings.defaultReply);
     await prefs.setBool(_keyNativeKeywordEnabled, settings.isKeywordReplyEnabled);
+    await prefs.setBool('only_reply_keywords', settings.onlyReplyKeywords);
   }
 
   static Future<List<KeywordReply>> loadKeywordReplies() async {

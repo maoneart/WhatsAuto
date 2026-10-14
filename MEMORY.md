@@ -93,11 +93,20 @@
 - **Implementasi**: Disinkronkan penuh pada `auto_reply_engine.dart`, `MaoneAutoNotificationService.kt`, dan `test_reply_simulator_screen.dart`.
 - **Versi**: Dinaikkan ke `v1.0.6+7`.
 
+### 🔇 Mode Respon Diam Eksklusif Kata Kunci (v1.0.7+8 - 15 Oktober 2026)
+- **Konsep**: Bot hanya merespons jika pesan masuk cocok dengan kata kunci terdaftar (atau kata kunci pembuka menu). Pesan acak/santai diabaikan sepenuhnya (bot diam) agar tidak mengganggu percakapan umum.
+- **Implementasi**:
+  1. Menambahkan field `onlyReplyKeywords` (default: `true`) di `AppSettings` dan menyimpannya di SharedPreferences (`flutter.only_reply_keywords`).
+  2. Di `auto_reply_engine.dart`: Mengembalikan string kosong jika pesan tidak cocok kata kunci.
+  3. Di `test_reply_simulator_screen.dart`: Menampilkan indikator feedback `🔇 (Pesan diabaikan: Tidak cocok dengan kata kunci terdaftar)` saat user mengetik kata acak di simulator.
+  4. Di `MaoneAutoNotificationService.kt`: Mengembalikan `null` jika pesan tidak cocok kata kunci, sehingga notifikasi diabaikan dan WhatsApp tidak membalas apapun.
+- **Versi**: Dinaikkan ke `v1.0.7+8`.
+
 ---
 
 ## 📋 Active Tasks / Next Steps
-- [x] Build APK v1.0.6+7 selesai dan tersimpan di `/sdcard/Download/MaoneAuto.apk` (52 MB).
-- [ ] Verifikasi uji coba aktivasi menu via kata kunci dan drill-down submenu di WhatsApp & Simulator.
+- [ ] Pantau build APK v1.0.7+8 dan unduh otomatis ke `/sdcard/Download/MaoneAuto.apk`.
+- [ ] Verifikasi uji coba mode diam dan respon kata kunci di WhatsApp & Simulator.
 - [ ] Integrasi webhook lokal opsional (Termux Port 3000 / 8085).
 
 

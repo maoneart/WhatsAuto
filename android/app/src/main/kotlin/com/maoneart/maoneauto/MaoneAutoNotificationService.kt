@@ -295,7 +295,11 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                 return renderMenu(nodes, "parent")
             }
 
-            // C. Pesan biasa di luar menu -> Beri balasan default tanpa spam menu
+            // C. Pesan biasa di luar menu -> Diam sepenuhnya jika bukan kata kunci terdaftar!
+            val onlyKeywords = prefs.getBoolean("flutter.only_reply_keywords", true)
+            if (onlyKeywords) {
+                return null
+            }
             return defaultReply
         } catch (e: Exception) {
             Log.e(TAG, "Error in computeReply: ${e.message}")

@@ -139,7 +139,11 @@ class AutoReplyEngine {
       return renderMenu('parent');
     }
 
-    // C. Pesan santai / umum di luar menu -> Beri balasan default tanpa spam menu
+    // C. Pesan santai / umum di luar menu
+    if (settings.onlyReplyKeywords) {
+      // Diam / jangan balas apapun jika bukan kata kunci terdaftar!
+      return '';
+    }
     return settings.defaultReply;
   }
 

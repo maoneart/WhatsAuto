@@ -12,6 +12,7 @@ class AppSettings {
   String serverWebhookUrl;
   Map<String, bool> supportedApps;
   bool isKeywordReplyEnabled;
+  bool onlyReplyKeywords;
 
   AppSettings({
     this.isAutoReplyEnabled = true,
@@ -26,6 +27,7 @@ class AppSettings {
     this.aiCustomPrompt = 'Anda adalah customer support ramah. Jawab pertanyaan pelanggan dengan singkat dan solutif.',
     this.serverWebhookUrl = '',
     this.isKeywordReplyEnabled = true,
+    this.onlyReplyKeywords = true,
     Map<String, bool>? supportedApps,
   }) : supportedApps = supportedApps ?? {
           'WhatsApp': true,
@@ -47,6 +49,7 @@ class AppSettings {
     'aiCustomPrompt': aiCustomPrompt,
     'serverWebhookUrl': serverWebhookUrl,
     'isKeywordReplyEnabled': isKeywordReplyEnabled,
+    'onlyReplyKeywords': onlyReplyKeywords,
     'supportedApps': supportedApps,
   };
 
@@ -63,6 +66,7 @@ class AppSettings {
     aiCustomPrompt: json['aiCustomPrompt'] ?? '',
     serverWebhookUrl: json['serverWebhookUrl'] ?? '',
     isKeywordReplyEnabled: json['isKeywordReplyEnabled'] ?? true,
+    onlyReplyKeywords: json['onlyReplyKeywords'] ?? true,
     supportedApps: (json['supportedApps'] as Map<String, dynamic>?)?.map((k, v) => MapEntry(k, v as bool)) ?? {
       'WhatsApp': true,
       'WhatsApp Business': true,
