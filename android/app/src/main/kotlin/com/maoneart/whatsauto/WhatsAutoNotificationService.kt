@@ -66,10 +66,11 @@ class WhatsAutoNotificationService : NotificationListenerService() {
     private fun findQuickReplyAction(notification: Notification): ActionInfo? {
         val actions = notification.actions ?: return null
         for (action in actions) {
+            val pendingIntent = action.actionIntent ?: continue
             val remoteInputs = action.remoteInputs ?: continue
             for (ri in remoteInputs) {
                 if (ri.resultKey != null) {
-                    return ActionInfo(action.actionIntent, ri)
+                    return ActionInfo(pendingIntent, ri)
                 }
             }
         }
