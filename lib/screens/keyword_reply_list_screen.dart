@@ -89,20 +89,22 @@ class _KeywordReplyListScreenState extends State<KeywordReplyListScreen> {
   }
 
   Future<void> _deleteRule(int index) async {
-    GlassmorphismModal.showConfirmModal(
+    final confirmed = await GlassmorphismModal.showConfirmModal(
       context: context,
       title: 'Hapus Balasan Kata Kunci',
       message: 'Apakah Anda yakin ingin menghapus aturan balasan kata kunci ini?',
       confirmText: 'Hapus',
       cancelText: 'Batal',
-      isDestructive: true,
-      onConfirm: () async {
-        setState(() {
-          _rules.removeAt(index);
-        });
-        await StorageService.saveKeywordReplies(_rules);
-      },
+      confirmColor: Colors.redAccent,
+      icon: Icons.delete_outline,
     );
+
+    if (confirmed == true) {
+      setState(() {
+        _rules.removeAt(index);
+      });
+      await StorageService.saveKeywordReplies(_rules);
+    }
   }
 
   void _showGenerateModal() {
