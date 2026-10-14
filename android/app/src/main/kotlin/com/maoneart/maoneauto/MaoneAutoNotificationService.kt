@@ -177,61 +177,126 @@ class MaoneAutoNotificationService : NotificationListenerService() {
             }
 
             val sessionPrefKey = "flutter.session_$sender"
-            val currentParent = prefs.getString(sessionPrefKey, "parent") ?: "parent"
+            val currentParent = prefs.getString(sessionPrefKey, "idle") ?: "idle"
 
-            // A. Cek apakah pengirim ingin reset ke menu utama
+            // =========================================================================
+            // FASE 1: Jika Pengguna Sedang Berada di Dalam Sesi Menu Aktif (Bukan Idle)
+            // =========================================================================
+            if (currentParent != "idle") {
+                // 1. Perintah Keluar / Batal
+                if (cleanMsg.equals("batal", ignoreCase = true) ||
+                    cleanMsg.equals("keluar", ignoreCase = true) ||
+                    cleanMsg.equals("exit", ignoreCase = true)) {
+                    prefs.edit().putString(sessionPrefKey, "idle").apply()
+                    return "Anda telah keluar dari menu interaktif. Ketik *menu* kapan saja untuk membukanya kembali."
+                }
+
+                // 2. Tombol 0 (Kembali ke Menu Utama atau Keluar)
+                if (cleanMsg == "0") {
+                    if (currentParent != "parent") {
+                        prefs.edit().putString(sessionPrefKey, "parent").apply()
+                        return renderMenu(nodes, "parent")
+                    } else {
+                        prefs.edit().putString(sessionPrefKey, "idle").apply()
+                        return "Anda telah keluar dari menu interaktif. Ketik *menu* kapan saja untuk membukanya kembali."
+                    }
+                }
+
+                // 3. Cocokkan pilihan dengan opsi di bawah currentParent
+                val options = nodes.filter { it.optString("parentId") == currentParent && it.optInt("type") == 2 }
+                var matchedOption: JSONObject? = null
+
+                val numChoice = cleanMsg.toIntOrNull()
+                if (numChoice != null && numChoice in 1..options.size) {
+                    matchedOption = options[numChoice - 1]
+                } else {
+                    matchedOption = options.firstOrNull {
+                        val optText = it.optString("text").trim()
+                        optText.equals(cleanMsg, ignoreCase = true) || optText.contains(cleanMsg, ignoreCase = true)
+                    }
+                }
+
+                if (matchedOption != null) {
+                    val matchedId = matchedOption.optString("id")
+                    val subPrompt = nodes.firstOrNull { it.optString("parentId") == matchedId && it.optInt("type") == 1 }
+                    val subOptions = nodes.filter { it.optString("parentId") == matchedId && it.optInt("type") == 2 }
+
+                    if (subOptions.isNotEmpty()) {
+                        // Masuk ke submenu bertingkat berikutnya
+                        prefs.edit().putString(sessionPrefKey, matchedId).apply()
+                        return renderMenu(nodes, matchedId)
+                    } else if (subPrompt != null) {
+                        // Leaf response (detail produk/harga)
+                        val returnPrompt = "\n\n*(Ketik 0 untuk kembali ke menu, atau ketik 'keluar')*"
+                        return subPrompt.optString("text") + returnPrompt
+                    } else {
+                        return matchedOption.optString("text") + "\n\n*(Ketik 0 untuk kembali ke menu, atau ketik 'keluar')*"
+                    }
+                }
+
+                // Jika input salah saat berada di dalam menu
+                return "⚠️ *Pilihan tidak ditemukan.*\nSilakan balas dengan *Nomor* opsi yang tertera:\n\n" + renderMenu(nodes, currentParent)
+            }
+
+            // =========================================================================
+            // FASE 2: Sesi Idle (Pesan biasa / Pemicu Kata Kunci Baru)
+            // =========================================================================
+
+            // A. Cek Balasan Kata Kunci (Keyword Replies)
+            if (isKeywordEnabled && !keywordJsonStr.isNullOrEmpty()) {
+                try {
+                    val kwArray = JSONArray(keywordJsonStr)
+                    for (i in 0 until kwArray.length()) {
+                        val rule = kwArray.getJSONObject(i)
+                        if (!rule.optBoolean("isEnabled", true)) continue
+                        val rawKeywords = rule.optString("incomingKeywords", "")
+                        val isExact = rule.optBoolean("isExactMatch", true)
+                        val keywordsList = rawKeywords.split(",").map { it.trim().lowercase() }.filter { it.isNotEmpty() }
+                        val lowerMsg = cleanMsg.lowercase()
+
+                        val isMatch = if (isExact) {
+                            keywordsList.any { lowerMsg == it }
+                        } else {
+                            keywordsList.any { lowerMsg.contains(it) }
+                        }
+
+                        if (isMatch) {
+                            var rep = rule.optString("replyMessage", "")
+                            val senderParts = sender.split(" ")
+                            val firstName = senderParts.firstOrNull() ?: sender
+                            val lastName = if (senderParts.size > 1) senderParts.drop(1).joinToString(" ") else ""
+
+                            rep = rep.replace("{{nama}}", sender, ignoreCase = true)
+                            rep = rep.replace("{{nama_depan}}", firstName, ignoreCase = true)
+                            rep = rep.replace("{{nama_belakang}}", lastName, ignoreCase = true)
+
+                            // Jika aturan ini memanggil Menu Balas -> Aktifkan sesi menu!
+                            if (rule.optBoolean("useMenuReply", false)) {
+                                prefs.edit().putString(sessionPrefKey, "parent").apply()
+                                val menuText = renderMenu(nodes, "parent")
+                                return if (rep.isBlank()) menuText else "$rep\n\n$menuText"
+                            }
+                            if (rep.isNotBlank()) {
+                                return rep
+                            }
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error checking keyword replies: ${e.message}")
+                }
+            }
+
+            // B. Kata kunci default pemanggil menu ("menu", "katalog", "bantuan")
             if (cleanMsg.equals("menu", ignoreCase = true) ||
-                cleanMsg.equals("halo", ignoreCase = true) ||
-                cleanMsg.equals("hi", ignoreCase = true) ||
-                cleanMsg.equals("batal", ignoreCase = true) ||
-                cleanMsg == "0") {
+                cleanMsg.equals("katalog", ignoreCase = true) ||
+                cleanMsg.equals("pilihan", ignoreCase = true) ||
+                cleanMsg.equals("bantuan", ignoreCase = true)) {
                 prefs.edit().putString(sessionPrefKey, "parent").apply()
                 return renderMenu(nodes, "parent")
             }
 
-            // B. Cocokkan pilihan dengan opsi di bawah currentParent
-            val options = nodes.filter { it.optString("parentId") == currentParent && it.optInt("type") == 2 }
-
-            var matchedOption: JSONObject? = null
-
-            // 1. Cek kecocokan berdasarkan nomor urut (1, 2, 3...)
-            val numChoice = cleanMsg.toIntOrNull()
-            if (numChoice != null && numChoice in 1..options.size) {
-                matchedOption = options[numChoice - 1]
-            } else {
-                // 2. Cek kecocokan berdasarkan teks judul opsi
-                matchedOption = options.firstOrNull {
-                    val optText = it.optString("text").trim()
-                    optText.equals(cleanMsg, ignoreCase = true) || optText.contains(cleanMsg, ignoreCase = true)
-                }
-            }
-
-            if (matchedOption != null) {
-                val matchedId = matchedOption.optString("id")
-                // Cek apakah node ini memiliki anak opsi (submenu)
-                val subPrompt = nodes.firstOrNull { it.optString("parentId") == matchedId && it.optInt("type") == 1 }
-                val subOptions = nodes.filter { it.optString("parentId") == matchedId && it.optInt("type") == 2 }
-
-                if (subOptions.isNotEmpty()) {
-                    prefs.edit().putString(sessionPrefKey, matchedId).apply()
-                    return renderMenu(nodes, matchedId)
-                } else if (subPrompt != null) {
-                    // Leaf response (detail harga / info)
-                    prefs.edit().putString(sessionPrefKey, "parent").apply()
-                    val returnPrompt = "\n\n*(Ketik 0 atau 'menu' untuk kembali ke menu utama)*"
-                    return subPrompt.optString("text") + returnPrompt
-                } else {
-                    prefs.edit().putString(sessionPrefKey, "parent").apply()
-                    return matchedOption.optString("text") + "\n\n*(Ketik 0 atau 'menu' untuk kembali ke menu utama)*"
-                }
-            }
-
-            // C. Jika input tidak cocok
-            if (currentParent == "parent") {
-                return renderMenu(nodes, "parent")
-            } else {
-                return "⚠️ *Pilihan tidak ditemukan.*\nSilakan balas dengan *Nomor* opsi yang tertera di bawah:\n\n" + renderMenu(nodes, currentParent)
-            }
+            // C. Pesan biasa di luar menu -> Beri balasan default tanpa spam menu
+            return defaultReply
         } catch (e: Exception) {
             Log.e(TAG, "Error in computeReply: ${e.message}")
             return defaultReply

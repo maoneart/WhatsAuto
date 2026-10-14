@@ -83,11 +83,21 @@
   4. Integrasi penuh dengan `AutoReplyEngine.dart`, simulator chat interaktif (`test_reply_simulator_screen.dart`), serta background service Kotlin Android (`MaoneAutoNotificationService.kt`).
   5. Versi dinaikkan ke `v1.0.4+5`.
 
+### 🌳 Arsitektur Menu Balas Terpanggil Kata Kunci & Sesi Interaktif Bertingkat (v1.0.6+7 - 15 Oktober 2026)
+- **Konsep**: Menu Balas bukan dikirim sembarangan pada setiap pesan masuk, melainkan diaktifkan secara eksklusif lewat **Balasan Kata Kunci** (misal: "menu", "katalog", atau kata kunci kustom yang mencentang `Menu Balas`).
+- **Mekanisme State Machine**:
+  1. **Status Idle**: Pesan biasa yang masuk di luar sesi menu dibalas dengan sapaan default ramah tanpa melakukan spam pohon menu.
+  2. **Aktivasi Sesi**: Ketika pelanggan mengirim kata kunci (misal "menu"), sesi aktif dimulai (`session = 'parent'`) dan Menu Balas level utama dikirim.
+  3. **Navigasi Submenu Bertingkat**: Selama sesi aktif, balasan angka (1, 2, 3...) akan membawa pelanggan menelusuri submenu secara bertingkat (misal: Cek Harga ➔ Handphone ➔ iPhone ➔ iPhone 12).
+  4. **Keluar & Kembali**: Ketik `0` untuk kembali ke level menu utama atau keluar dari sesi, dan ketik `batal` / `keluar` untuk menutup sesi menu.
+- **Implementasi**: Disinkronkan penuh pada `auto_reply_engine.dart`, `MaoneAutoNotificationService.kt`, dan `test_reply_simulator_screen.dart`.
+- **Versi**: Dinaikkan ke `v1.0.6+7`.
+
 ---
 
 ## 📋 Active Tasks / Next Steps
-- [x] Build APK v1.0.4+5 selesai dan tersimpan di `/sdcard/Download/MaoneAuto.apk` (52 MB).
-- [ ] Verifikasi uji coba fitur Balasan Kata Kunci dan Pohon Menu di WhatsApp.
+- [ ] Pantau build APK v1.0.6+7 dan unduh otomatis ke `/sdcard/Download/MaoneAuto.apk`.
+- [ ] Verifikasi uji coba aktivasi menu via kata kunci dan drill-down submenu di WhatsApp & Simulator.
 - [ ] Integrasi webhook lokal opsional (Termux Port 3000 / 8085).
 
 

@@ -6,7 +6,7 @@ class AutoReplyEngine {
   final List<MenuNode> nodes;
   final List<KeywordReply> keywordReplies;
   final AppSettings settings;
-  final Map<String, String> _sessions = {}; // senderId -> current parentId
+  final Map<String, String> _sessions = {}; // senderId -> 'idle', 'parent', or '<node_id>'
 
   AutoReplyEngine({
     required this.nodes,
@@ -15,7 +15,7 @@ class AutoReplyEngine {
   });
 
   void resetSession(String senderId) {
-    _sessions[senderId] = 'parent';
+    _sessions[senderId] = 'idle';
   }
 
   String processMessage({
@@ -23,9 +23,77 @@ class AutoReplyEngine {
     required String incomingMessage,
   }) {
     final cleanMsg = incomingMessage.trim();
-    final currentParent = _sessions[senderId] ?? 'parent';
+    final lowerMsg = cleanMsg.toLowerCase();
+    final currentParent = _sessions[senderId] ?? 'idle';
 
-    // 1. Cek Balasan Kata Kunci (Keyword Replies) jika diaktifkan
+    // -------------------------------------------------------------------------
+    // FASE 1: Jika Pengguna Sedang Berada di Dalam Sesi Menu Aktif (Bukan Idle)
+    // -------------------------------------------------------------------------
+    if (currentParent != 'idle') {
+      // 1. Perintah Keluar / Batal
+      if (lowerMsg == 'batal' || lowerMsg == 'keluar' || lowerMsg == 'exit') {
+        _sessions[senderId] = 'idle';
+        return 'Anda telah keluar dari menu interaktif. Ketik *menu* kapan saja untuk membukanya kembali.';
+      }
+
+      // 2. Tombol 0 (Kembali ke Menu Utama atau Keluar)
+      if (cleanMsg == '0') {
+        if (currentParent != 'parent') {
+          _sessions[senderId] = 'parent';
+          return renderMenu('parent');
+        } else {
+          _sessions[senderId] = 'idle';
+          return 'Anda telah keluar dari menu interaktif. Ketik *menu* kapan saja untuk membukanya kembali.';
+        }
+      }
+
+      // 3. Ambil opsi di bawah parent saat ini
+      final options = nodes.where((n) => n.parentId == currentParent && n.type == 2).toList();
+      MenuNode? matchedOption;
+
+      final int? numChoice = int.tryParse(cleanMsg);
+      if (numChoice != null && numChoice >= 1 && numChoice <= options.length) {
+        matchedOption = options[numChoice - 1];
+      } else {
+        matchedOption = options.firstWhere(
+          (opt) {
+            final title = opt.text.toLowerCase().trim();
+            return title == lowerMsg || title.contains(lowerMsg);
+          },
+          orElse: () => MenuNode(id: '', text: '', parentId: '', type: 0),
+        );
+        if (matchedOption.id.isEmpty) matchedOption = null;
+      }
+
+      if (matchedOption != null) {
+        final selectedId = matchedOption.id;
+        final subOptions = nodes.where((n) => n.parentId == selectedId && n.type == 2).toList();
+        final subPrompt = nodes.firstWhere(
+          (n) => n.parentId == selectedId && n.type == 1,
+          orElse: () => MenuNode(id: '', text: '', parentId: '', type: 0),
+        );
+
+        if (subOptions.isNotEmpty) {
+          // Masuk ke level submenu berikutnya
+          _sessions[senderId] = selectedId;
+          return renderMenu(selectedId);
+        } else if (subPrompt.id.isNotEmpty) {
+          // Leaf response (detail info/harga)
+          return '${subPrompt.text.trim()}\n\n*(Ketik 0 untuk kembali ke menu, atau ketik "keluar")*';
+        } else {
+          return '${matchedOption.text.trim()}\n\n*(Ketik 0 untuk kembali ke menu, atau ketik "keluar")*';
+        }
+      }
+
+      // Jika input salah saat berada di dalam menu aktif
+      return '⚠️ *Pilihan tidak ditemukan.*\nSilakan balas dengan *Nomor* opsi yang tertera:\n\n${renderMenu(currentParent)}';
+    }
+
+    // -------------------------------------------------------------------------
+    // FASE 2: Sesi Idle (Pesan biasa / Pemicu Kata Kunci Baru)
+    // -------------------------------------------------------------------------
+
+    // A. Cek Balasan Kata Kunci (Keyword Replies)
     if (settings.isKeywordReplyEnabled && keywordReplies.isNotEmpty) {
       for (final rule in keywordReplies) {
         if (!rule.isEnabled) continue;
@@ -33,7 +101,6 @@ class AutoReplyEngine {
             .split(',')
             .map((k) => k.trim().toLowerCase())
             .where((k) => k.isNotEmpty);
-        final lowerMsg = cleanMsg.toLowerCase();
 
         bool isMatch = false;
         if (rule.isExactMatch) {
@@ -52,13 +119,13 @@ class AutoReplyEngine {
           reply = reply.replaceAll(RegExp(r'\{\{nama_depan\}\}', caseSensitive: false), firstName);
           reply = reply.replaceAll(RegExp(r'\{\{nama_belakang\}\}', caseSensitive: false), lastName);
 
+          // Jika aturan ini memanggil Menu Balas -> Aktifkan sesi menu!
           if (rule.useMenuReply) {
             _sessions[senderId] = 'parent';
-            if (reply.trim().isEmpty) {
-              return renderMenu('parent');
-            }
-            return '$reply\n\n${renderMenu('parent')}';
+            final menuText = renderMenu('parent');
+            return reply.trim().isEmpty ? menuText : '$reply\n\n$menuText';
           }
+
           if (reply.trim().isNotEmpty) {
             return reply;
           }
@@ -66,81 +133,22 @@ class AutoReplyEngine {
       }
     }
 
-    // 2. Keyword reset / kembali ke menu awal
-    if (cleanMsg.toLowerCase() == 'menu' ||
-        cleanMsg.toLowerCase() == 'halo' ||
-        cleanMsg.toLowerCase() == 'hi' ||
-        cleanMsg.toLowerCase() == 'batal' ||
-        cleanMsg == '0') {
+    // B. Kata kunci umum pemanggil menu utama
+    if (lowerMsg == 'menu' || lowerMsg == 'katalog' || lowerMsg == 'pilihan' || lowerMsg == 'bantuan') {
       _sessions[senderId] = 'parent';
       return renderMenu('parent');
     }
 
-    // 2. Ambil semua opsi yang berada di bawah currentParent
-    final options = nodes.where((n) => n.parentId == currentParent && n.type == 2).toList();
-
-    MenuNode? matchedOption;
-
-    // A. Cek kecocokan berdasarkan nomor urut (1, 2, 3...)
-    final int? numChoice = int.tryParse(cleanMsg);
-    if (numChoice != null && numChoice >= 1 && numChoice <= options.length) {
-      matchedOption = options[numChoice - 1];
-    } else {
-      // B. Cek kecocokan berdasarkan teks judul opsi
-      matchedOption = options.firstWhere(
-        (opt) {
-          final title = opt.text.toLowerCase().trim();
-          final q = cleanMsg.toLowerCase();
-          return title == q || title.contains(q);
-        },
-        orElse: () => MenuNode(id: '', text: '', parentId: '', type: 0),
-      );
-      if (matchedOption.id.isEmpty) matchedOption = null;
-    }
-
-    if (matchedOption != null) {
-      final selectedId = matchedOption.id;
-
-      // Cek apakah node yang dipilih memiliki opsi anak (submenu)
-      final subOptions = nodes.where((n) => n.parentId == selectedId && n.type == 2).toList();
-      final subPrompt = nodes.firstWhere(
-        (n) => n.parentId == selectedId && n.type == 1,
-        orElse: () => MenuNode(id: '', text: '', parentId: '', type: 0),
-      );
-
-      if (subOptions.isNotEmpty) {
-        // Masuk ke level submenu berikutnya
-        _sessions[senderId] = selectedId;
-        return renderMenu(selectedId);
-      } else if (subPrompt.id.isNotEmpty) {
-        // Leaf response (misal: Spesifikasi HP / Harga Cicilan / Maaf Belum Tersedia)
-        _sessions[senderId] = 'parent'; // Reset agar interaksi berikutnya kembali ke menu utama
-        return '${subPrompt.text.trim()}\n\n*(Ketik 0 atau "menu" untuk kembali ke menu utama)*';
-      } else {
-        // Jika tidak ada sub-prompt, tampilkan teks opsi itu sendiri
-        _sessions[senderId] = 'parent';
-        return '${matchedOption.text.trim()}\n\n*(Ketik 0 atau "menu" untuk kembali ke menu utama)*';
-      }
-    }
-
-    // 3. Jika input tidak cocok
-    if (currentParent == 'parent') {
-      // Jika di root dan tidak ada kata kunci menu yang cocok, tampilkan default reply atau menu root
-      return renderMenu('parent');
-    } else {
-      // Jika di dalam submenu tapi input salah, beri tahu dan tampilkan menu saat ini
-      return '⚠️ *Pilihan tidak ditemukan.*\nSilakan balas dengan *Nomor* opsi yang tertera di bawah:\n\n${renderMenu(currentParent)}';
-    }
+    // C. Pesan santai / umum di luar menu -> Beri balasan default tanpa spam menu
+    return settings.defaultReply;
   }
 
   String renderMenu(String parentId) {
-    // 1. Ambil prompt teks untuk level ini
     final promptNode = nodes.firstWhere(
       (n) => n.parentId == parentId && n.type == 1,
       orElse: () => MenuNode(id: '', text: '', parentId: '', type: 0),
     );
 
-    // 2. Ambil seluruh opsi untuk level ini
     final options = nodes.where((n) => n.parentId == parentId && n.type == 2).toList();
 
     final buffer = StringBuffer();
@@ -155,14 +163,15 @@ class AutoReplyEngine {
 
     for (int i = 0; i < options.length; i++) {
       final opt = options[i];
-      // Bersihkan angka bawaan di awal jika ada agar tidak double numbering
       final cleanTitle = opt.text.trim().replaceFirst(RegExp(r'^\d+\.\s*'), '');
       buffer.writeln('${i + 1}. $cleanTitle');
     }
 
+    buffer.writeln();
     if (parentId != 'parent') {
-      buffer.writeln();
       buffer.writeln('0. ↩️ Kembali ke Menu Utama');
+    } else {
+      buffer.writeln('0. ❌ Tutup Menu');
     }
 
     return buffer.toString().trim();

@@ -46,10 +46,10 @@ class _TestReplySimulatorScreenState extends State<TestReplySimulatorScreen> {
 
   void _simulateInitialGreeting() {
     if (_engine == null) return;
-    final initialReply = _engine!.renderMenu('parent');
+    const greeting = '👋 Halo! Asisten MaoneAuto siap melayani Anda.\n\nKetik *menu* atau kirim kata kunci yang Anda atur untuk membuka Menu Balas interaktif.';
     setState(() {
       _messages.add(_ChatMessage(
-        text: initialReply,
+        text: greeting,
         isUser: false,
         time: _getCurrentTime(),
       ));
@@ -172,17 +172,17 @@ class _TestReplySimulatorScreenState extends State<TestReplySimulatorScreen> {
                     scrollDirection: Axis.horizontal,
                     child: Row(
                       children: [
+                        _buildQuickChip('menu', () => _sendMessage('menu')),
+                        const SizedBox(width: 6),
                         _buildQuickChip('1', () => _sendMessage('1')),
                         const SizedBox(width: 6),
                         _buildQuickChip('2', () => _sendMessage('2')),
                         const SizedBox(width: 6),
                         _buildQuickChip('3', () => _sendMessage('3')),
                         const SizedBox(width: 6),
-                        _buildQuickChip('4', () => _sendMessage('4')),
+                        _buildQuickChip('0 (Kembali)', () => _sendMessage('0')),
                         const SizedBox(width: 6),
-                        _buildQuickChip('0 (Menu)', () => _sendMessage('0')),
-                        const SizedBox(width: 6),
-                        _buildQuickChip('Halo', () => _sendMessage('Halo')),
+                        _buildQuickChip('keluar', () => _sendMessage('keluar')),
                       ],
                     ),
                   ),
