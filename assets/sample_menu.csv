@@ -1,0 +1,241 @@
+"1","Ada yang *Kaido* dapat bantu untuk Anda hari ini?\n\nSilakan pilih satu *Nomor* atau opsi menu yang Anda inginkan:","parent",1
+"2","Cek Harga","parent",2
+"3","Cek Informasi","parent",2
+"4","Open Donasi Untuk Anak-Anak Penghafal Al-Quran","parent",2
+"15","*CEK HARGA BARANG YANG DICARI* \n\nSilakan pilih satu *Nomor* atau opsi menu yang Anda inginkan:","2",1
+"16","Cek Harga Hp","2",2
+"17","Cek Harga Laptop","2",2
+"18","Cek Harga Mesin Cuci","2",2
+"19","Cek Harga Kulkas","2",2
+"20","Cek Harga Mesin Cuci","2",2
+"24","*DAFTAR HANDPHONE READY STOK* \n\nSilakan pilih satu *Nomor* atau opsi menu yang Anda inginkan:","16",1
+"25","Iphone","16",2
+"26","Infinix","16",2
+"27","Oppo","16",2
+"28","Realme","16",2
+"29","Samsung","16",2
+"30","Vivo","16",2
+"31","Xiaomi","16",2
+"32","*Daftar Harga Iphone*\n\nSilakan pilih satu *Nomor* atau opsi menu yang Anda inginkan:","25",1
+"33","Iphone 12","25",2
+"34","Iphone 11","25",2
+"35","Iphone X","25",2
+"36","Daftar Iphone 12\n\nSilakan pilih satu *Nomor* atau opsi menu yang Anda inginkan:","33",1
+"38","*Daftar Iphone 11*\n\nSilakan pilih satu *Nomor* atau opsi menu yang Anda inginkan:","34",1
+"39","Iphone 11","34",2
+"40","Iphone 11 Pro","34",2
+"41","Iphone 11 Pro Max","34",2
+"44","Iphone 12","33",2
+"45","Maaf Iphone 12 Belum Tersedia","44",1
+"46","Iphone 12 Pro","33",2
+"47","Maaf Iphone 12 Pro Belum Tersedia","46",1
+"48","Iphone 12 Pro Max","33",2
+"49","Maaf Iphone 12 Pro Max Belum Tersedia","48",1
+"50","Maaf Iphone 11 Belum Tersedia","39",1
+"51","Maaf Iphone 11 Pro Belum Tersedia","40",1
+"52","Maaf Iphone 11 Pro Max Belum Tersedia","41",1
+"54","*Daftar Iphone X*\n\nSilakan pilih satu *Nomor* atau opsi menu yang Anda inginkan:","35",1
+"55","Iphone X","35",2
+"56","Iphone XR","35",2
+"57","Iphone XS Max","35",2
+"58","Maaf Iphone X Belum Tersedia","55",1
+"59","Maaf Iphone XR Belum Tersia","56",1
+"60","Maaf Iphone XS Max Belum Tersedia","57",1
+"61","*Daftar Harga Infinix*\n\nSilakan pilih satu *Nomor* atau opsi menu yang Anda inginkan:","26",1
+"82","Infinix Hot 10","26",2
+"83","Infinix Hot 11","26",2
+"84","Daftar Hp Infinix Hot 10\n\nSilakan pilih satu *Nomor* atau opsi menu yang Anda inginkan:","82",1
+"85","Infinix Hot 10","82",2
+"86","Infinix Hot 10s","82",2
+"87","Infinix Hot 10 Play","82",2
+"89","Maaf Infinix Hot 10 Belum Tersedia","85",1
+"90","╭──❉ *SPESIFIKASI* ❉─────\n│➸ Procesor : Helio G85\n│➸ Camera : 48.0 MP + 2.0 MP + AI Lens + Quard Flash Light\n│➸ Front Camera : 8.0 MP\n│➸ RAM : 4 Gb, 6 Gb\n│➸ ROM : 128 Gb\n│➸ Battery : 5.000 mAh\n╰───────────────\n\n╭──❉ *HARGA* ❉───────\n│➸ Ram / Rom : 4 Gb / 128 Gb\n│ Rp. 820.000 / 3 Bulan\n│ Rp. 460.000 / 6 Bulan\n│\n│➸ Ram / Rom : 6 Gb / 128 Gb\n│ Rp. 850.000 / 3 Bulan\n│ Rp. 470.000 / 6 Bulan\n╰───────────────","86",1
+"91","Maaf Infinix Hot 10 Play Belum Tersedia","87",1
+"92","Daftar Hp Infinix Hot 11\n\nSilakan pilih satu *Nomor* atau opsi menu yang Anda inginkan:","83",1
+"93","Infinix Hot 11","83",2
+"94","Infinix Hot 11s","83",2
+"95","╭──❉ *SPESIFIKASI* ❉─────\n│➸ Procesor : Helio G70\n│➸ Camera : 13.0 MP + AI Lens + Quard Flash Light\n│➸ Front Camera : 8.0 MP\n│➸ RAM : 4 Gb\n│➸ ROM : 64 Gb\n│➸ Battery : 5.200 mAh\n╰───────────────\n\n╭──❉ *HARGA* ❉───────\n│➸ Ram / Rom : 4 Gb / 64 Gb\n│ Rp. 720.000 / 3 Bulan\n│ Rp. 410.000 / 6 Bulan\n╰───────────────","93",1
+"96","Maaf Infinix Hot 11s Belum Tersedia","94",1
+"97","Infinix Note 10","26",2
+"98","Daftar Hp Infinix Note 10\n\nSilakan pilih satu *Nomor* atau opsi menu yang Anda inginkan:","97",1
+"99","Infinix Note 10","97",2
+"101","Infinix Note 10 Pro NFC","97",2
+"102","╭──❉ *SPESIFIKASI* ❉─────\n│➸ Procesor : Helio G85\n│➸ Camera : 48.0 MP + 2.0 MP + 2.0 MP\n│➸ Front Camera : 16.0 MP\n│➸ RAM : 4 Gb, 6 Gb\n│➸ ROM : 64 Gb / 128 Gb\n│➸ Battery : 5.000 mAh\n╰───────────────\n\n╭──❉ *HARGA* ❉───────\n│➸ Ram / Rom : 4 Gb / 64 Gb\n│ Rp. 790.000 / 3 Bulan\n│ Rp. 440.000 / 6 Bulan\n╰───────────────","99",1
+"103","╭──❉ *SPESIFIKASI* ❉─────\n│➸ Procesor : Helio G95\n│➸ Camera : 64.0 MP + 8.0 MP + 2.0 MP + 2.0 MP\n│➸ Front Camera : 16.0 MP\n│➸ RAM : 6 Gb, 8 Gb\n│➸ ROM : 127 Gb / 256 Gb\n│➸ Battery : 5.000 mAh\n╰───────────────\n\n╭──❉ *HARGA* ❉───────\n│➸ Ram / Rom : 6 Gb / 64 Gb\n│ Rp. 1.070.000 / 3 Bulan\n│ Rp. 600.000 / 6 Bulan\n│\n│➸ Ram / Rom : 8 Gb / 128 Gb\n│ Rp. 1.150.000 / 3 Bulan\n│ Rp. 650.000 / 6 Bulan\n╰───────────────","101",1
+"104","Daftar Harga Oppo\n\nSilakan pilih satu *Nomor* atau opsi menu yang Anda inginkan:","27",1
+"105","Oppo A Series","27",2
+"106","Daftar Oppo A Series\n\nSilakan pilih satu *Nomor* atau opsi menu yang Anda inginkan:","105",1
+"107","Oppo A53","105",2
+"108","Daftar Oppo A53\n\nSilakan pilih satu *Nomor* atau opsi menu yang Anda inginkan:","107",1
+"109","Oppo A53","107",2
+"110","Oppo A53s","107",2
+"111","╭──❉ *SPESIFIKASI* ❉─────\n│➸ Procesor : Snapdragon 460\n│➸ Camera : 13.0 MP + 2.0 MP + 2.0 MP\n│➸ Front Camera : 16.0 MP\n│➸ RAM : 4 Gb, 6 Gb\n│➸ ROM : 64 Gb / 128 Gb\n│➸ Battery : 5.000 mAh\n╰───────────────\n\n╭──❉ *HARGA* ❉───────\n│➸ Ram / Rom : 4 Gb / 128 Gb\n│ Rp. 1.100.000 / 3 Bulan\n│ Rp. 600.000 / 6 Bulan\n╰───────────────","109",1
+"112","Maaf Oppo A53s Belum Tersedia","110",1
+"113","Oppo A16","105",2
+"114","Daftar Oppo A16\n\nSilakan pilih satu *Nomor* atau opsi menu yang Anda inginkan:","113",1
+"115","Oppo A16","113",2
+"116","Oppo A16k","113",2
+"117","Maaf Oppo A16k Belum Tersedia","116",1
+"118","╭──❉ *SPESIFIKASI* ❉─────\n│➸ Procesor : Helio G35\n│➸ Camera : 13.0 MP + 2.0 MP + 2.0 MP\n│➸ Front Camera : 8.0 MP\n│➸ RAM : 4 Gb, 6 Gb\n│➸ ROM : 64 Gb / 128 Gb\n│➸ Battery : 5.000 mAh\n╰───────────────\n\n╭──❉ *HARGA* ❉───────\n│➸ Ram / Rom : 3 Gb / 32 Gb\n│ Rp. 820.000 / 3 Bulan\n│ Rp. 450.000 / 6 Bulan\n│\n│➸ Ram / Rom : 4 Gb / 64 Gb\n│ Rp. 1.000.000 / 3 Bulan\n│ Rp. 550.000 / 6 Bulan\n╰───────────────","115",1
+"119","Oppo A15","105",2
+"120","Daftar Oppo A15\n\nSilakan pilih satu *Nomor* atau opsi menu yang Anda inginkan:","119",1
+"121","Oppo A15","119",2
+"122","Oppo A15s","119",2
+"123","╭──❉ *SPESIFIKASI* ❉─────\n│➸ Procesor : Helio P35\n│➸ Camera : 13.0 MP + 2.0 MP + 2.0 MP\n│➸ Front Camera : 5.0 MP\n│➸ RAM : 4 Gb, 6 Gb\n│➸ ROM : 64 Gb / 128 Gb\n│➸ Battery : 4.230 mAh\n╰───────────────\n\n╭──❉ *HARGA* ❉───────\n│➸ Ram / Rom : 4 Gb / 64Gb\n│ Rp. 920.000 / 3 Bulan\n│ Rp. 520.000 / 6 Bulan\n╰───────────────","122",1
+"124","Maaf Oppo A15 Belum Tersedia","121",1
+"125","Oppo A54","105",2
+"126","Daftar Oppo A54\n\nSilakan pilih satu *Nomor* atau opsi menu yang Anda inginkan:","125",1
+"127","Oppo A54","125",2
+"128","Oppo A54s","125",2
+"129","╭──❉ *SPESIFIKASI* ❉─────\n│➸ Procesor : Helio P35\n│➸ Camera : 13.0 MP + 2.0 MP + 2.0 MP\n│➸ Front Camera : 16.0 MP\n│➸ RAM : 4 Gb, 6 Gb\n│➸ ROM : 64 Gb / 128 Gb\n│➸ Battery : 5.000 mAh\n╰───────────────\n\n╭──❉ *HARGA* ❉───────\n│➸ Ram / Rom : 4 Gb / 64 Gb\n│ Rp. 1.000.000 / 3 Bulan\n│ Rp. 550.000 / 6 Bulan\n│\n│➸ Ram / Rom : 4 Gb / 128Gb\n│ Rp. 1.100.000 / 3 Bulan\n│ Rp. 600.000 / 6 Bulan\n│\n│➸ Ram / Rom : 4 Gb / 64 Gb\n│ Rp. 1.220.000 / 3 Bulan\n│ Rp. 670.000 / 6 Bulan\n╰───────────────","127",1
+"130","Maaf Oppo A54s Belum Tersedia","128",1
+"131","Oppo A74","105",2
+"132","╭──❉ *SPESIFIKASI* ❉─────\n│➸ Procesor : Snapdragon 480\n│➸ Camera : 48.0 MP + 2.0 MP + 2.0 MP\n│➸ Front Camera : 8.0 MP\n│➸ RAM : 4 Gb, 6 Gb\n│➸ ROM : 64 Gb / 128 Gb\n│➸ Battery : 5.000 mAh\n╰───────────────\n\n╭──❉ *HARGA* ❉───────\n│➸ Ram / Rom : 6 Gb / 128 Gb\n│ Rp. 1.350.000 / 3 Bulan\n│ Rp. 740.000 / 6 Bulan\n╰───────────────","131",1
+"133","Oppo Reno Series","27",2
+"134","Daftar Oppo Reno Series\n\nSilakan pilih satu *Nomor* atau opsi menu yang Anda inginkan:","133",1
+"135","Oppo Reno 4","133",2
+"136","Daftar Oppo Reno 4\n\nSilakan pilih satu *Nomor* atau opsi menu yang Anda inginkan:","135",1
+"137","Oppo Reno 4","135",2
+"138","Oppo Reno 4 Pro","135",2
+"139","Oppo Reno 4 f","135",2
+"140","Maaf Oppo Reno 4 Belum Tersedia","137",1
+"141","Maaf Oppo Reno 4 Pro Belum Tersedia","138",1
+"142","╭──❉ *SPESIFIKASI* ❉─────\n│➸ Procesor : Helio P95\n│➸ Camera : 48.0 MP + 8.0 MP +2.0 MP + 2.0 MP\n│➸ Front Camera : 16.0 MP + 2.0 MP\n│➸ RAM : 6 Gb, 8 Gb\n│➸ ROM : 64 Gb / 128 Gb\n│➸ Battery : 4.000 mAh\n╰───────────────\n\n╭──❉ *HARGA* ❉───────\n│➸ Ram / Rom : 8 Gb / 128 Gb\n│ Rp. 1.340.000 / 3 Bulan\n│ Rp. 740.000 / 6 Bulan\n╰───────────────","139",1
+"143","Oppo Reno 5","133",2
+"144","Daftar Oppo Reno 5\n\nSilakan pilih satu *Nomor* atau opsi menu yang Anda inginkan:","143",1
+"145","Oppo Reno 5","143",2
+"146","Oppo Reno 5 Pro","143",2
+"147","Oppo Reno 5 f","143",2
+"148","Maaf Oppo Reno 5 Belum Tersedia","145",1
+"149","Maaf Oppo Reno 5 Pro Belum Tersedia","146",1
+"150","╭──❉ *SPESIFIKASI* ❉─────\n│➸ Procesor : Helio P95\n│➸ Camera : 48.0 MP + 8.0 MP + 2.0 MP + 2.0 MP\n│➸ Front Camera : 32.0 MP\n│➸ RAM : 6 Gb, 8 Gb\n│➸ ROM : 64 Gb / 128 Gb\n│➸ Battery : 4310 mAh\n╰───────────────\n\n╭──❉ *HARGA* ❉───────\n│➸ Ram / Rom : 8 Gb / 128 Gb\n│ Rp. 1.670.000 / 3 Bulan\n│ Rp. 920.000 / 6 Bulan\n╰───────────────","147",1
+"151","Daftar Harga Realme\n\nSilakan pilih satu *Nomor* atau opsi menu yang Anda inginkan:","28",1
+"152","Realme C Series","28",2
+"153","Daftar Realme C Series\n\nSilakan pilih satu *Nomor* atau opsi menu yang Anda inginkan:","152",1
+"154","Realme C11","152",2
+"155","Daftar Realme C11\n\nSilakan pilih satu *Nomor* atau opsi menu yang Anda inginkan:","154",1
+"156","Realme C11","154",2
+"157","Realme C11 (2021)","154",2
+"158","Maaf Realme C11 Belum Tersedia","156",1
+"159","╭──❉ *SPESIFIKASI* ❉─────\n│➸ Procesor : Unisoc SC9863A\n│➸ Camera : 8.0 MP\n│➸ Front Camera : 5.0 MP\n│➸ RAM : 2 Gb, 4 Gb\n│➸ ROM : 32 Gb / 64 Gb\n│➸ Battery : 5.000 mAh\n╰───────────────\n\n╭──❉ *HARGA* ❉───────\n│➸ Ram / Rom : 2 Gb / 32 Gb\n│ Rp. 570.000 / 3 Bulan\n│ Rp. 320.000 / 6 Bulan\n╰───────────────","157",1
+"160","Realme C21","152",2
+"161","Daftar Realme C21\n\nSilakan pilih satu *Nomor* atau opsi menu yang Anda inginkan:","160",1
+"162","Realme C21","160",2
+"164","Realme C21Y","160",2
+"165","Maaf Realme C21 Belum Tersedia","162",1
+"166","╭──❉ *SPESIFIKASI* ❉─────\n│➸ Procesor : Unisoc T610\n│➸ Camera : 13.0 MP + 2.0 MP + 2.0 MP\n│➸ Front Camera : 5.0 MP\n│➸ RAM : 3 Gb, 4 Gb\n│➸ ROM : 64 Gb / 128 Gb\n│➸ Battery : 5.000 mAh\n╰───────────────\n\n╭──❉ *HARGA* ❉───────\n│➸ Ram / Rom : 4 Gb / 64 Gb\n│ Rp. 740.000 / 3 Bulan\n│ Rp. 420.000 / 6 Bulan\n╰───────────────","164",1
+"167","Realme C25","152",2
+"168","Daftar Realme C25\n\nSilakan pilih satu *Nomor* atau opsi menu yang Anda inginkan:","167",1
+"169","Realme C25","167",2
+"170","Realme C25Y","167",2
+"172","Realme C25s","167",2
+"173","Maaf Realme C25 Belum Tersedia","169",1
+"174","Maaf Realme C25Y Belum Tersedia","170",1
+"175","╭──❉ *SPESIFIKASI* ❉─────\n│➸ Procesor : Unisoc T610 \n│➸ Camera : 48.0 MP + 2.0 MP + 2.0 MP\n│➸ Front Camera : 8.0 MP\n│➸ RAM : 4 Gb\n│➸ ROM : 64 Gb / 128 Gb\n│➸ Battery : 6.000 mAh\n╰───────────────\n\n╭──❉ *HARGA* ❉───────\n│➸ Ram / Rom : 4 Gb / 128 Gb\n│ Rp. 970.000 / 3 Bulan\n│ Rp. 540.000 / 6 Bulan\n╰───────────────","172",1
+"176","Daftar Harga Samsung\n\nSilakan pilih satu *Nomor* atau opsi menu yang Anda inginkan:","29",1
+"177","Samsung A Series","29",2
+"178","Samsung M Series","29",2
+"179","Tablet","29",2
+"180","Daftar Samsung M Series\n\nSilakan pilih satu *Nomor* atau opsi menu yang Anda inginkan:","178",1
+"181","Samsung M21","178",2
+"182","Daftar Samsjng M21\n\nSilakan pilih satu *Nomor* atau opsi menu yang Anda inginkan:","181",1
+"183","Samsung M21","181",2
+"184","Samsung M21 (2021)","181",2
+"185","Samsung M21s","181",2
+"186","╭──❉ *SPESIFIKASI* ❉─────\n│➸ Procesor : Exynos 850\n│➸ Camera : 48.0 MP + 5 MP + 2.0 MP + 2.0 MP\n│➸ Front Camera : 8.0 MP\n│➸ RAM : 4 Gb, 6 Gb\n│➸ ROM : 32 Gb / 64 Gb\n│➸ Battery : 5.000 mAh\n╰───────────────\n\n╭──❉ *HARGA* ❉───────\n│➸ Ram / Rom : 3 Gb / 32 Gb\n│ Rp. 700.000 / 3 Bulan\n│ Rp. 400.000 / 6 Bulan\n╰───────────────","183",1
+"187","Maaf Samsjng M22 (2021) Belum Tersedia","184",1
+"188","Maaf Samsung M21s Belum Tersedia","185",1
+"189","Samsung M52","178",2
+"190","╭──❉ *SPESIFIKASI* ❉─────\n│➸ Procesor : Snapdragon 778G\n│➸ Camera : 16.0 MP + 12.0 MP + 5.0 MP\n│➸ Front Camera : 32.0 MP\n│➸ RAM : 6 Gb\n│➸ ROM : 128 Gb\n│➸ Battery : 5.000 mAh\n╰───────────────\n\n╭──❉ *HARGA* ❉───────\n│➸ Ram / Rom : 8 Gb / 128 Gb\n│ Rp. 2.070.000 / 3 Bulan\n│ Rp. 1.120.000 / 6 Bulan\n╰───────────────","189",1
+"191","Daftar Samsung A Series\n\nSilakan pilih satu *Nomor* atau opsi menu yang Anda inginkan:","177",1
+"192","Samsung A03","177",2
+"194","Daftar Samsung A03\n\nSilakan pilih satu *Nomor* atau opsi menu yang Anda inginkan:","192",1
+"196","Samsung A03 core","192",2
+"197","Samsung A03s","192",2
+"198","Maaf Samsjng A03 core Belum Tersedia","196",1
+"199","╭──❉ *SPESIFIKASI* ❉─────\n│➸ Procesor : Helio P35\n│➸ Camera : 13.0 MP + 2.0 MP + 2.0 MP\n│➸ Front Camera : 5.0 MP\n│➸ RAM : 4 Gb, 6 Gb\n│➸ ROM : 64 Gb / 128 Gb\n│➸ Battery : 5.000 mAh\n╰───────────────\n\n╭──❉ *HARGA* ❉───────\n│➸ Ram / Rom : 4 Gb / 64 Gb\n│ Rp. 740.000 / 3 Bulan\n│ Rp. 420.000 / 6 Bulan\n╰───────────────","197",1
+"200","Samsung A12","177",2
+"202","╭──❉ *SPESIFIKASI* ❉─────\n│➸ Procesor : Exynos 850\n│➸ Camera : 48.0 MP + 5.0 MP + 2.0 MP + 2.0 MP\n│➸ Front Camera : 8.0 MP\n│➸ RAM : 4 Gb, 6 Gb\n│➸ ROM : 64 Gb / 128 Gb\n│➸ Battery : 5.000 mAh\n╰───────────────\n\n╭──❉ *HARGA* ❉───────\n│➸ Ram / Rom : 6 Gb / 128 Gb\n│ Rp. 1.000.000 / 3 Bulan\n│ Rp. 560.000 / 6 Bulan\n╰───────────────","200",1
+"203","Samsung A32","177",2
+"204","╭──❉ *SPESIFIKASI* ❉─────\n│➸ Procesor : Helio G80\n│➸ Camera : 64.0 MP + 8.0 MP + 5.0 MP + 5.0 MP\n│➸ Front Camera : 20.0 MP\n│➸ RAM : 6 Gb, 8 Gb\n│➸ ROM : 128 Gb\n│➸ Battery : 5.000 mAh\n╰───────────────\n\n╭──❉ *HARGA* ❉───────\n│➸ Ram / Rom : 6 Gb / 128 Gb\n│ Rp. 1.400.000 / 3 Bulan\n│ Rp. 780.000 / 6 Bulan\n│\n│➸ Ram / Rom : 8 Gb / 128 Gb\n│ Rp. 1.480.000 / 3 Bulan\n│ Rp. 810.000 / 6 Bulan\n╰───────────────","203",1
+"205","Daftar Harga Tablet\n\nSilakan pilih satu *Nomor* atau opsi menu yang Anda inginkan:","179",1
+"206","Samsung Tab A7","179",2
+"207","Daftar Samsung Tab A7\n\nSilakan pilih satu *Nomor* atau opsi menu yang Anda inginkan:","206",1
+"208","Samsung Tab A7 Lite","206",2
+"209","Samsung Tab A7 LTE","206",2
+"210","╭──❉ *SPESIFIKASI* ❉─────\n│➸ Procesor : Helio MT8788T\n│➸ Camera : 8.0 MP\n│➸ Front Camera : 2.0 MP\n│➸ RAM : 3 Gb, 4 Gb\n│➸ ROM : 32 Gb / 64 Gb\n│➸ Battery : 5.100 mAh\n╰───────────────\n\n╭──❉ *HARGA* ❉───────\n│➸ Ram / Rom : 3 Gb / 32 Gb\n│ Rp. 1.000.000 / 3 Bulan\n│ Rp. 570.000 / 6 Bulan\n╰───────────────","208",1
+"211","╭──❉ *SPESIFIKASI* ❉─────\n│➸ Procesor : Snapdragon 662\n│➸ Camera : 8.0 MP\n│➸ Front Camera : 5.0 MP\n│➸ RAM : 3 Gb, 4 Gb\n│➸ ROM : 32 Gb / 64 Gb\n│➸ Battery : 7.040 mAh\n╰───────────────\n\n╭──❉ *HARGA* ❉───────\n│➸ Ram / Rom : 3 Gb / 32 Gb\n│ Rp. 1.740.000 / 3 Bulan\n│ Rp. 1.000.000 / 6 Bulan\n╰───────────────","209",1
+"212","Daftar Harga Vivo\n\nSilakan pilih satu *Nomor* atau opsi menu yang Anda inginkan:","30",1
+"213","Vivo Y Series","30",2
+"214","Vivo V Series","30",2
+"215","Maaf Vivo V Series Belum Tersedia","214",1
+"216","Daftar Vivo Y Series\n\nSilakan pilih satu *Nomor* atau opsi menu yang Anda inginkan:","213",1
+"217","Vivo Y1","213",2
+"218","Vivo Y15","213",2
+"219","Vivo Y33","213",2
+"220","Vivo Y53","213",2
+"221","Daftar Vivo Y1\n\nSilakan pilih satu *Nomor* atau opsi menu yang Anda inginkan:","217",1
+"222","Vivo Y1s","217",2
+"223","╭──❉ *SPESIFIKASI* ❉─────\n│➸ Procesor : Helio MT6765\n│➸ Camera : 13.0 MP\n│➸ Front Camera : 5.0 MP\n│➸ RAM : 2 Gb, 3 Gb\n│➸ ROM : 32 Gb / 64 Gb\n│➸ Battery : 4.030 mAh\n╰───────────────\n\n╭──❉ *HARGA* ❉───────\n│➸ Ram / Rom : 2 Gb / 32 Gb\n│ Rp. 640.000 / 3 Bulan\n│ Rp. 370.000 / 6 Bulan\n╰───────────────","222",1
+"224","Daftar Vivo Y15\n\nSilakan pilih satu *Nomor* atau opsi menu yang Anda inginkan:","218",1
+"225","Vivo Y15","218",2
+"226","Vivo Y15a","218",2
+"227","Vivo Y15s","218",2
+"228","Maaf Vivo Y15 Belum Tersedia","225",1
+"229","Maaf Vivo Y15a Belum Tersedia","226",1
+"230","╭──❉ *SPESIFIKASI* ❉─────\n│➸ Procesor : Helio P35\n│➸ Camera : 13.0 MP + 2.0 MP\n│➸ Front Camera : 8.0 MP\n│➸ RAM : 3 Gb, 4 Gb\n│➸ ROM : 32 Gb / 64 Gb\n│➸ Battery : 5.000 mAh\n╰───────────────\n\n╭──❉ *HARGA* ❉───────\n│➸ Ram / Rom : 3 Gb / 32 Gb\n│ Rp. 780.000 / 3 Bulan\n│ Rp. 450.000 / 6 Bulan\n╰───────────────","227",1
+"231","Daftar Vivo Y33\n\nSilakan pilih satu *Nomor* atau opsi menu yang Anda inginkan:","219",1
+"232","Vivo Y33s","219",2
+"233","╭──❉ *SPESIFIKASI* ❉─────\n│➸ Procesor : Helio G80\n│➸ Camera : 50.0 MP + 2.0 MP + 2.0 MP\n│➸ Front Camera : 16.0 MP\n│➸ RAM : 6 Gb, 8 Gb\n│➸ ROM : 64 Gb / 128 Gb\n│➸ Battery : 5.000 mAh\n╰───────────────\n\n╭──❉ *HARGA* ❉───────\n│➸ Ram / Rom : 8 Gb / 128 Gb\n│ Rp. 1.320.000 / 3 Bulan\n│ Rp. 740.000 / 6 Bulan\n╰───────────────","232",1
+"234","Daftar Vivo Y53\n\nSilakan pilih satu *Nomor* atau opsi menu yang Anda inginkan:","220",1
+"235","Vivo Y53","220",2
+"236","Vivo Y53s","220",2
+"237","Maaf Vivo Y53 Belum Tersedia","235",1
+"238","╭──❉ *SPESIFIKASI* ❉─────\n│➸ Procesor : Helio G35\n│➸ Camera : 64.0 MP + 2.0 MP + 2.0 MP\n│➸ Front Camera : 16.0 MP\n│➸ RAM : 6 Gb, 8 Gb\n│➸ ROM : 64 Gb / 128 Gb\n│➸ Battery : 5.000 mAh\n╰───────────────\n\n╭──❉ *HARGA* ❉───────\n│➸ Ram / Rom : 8 Gb / 128 Gb\n│ Rp. 1.430.000 / 3 Bulan\n│ Rp. 780.000 / 6 Bulan\n╰───────────────","236",1
+"239","Vivo Y12","213",2
+"240","Vivo Y21","213",2
+"241","Vivo Y20","213",2
+"242","Daftar Vivo Y12\n\nSilakan pilih satu *Nomor* atau opsi menu yang Anda inginkan:","239",1
+"243","Vivo Y12","239",2
+"244","Vivo Y12a","239",2
+"245","Vivo Y12s (2021)","239",2
+"246","Maaf Vivo Y12 Belum Tersedia","243",1
+"247","Maaf Iphone 12a Belum Tersedia","244",1
+"248","╭──❉ *SPESIFIKASI* ❉─────\n│➸ Procesor : Snapdragon 439\n│➸ Camera : 13.0 MP + 2.0 MP\n│➸ Front Camera : 8.0 MP\n│➸ RAM : 3 Gb, 4 Gb\n│➸ ROM : 32 Gb / 64 Gb\n│➸ Battery : 5.000 mAh\n╰───────────────\n\n╭──❉ *HARGA* ❉───────\n│➸ Ram / Rom : 3 Gb / 32 Gb\n│ Rp. 780.000 / 3 Bulan\n│ Rp. 440.000 / 6 Bulan\n╰───────────────","245",1
+"249","Daftar Y21\n\nSilakan pilih satu *Nomor* atau opsi menu yang Anda inginkan:","240",1
+"250","Vivo Y21","240",2
+"251","Vivo Y21s","240",2
+"252","Maaf Vivo Y21s Belum Tersedia","251",1
+"253","╭──❉ *SPESIFIKASI* ❉─────\n│➸ Procesor : Helio G80\n│➸ Camera : 50.0 MP + 2.0 MP + 2.0 MP\n│➸ Front Camera : 8.0 MP\n│➸ RAM : 4 Gb, 6 Gb\n│➸ ROM : 64 Gb / 128 Gb\n│➸ Battery : 5.000 mAh\n╰───────────────\n\n╭──❉ *HARGA* ❉───────\n│➸ Ram / Rom : 4 Gb / 64Gb\n│ Rp. 1.000.000 / 3 Bulan\n│ Rp. 530.000 / 6 Bulan\n│\n│➸ Ram / Rom : 4 Gb / 128 Gb\n│ Rp. 1.100.000 / 3 Bulan\n│ Rp. 600.000 / 6 Bulan\n╰───────────────","250",1
+"254","Daftar Vivo Y20\n\nSilakan pilih satu *Nomor* atau opsi menu yang Anda inginkan:","241",1
+"255","Vivo Y20","241",2
+"256","Vivo Y20s","241",2
+"257","Maaf Vivo Y20s Belum Tersedia","256",1
+"258","╭──❉ *SPESIFIKASI* ❉─────\n│➸ Procesor : Snapdragon 460\n│➸ Camera : 13.0 MP + 2.0 MP + 2.0 MP\n│➸ Front Camera : 8.0 MP\n│➸ RAM : 6 Gb, 8 Gb\n│➸ ROM : 64 Gb / 128 Gb\n│➸ Battery : 5.000 mAh\n╰───────────────\n\n╭──❉ *HARGA* ❉───────\n│➸ Ram / Rom : 8 Gb / 128 Gb\n│ Rp. 1.180.000 / 3 Bulan\n│ Rp. 650.000 / 6 Bulan\n╰───────────────","255",1
+"259","Daftar Harga Xiaomi\n\nSilakan pilih satu *Nomor* atau opsi menu yang Anda inginkan:","31",1
+"260","Redmi","31",2
+"261","MI","31",2
+"262","POCO","31",2
+"263","Seri Angka","31",2
+"265","Daftar Redmi\n\nSilakan pilih satu *Nomor* atau opsi menu yang Anda inginkan:","260",1
+"266","Redmi Seri Angka","260",2
+"267","Redmi Note","260",2
+"268","Daftar Redmi Seri Angka\n\nSilakan pilih satu *Nomor* atau opsi menu yang Anda inginkan:","266",1
+"269","Redmi 9A","266",2
+"270","╭──❉ *SPESIFIKASI* ❉─────\n│➸ Procesor : Helio G25\n│➸ Camera : 13.0 MP\n│➸ Front Camera : 5.0 MP\n│➸ RAM : 2 Gb, 3 Gb\n│➸ ROM : 32 Gb / 64 Gb\n│➸ Battery : 5.000 mAh\n╰───────────────\n\n╭──❉ *HARGA* ❉───────\n│➸ Ram / Rom : 2 Gb / 32 Gb\n│ Rp. 500.000 / 3 Bulan\n│ Rp. 280.000 / 6 Bulan\n╰───────────────","269",1
+"271","Daftar Redmi Note\n\nSilakan pilih satu *Nomor* atau opsi menu yang Anda inginkan:","267",1
+"272","Redmi Note 10","267",2
+"273","Daftar Redmi Note 10\n\nSilakan pilih satu *Nomor* atau opsi menu yang Anda inginkan:","272",1
+"274","Redmi Note 10","272",2
+"275","Redmi Note 10S","272",2
+"276","Redmi Note 10 Pro","272",2
+"277","Maaf Redmi Note 10 Belum Tersedia","274",1
+"278","╭──❉ *SPESIFIKASI* ❉─────\n│➸ Procesor : Helio G95\n│➸ Camera : 64.0 MP + 8.0 MP + 2.0 MP\n│➸ Front Camera : 13.0 MP\n│➸ RAM : 6 Gb, 8 Gb\n│➸ ROM : 64 Gb / 128 Gb\n│➸ Battery : 5.000 mAh\n╰───────────────\n\n╭──❉ *HARGA* ❉───────\n│➸ Ram / Rom : 6 Gb / 128 Gb\n│ Rp. 1.150.000 / 3 Bulan\n│ Rp. 640.000 / 6 Bulan\n│\n│➸ Ram / Rom : 8 Gb / 128 Gb\n│ Rp. 1.220.000 / 3 Bulan\n│ Rp. 680.000 / 6 Bulan\n╰───────────────","275",1
+"279","Maaf Redmi Note 10 Pro Belum Tersedia","276",1
+"280","Redmi Note 9","267",2
+"281","Daftar Redmi Note 9\n\nSilakan pilih satu *Nomor* atau opsi menu yang Anda inginkan:","280",1
+"283","Redmi Note 9","280",2
+"284","Redmi Note 9S","280",2
+"285","Redmi Note 9 Pro","280",2
+"286","Maaf Redmi Note 9 Belum Tersedia","283",1
+"287","Maaf Redmi Note 9S Belum Tersedia","284",1

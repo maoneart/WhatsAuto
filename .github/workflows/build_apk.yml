@@ -1,0 +1,75 @@
+name: Build WhatsAuto APK
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build Android Release APK
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Build Universal Release APK
+        run: flutter build apk --release --android-skip-build-dependency-validation
+
+      - name: Upload APK to Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: WhatsAuto-release-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Extract App Version
+        id: app_version
+        run: |
+          VERSION=$(grep '^version:' pubspec.yaml | awk '{print $2}' | cut -d '+' -f 1)
+          echo "version=v$VERSION" >> $GITHUB_OUTPUT
+          echo "raw_version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Create or Update GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/heads/main')
+        with:
+          tag_name: ${{ steps.app_version.outputs.version }}
+          name: 'WhatsAuto ${{ steps.app_version.outputs.version }} (Release)'
+          body: |
+            ## 🤖 WhatsAuto ${{ steps.app_version.outputs.version }} - Smart WhatsApp Auto Reply & Tree Menu Bot
+            
+            Aplikasi Android Auto Reply & Pohon Menu Balas cerdas untuk WhatsApp dibangun dengan Flutter!
+            
+            ### ✨ Fitur Unggulan:
+            - 🌲 **Editor Menu Balas Pohon Hierarki**: Tampilan visual tree branch persis WhatsAuto.
+            - 📥 **Import & Export File CSV**: Kompatibel 100% dengan data CSV WhatsAuto (termasuk katalog Kaido 241 nodes).
+            - 💬 **Tanggapan Uji (Interactive Simulator)**: Uji alur respon bot WhatsApp langsung di dalam aplikasi.
+            - ⚡ **Background Auto Reply Service**: Layanan Android NotificationListenerService untuk membalas notifikasi chat secara otomatis.
+            - 💎 **MaoneArt Glassmorphism UI**: Antarmuka dark teal modern dan dialog simetris 2-kolom.
+            - 🔑 **Permanent Release Keystore**: Tanda tangan APK permanen siap instal.
+            
+            📥 **Download berkas APK di bawah ini dan instal langsung di perangkat Android Anda!**
+          files: build/app/outputs/flutter-apk/app-release.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
