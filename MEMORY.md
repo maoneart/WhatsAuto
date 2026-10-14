@@ -102,11 +102,31 @@
   4. Di `MaoneAutoNotificationService.kt`: Mengembalikan `null` jika pesan tidak cocok kata kunci, sehingga notifikasi diabaikan dan WhatsApp tidak membalas apapun.
 - **Versi**: Dinaikkan ke `v1.0.7+8`.
 
+### 📅 Tag Real-Time Hari Ini, Slider Horizontal Tag, & Fallback Kontak Belum Dinamai (v1.0.8+9 - 15 Oktober 2026)
+- **Problem**:
+  1. Pengguna membutuhkan tag tambahan untuk menyisipkan waktu real-time: `{{jam}}`, `{{tanggal}}`, dan `{{hari}}` bahasa Indonesia hari ini.
+  2. Tampilan tag chips sebelumnya menggunakan `Wrap` yang memakan banyak baris; diminta diubah menjadi slider horizontal 1 baris (`SingleChildScrollView(scrollDirection: Axis.horizontal)`).
+  3. Live preview di bubble chat balasan harus menampilkan format jam & tanggal hari ini secara dinamis.
+  4. Pengirim yang belum disimpan di kontak (hanya nomor telepon mentah `+628...`) harus otomatis disapa ramah dengan panggilan `"Kak"`, dan awalan tilde WhatsApp push name (`~Budi Santoso`) dibersihkan secara otomatis.
+- **Solusi**:
+  1. Di `auto_reply_engine.dart` & `MaoneAutoNotificationService.kt`:
+     - Menambahkan fungsi `resolveSenderAndDateTime()` dan `formatTags()` / `applyTags()`.
+     - Mendeteksi regex nomor telepon mentah `^[+0-9\s\-()]+$` ➔ fallback ke `"Kak"`.
+     - Membersihkan tanda tilde `~` dari push name profil WhatsApp.
+     - Menyusun tanggal dan nama hari bahasa Indonesia (Senin s/d Minggu, Januari s/d Desember) secara real-time.
+  2. Di `add_edit_keyword_reply_screen.dart`:
+     - Mengubah UI tag selector menjadi slider 1 baris yang dapat digeser ke samping secara halus dengan tag chip: `nama`, `nama depan`, `nama belakang`, `jam`, `tanggal`, `hari`.
+     - Menerapkan fungsi `_formatPreviewText()` pada bubble chat balasan kanan sehingga tag `{{jam}}`, `{{tanggal}}`, `{{hari}}`, dan nama otomatis terisi secara live saat diketik.
+  3. Di `test_reply_simulator_screen.dart`:
+     - Menggunakan pengirim realistis `'Budi Santoso'` sehingga pengujian tag `{{nama}}`, `{{jam}}`, dan `{{tanggal}}` langsung tampil sempurna di layar simulator.
+- **Versi**: Dinaikkan ke `v1.0.8+9`.
+
 ---
 
 ## 📋 Active Tasks / Next Steps
-- [x] Build APK v1.0.7+8 selesai dan tersimpan di `/sdcard/Download/MaoneAuto.apk` (52 MB).
-- [ ] Verifikasi uji coba mode diam dan respon kata kunci di WhatsApp & Simulator.
+- [x] Rilis MaoneAuto v1.0.8+9 selesai dikompilasi via GitHub Actions dan tersimpan di `/sdcard/Download/MaoneAuto.apk`.
+- [ ] Verifikasi uji coba tag `{{jam}}`, `{{tanggal}}`, `{{hari}}`, dan panggilan `"Kak"` untuk nomor baru di WhatsApp.
 - [ ] Integrasi webhook lokal opsional (Termux Port 3000 / 8085).
+
 
 
