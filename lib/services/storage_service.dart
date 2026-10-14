@@ -5,12 +5,17 @@ import '../models/menu_node.dart';
 import '../models/app_settings.dart';
 import 'csv_service.dart';
 
+import '../models/keyword_reply.dart';
+
 class StorageService {
   static const String _keySettings = 'app_settings';
   static const String _keyMenuNodes = 'menu_nodes';
   static const String _keyNativeNodesCache = 'menu_nodes_cache';
   static const String _keyNativeEnabled = 'is_auto_reply_enabled';
   static const String _keyNativeDefaultReply = 'default_reply';
+  static const String _keyKeywordReplies = 'keyword_replies';
+  static const String _keyNativeKeywordRepliesCache = 'keyword_replies_cache';
+  static const String _keyNativeKeywordEnabled = 'is_keyword_reply_enabled';
 
   static Future<AppSettings> loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
@@ -32,6 +37,29 @@ class StorageService {
     // Sync to native SharedPreferences for background notification service
     await prefs.setBool(_keyNativeEnabled, settings.isAutoReplyEnabled);
     await prefs.setString(_keyNativeDefaultReply, settings.defaultReply);
+    await prefs.setBool(_keyNativeKeywordEnabled, settings.isKeywordReplyEnabled);
+  }
+
+  static Future<List<KeywordReply>> loadKeywordReplies() async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonStr = prefs.getString(_keyKeywordReplies);
+    if (jsonStr != null && jsonStr.isNotEmpty) {
+      try {
+        final List<dynamic> list = json.decode(jsonStr);
+        return list.map((item) => KeywordReply.fromJson(item as Map<String, dynamic>)).toList();
+      } catch (_) {}
+    }
+    return [];
+  }
+
+  static Future<void> saveKeywordReplies(List<KeywordReply> list) async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonList = list.map((k) => k.toJson()).toList();
+    final jsonStr = json.encode(jsonList);
+
+    await prefs.setString(_keyKeywordReplies, jsonStr);
+    // Sinkronisasi ke cache yang dibaca oleh background notification service
+    await prefs.setString(_keyNativeKeywordRepliesCache, jsonStr);
   }
 
   static Future<List<MenuNode>> loadMenuNodes() async {

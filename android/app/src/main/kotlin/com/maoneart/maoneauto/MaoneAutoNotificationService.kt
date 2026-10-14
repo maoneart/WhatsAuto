@@ -120,6 +120,53 @@ class MaoneAutoNotificationService : NotificationListenerService() {
         }
 
         try {
+            // 0. Cek Balasan Kata Kunci (Keyword Replies)
+            val isKeywordEnabled = prefs.getBoolean("flutter.is_keyword_reply_enabled", true)
+            val keywordJsonStr = prefs.getString("flutter.keyword_replies_cache", null)
+            if (isKeywordEnabled && !keywordJsonStr.isNullOrEmpty()) {
+                try {
+                    val kwArray = JSONArray(keywordJsonStr)
+                    for (i in 0 until kwArray.length()) {
+                        val rule = kwArray.getJSONObject(i)
+                        if (!rule.optBoolean("isEnabled", true)) continue
+                        val rawKeywords = rule.optString("incomingKeywords", "")
+                        val isExact = rule.optBoolean("isExactMatch", true)
+                        val keywordsList = rawKeywords.split(",").map { it.trim().lowercase() }.filter { it.isNotEmpty() }
+                        val lowerMsg = cleanMsg.lowercase()
+
+                        val isMatch = if (isExact) {
+                            keywordsList.any { lowerMsg == it }
+                        } else {
+                            keywordsList.any { lowerMsg.contains(it) }
+                        }
+
+                        if (isMatch) {
+                            var rep = rule.optString("replyMessage", "")
+                            val senderParts = sender.split(" ")
+                            val firstName = senderParts.firstOrNull() ?: sender
+                            val lastName = if (senderParts.size > 1) senderParts.drop(1).joinToString(" ") else ""
+
+                            rep = rep.replace("{{nama}}", sender, ignoreCase = true)
+                            rep = rep.replace("{{nama_depan}}", firstName, ignoreCase = true)
+                            rep = rep.replace("{{nama_belakang}}", lastName, ignoreCase = true)
+
+                            if (rule.optBoolean("useMenuReply", false)) {
+                                val nodesArray = JSONArray(treeJsonStr)
+                                val nodes = mutableListOf<JSONObject>()
+                                for (j in 0 until nodesArray.length()) {
+                                    nodes.add(nodesArray.getJSONObject(j))
+                                }
+                                prefs.edit().putString("flutter.session_$sender", "parent").apply()
+                                return "$rep\n\n" + renderMenu(nodes, "parent")
+                            }
+                            return rep
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error checking keyword replies: ${e.message}")
+                }
+            }
+
             val nodesArray = JSONArray(treeJsonStr)
             val nodes = mutableListOf<JSONObject>()
             for (i in 0 until nodesArray.length()) {

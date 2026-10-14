@@ -11,6 +11,7 @@ class AppSettings {
   String aiCustomPrompt;
   String serverWebhookUrl;
   Map<String, bool> supportedApps;
+  bool isKeywordReplyEnabled;
 
   AppSettings({
     this.isAutoReplyEnabled = true,
@@ -24,6 +25,7 @@ class AppSettings {
     this.aiApiKey = '',
     this.aiCustomPrompt = 'Anda adalah customer support ramah. Jawab pertanyaan pelanggan dengan singkat dan solutif.',
     this.serverWebhookUrl = '',
+    this.isKeywordReplyEnabled = true,
     Map<String, bool>? supportedApps,
   }) : supportedApps = supportedApps ?? {
           'WhatsApp': true,
@@ -44,12 +46,13 @@ class AppSettings {
     'aiApiKey': aiApiKey,
     'aiCustomPrompt': aiCustomPrompt,
     'serverWebhookUrl': serverWebhookUrl,
+    'isKeywordReplyEnabled': isKeywordReplyEnabled,
     'supportedApps': supportedApps,
   };
 
   factory AppSettings.fromJson(Map<String, dynamic> json) => AppSettings(
     isAutoReplyEnabled: json['isAutoReplyEnabled'] ?? true,
-    defaultReply: json['defaultReply'] ?? 'Halo! Saya menggunakan Aplikasi WhatsAuto.',
+    defaultReply: json['defaultReply'] ?? 'Halo! Saya menggunakan Aplikasi MaoneAuto.',
     replyTo: json['replyTo'] ?? 'all',
     enableGroups: json['enableGroups'] ?? false,
     welcomeMessageEnabled: json['welcomeMessageEnabled'] ?? false,
@@ -59,6 +62,7 @@ class AppSettings {
     aiApiKey: json['aiApiKey'] ?? '',
     aiCustomPrompt: json['aiCustomPrompt'] ?? '',
     serverWebhookUrl: json['serverWebhookUrl'] ?? '',
+    isKeywordReplyEnabled: json['isKeywordReplyEnabled'] ?? true,
     supportedApps: (json['supportedApps'] as Map<String, dynamic>?)?.map((k, v) => MapEntry(k, v as bool)) ?? {
       'WhatsApp': true,
       'WhatsApp Business': true,

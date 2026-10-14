@@ -28,8 +28,13 @@ class _TestReplySimulatorScreenState extends State<TestReplySimulatorScreen> {
   Future<void> _initEngine() async {
     final nodes = await StorageService.loadMenuNodes();
     final settings = await StorageService.loadSettings();
+    final keywordReplies = await StorageService.loadKeywordReplies();
 
-    _engine = AutoReplyEngine(nodes: nodes, settings: settings);
+    _engine = AutoReplyEngine(
+      nodes: nodes,
+      keywordReplies: keywordReplies,
+      settings: settings,
+    );
 
     setState(() {
       _isLoading = false;

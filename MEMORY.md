@@ -66,10 +66,28 @@
   3. Mengubah penyimpanan state posisi submenu menjadi persisten di `SharedPreferences` (`flutter.session_$sender`).
   4. Versi dinaikkan ke `v1.0.3+4`.
 
+### 🎯 Replika Lengkap Fitur Balasan Kata Kunci (v1.0.4+5 - 15 Oktober 2026)
+- **Problem**: Pengguna menginginkan fitur "Balasan Kata Kunci" (Keyword Reply) yang persis dengan 3 screenshot WhatsAuto (`Screenshot_20261015_044211`, `044221`, `044227`).
+- **Solusi**:
+  1. Dibuatkan model data `KeywordReply` (`keyword_reply.dart`) dengan dukungan multi-keyword, mode pencocokan (Cocokan Tepat / Mengandung), opsi balasan (Menu Balas, AI, Google Sheets), dan notifikasi email.
+  2. Dibangun layar utama `KeywordReplyListScreen` (`keyword_reply_list_screen.dart`):
+     - Master switch banner "MATI/HIDUP".
+     - Empty state persis screenshot 1 (ikon balon chat teal di tengah, teks panduan).
+     - Card daftar aturan dengan chip kata kunci, switch toggle, dan badge status.
+     - Dual Floating Action Buttons: Tombol `+` (tambah aturan) dan tombol Pensil (modal buat otomatis dari Gambar/Situs web persis screenshot 2).
+  3. Dibangun layar editor `AddEditKeywordReplyScreen` (`add_edit_keyword_reply_screen.dart`):
+     - Interactive Real-time Chat Bubble Preview di bagian atas (bubble putih pesan masuk & bubble hijau muda balasan keluar).
+     - Input Keyword Masuk dan Balas Pesan dengan teks contoh panduan.
+     - Tag chip dinamis (`nama`, `nama depan`, `nama belakang`).
+     - Checkbox Opsi balasan, radio button Opsi pencocokan, dan checkbox notifikasi email persis screenshot 3.
+  4. Integrasi penuh dengan `AutoReplyEngine.dart`, simulator chat interaktif (`test_reply_simulator_screen.dart`), serta background service Kotlin Android (`MaoneAutoNotificationService.kt`).
+  5. Versi dinaikkan ke `v1.0.4+5`.
+
 ---
 
 ## 📋 Active Tasks / Next Steps
-- [x] Build APK v1.0.3+4 selesai dan tersimpan di `/sdcard/Download/MaoneAuto.apk` (52 MB).
-- [ ] Verifikasi uji coba chat WhatsApp (pastikan tidak ada duplikasi balasan).
+- [ ] Pantau build APK v1.0.4+5 dan unduh otomatis ke `/sdcard/Download/MaoneAuto.apk`.
+- [ ] Verifikasi uji coba fitur Balasan Kata Kunci dan Pohon Menu di WhatsApp.
 - [ ] Integrasi webhook lokal opsional (Termux Port 3000 / 8085).
+
 

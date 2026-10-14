@@ -4,6 +4,7 @@ import '../services/storage_service.dart';
 import '../widgets/glassmorphism_modal.dart';
 import 'menu_reply_screen.dart';
 import 'test_reply_simulator_screen.dart';
+import 'keyword_reply_list_screen.dart';
 
 class HomeTab extends StatefulWidget {
   final AppSettings settings;
@@ -266,7 +267,21 @@ class _HomeTabState extends State<HomeTab> {
                   ),
                   Divider(color: Colors.white.withOpacity(0.08), height: 1),
 
-                  // 2. Menu Balas (Pohon Menu WhatsAuto)
+                  // 2. Balasan Kata Kunci
+                  _buildActionTile(
+                    icon: Icons.key_outlined,
+                    iconColor: const Color(0xFF00A884),
+                    title: 'Balasan Kata Kunci',
+                    subtitle: 'Balasan yang dipersonalisasi berdasarkan kata kunci pesan masuk.',
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const KeywordReplyListScreen()),
+                      );
+                    },
+                  ),
+                  Divider(color: Colors.white.withOpacity(0.08), height: 1),
+
+                  // 3. Menu Balas (Pohon Menu WhatsAuto)
                   _buildActionTile(
                     icon: Icons.forum_outlined,
                     iconColor: const Color(0xFF00A884),

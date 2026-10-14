@@ -3,6 +3,7 @@ import '../models/app_settings.dart';
 import '../widgets/glassmorphism_modal.dart';
 import 'menu_reply_screen.dart';
 import 'test_reply_simulator_screen.dart';
+import 'keyword_reply_list_screen.dart';
 
 class ToolsTab extends StatelessWidget {
   final AppSettings settings;
@@ -141,10 +142,8 @@ class ToolsTab extends StatelessWidget {
                   title: 'Balasan Kata Kunci',
                   subtitle: 'Balasan yang dipersonalisasi berdasarkan kata kunci.',
                   onTap: () {
-                    GlassmorphismModal.showAlertModal(
-                      context: context,
-                      title: 'Balasan Kata Kunci',
-                      message: 'Atur respon spesifik ketika pelanggan mengetik kata kunci tertentu.',
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const KeywordReplyListScreen()),
                     );
                   },
                 ),

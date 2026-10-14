@@ -1,13 +1,16 @@
 import '../models/menu_node.dart';
 import '../models/app_settings.dart';
+import '../models/keyword_reply.dart';
 
 class AutoReplyEngine {
   final List<MenuNode> nodes;
+  final List<KeywordReply> keywordReplies;
   final AppSettings settings;
   final Map<String, String> _sessions = {}; // senderId -> current parentId
 
   AutoReplyEngine({
     required this.nodes,
+    this.keywordReplies = const [],
     required this.settings,
   });
 
@@ -22,7 +25,43 @@ class AutoReplyEngine {
     final cleanMsg = incomingMessage.trim();
     final currentParent = _sessions[senderId] ?? 'parent';
 
-    // 1. Keyword reset / kembali ke menu awal
+    // 1. Cek Balasan Kata Kunci (Keyword Replies) jika diaktifkan
+    if (settings.isKeywordReplyEnabled && keywordReplies.isNotEmpty) {
+      for (final rule in keywordReplies) {
+        if (!rule.isEnabled) continue;
+        final keywords = rule.incomingKeywords
+            .split(',')
+            .map((k) => k.trim().toLowerCase())
+            .where((k) => k.isNotEmpty);
+        final lowerMsg = cleanMsg.toLowerCase();
+
+        bool isMatch = false;
+        if (rule.isExactMatch) {
+          isMatch = keywords.any((k) => lowerMsg == k);
+        } else {
+          isMatch = keywords.any((k) => lowerMsg.contains(k));
+        }
+
+        if (isMatch) {
+          var reply = rule.replyMessage;
+          final senderParts = senderId.split(' ');
+          final firstName = senderParts.first;
+          final lastName = senderParts.length > 1 ? senderParts.sublist(1).join(' ') : '';
+
+          reply = reply.replaceAll(RegExp(r'\{\{nama\}\}', caseSensitive: false), senderId);
+          reply = reply.replaceAll(RegExp(r'\{\{nama_depan\}\}', caseSensitive: false), firstName);
+          reply = reply.replaceAll(RegExp(r'\{\{nama_belakang\}\}', caseSensitive: false), lastName);
+
+          if (rule.useMenuReply) {
+            _sessions[senderId] = 'parent';
+            return '$reply\n\n${renderMenu('parent')}';
+          }
+          return reply;
+        }
+      }
+    }
+
+    // 2. Keyword reset / kembali ke menu awal
     if (cleanMsg.toLowerCase() == 'menu' ||
         cleanMsg.toLowerCase() == 'halo' ||
         cleanMsg.toLowerCase() == 'hi' ||
