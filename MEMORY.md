@@ -44,6 +44,7 @@
   2. Dibuatkan logo baru orisinal MaoneArt (balon chat modern dengan monogram M futuristik dan aksen emerald neon & gold spark).
   3. Mengupdate seluruh native service (`MaoneAutoNotificationService.kt`) dan UI Flutter.
   4. Versi dinaikkan ke `v1.0.1+2`.
+  5. APK `MaoneAuto.apk` (v1.0.1) berhasil dikompilasi via GitHub Actions (Run ID `38564727532`) dan tersimpan di `/sdcard/Download/MaoneAuto.apk` (52 MB).
 
 ---
 
