@@ -105,7 +105,7 @@ class _HomeTabState extends State<HomeTab> {
         backgroundColor: const Color(0xFF111B21),
         elevation: 0,
         title: const Text(
-          'WhatsAuto',
+          'MaoneAuto',
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: Colors.white),
         ),
         actions: [

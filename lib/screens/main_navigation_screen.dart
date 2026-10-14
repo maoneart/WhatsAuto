@@ -18,7 +18,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   AppSettings _settings = AppSettings();
   bool _isLoading = true;
 
-  static const MethodChannel _platformChannel = MethodChannel('com.maoneart.whatsauto/service');
+  static const MethodChannel _platformChannel = MethodChannel('com.maoneart.maoneauto/service');
 
   @override
   void initState() {
@@ -49,7 +49,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           SnackBar(
             backgroundColor: const Color(0xFF1F2C34),
             content: const Text(
-              'Aktifkan Akses Notifikasi agar WhatsAuto dapat membalas otomatis',
+              'Aktifkan Akses Notifikasi agar MaoneAuto dapat membalas otomatis',
               style: TextStyle(color: Colors.white, fontSize: 13),
             ),
             action: SnackBarAction(

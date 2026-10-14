@@ -37,6 +37,14 @@
   5. Menyiapkan pipeline CI/CD GitHub Actions auto-build APK.
   6. APK v1.0.0 berhasil dikompilasi via GitHub Actions (Run ID `38548860532`) dan tersimpan di `/sdcard/Download/WhatsAuto.apk` (52 MB).
 
+### 🛡️ Rebranding ke MaoneAuto & Custom Logo (v1.0.1+2 - 14 Oktober 2026)
+- **Problem**: Instalasi APK terblokir oleh Google Play Protect karena mendeteksi nama dan package `WhatsAuto` sebagai tiruan/impersonation dari aplikasi populer di Play Store.
+- **Solusi**:
+  1. Rebranding nama aplikasi menjadi **MaoneAuto** dengan package ID bersih `com.maoneart.maoneauto`.
+  2. Dibuatkan logo baru orisinal MaoneArt (balon chat modern dengan monogram M futuristik dan aksen emerald neon & gold spark).
+  3. Mengupdate seluruh native service (`MaoneAutoNotificationService.kt`) dan UI Flutter.
+  4. Versi dinaikkan ke `v1.0.1+2`.
+
 ---
 
 ## 📋 Active Tasks / Next Steps

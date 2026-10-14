@@ -38,7 +38,7 @@ jobs:
       - name: Upload APK to Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: WhatsAuto-release-apk
+          name: MaoneAuto-release-apk
           path: build/app/outputs/flutter-apk/app-release.apk
           if-no-files-found: error
           retention-days: 14
@@ -55,18 +55,18 @@ jobs:
         if: startsWith(github.ref, 'refs/heads/main')
         with:
           tag_name: ${{ steps.app_version.outputs.version }}
-          name: 'WhatsAuto ${{ steps.app_version.outputs.version }} (Release)'
+          name: 'MaoneAuto ${{ steps.app_version.outputs.version }} (Release)'
           body: |
-            ## 🤖 WhatsAuto ${{ steps.app_version.outputs.version }} - Smart WhatsApp Auto Reply & Tree Menu Bot
+            ## 🤖 MaoneAuto ${{ steps.app_version.outputs.version }} - Smart WhatsApp Auto Reply & Tree Menu Bot by MaoneArt
             
             Aplikasi Android Auto Reply & Pohon Menu Balas cerdas untuk WhatsApp dibangun dengan Flutter!
             
             ### ✨ Fitur Unggulan:
+            - 💎 **Brand Baru MaoneAuto & Logo Orisinal**: Tampilan ikon custom eksklusif MaoneArt (bebas deteksi tiruan Play Protect).
             - 🌲 **Editor Menu Balas Pohon Hierarki**: Tampilan visual tree branch persis WhatsAuto.
             - 📥 **Import & Export File CSV**: Kompatibel 100% dengan data CSV WhatsAuto (termasuk katalog Kaido 241 nodes).
             - 💬 **Tanggapan Uji (Interactive Simulator)**: Uji alur respon bot WhatsApp langsung di dalam aplikasi.
             - ⚡ **Background Auto Reply Service**: Layanan Android NotificationListenerService untuk membalas notifikasi chat secara otomatis.
-            - 💎 **MaoneArt Glassmorphism UI**: Antarmuka dark teal modern dan dialog simetris 2-kolom.
             - 🔑 **Permanent Release Keystore**: Tanda tangan APK permanen siap instal.
             
             📥 **Download berkas APK di bawah ini dan instal langsung di perangkat Android Anda!**

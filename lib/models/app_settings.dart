@@ -14,7 +14,7 @@ class AppSettings {
 
   AppSettings({
     this.isAutoReplyEnabled = true,
-    this.defaultReply = 'Halo! Saya menggunakan Aplikasi WhatsAuto.',
+    this.defaultReply = 'Halo! Saya menggunakan Aplikasi MaoneAuto.',
     this.replyTo = 'all',
     this.enableGroups = false,
     this.welcomeMessageEnabled = false,

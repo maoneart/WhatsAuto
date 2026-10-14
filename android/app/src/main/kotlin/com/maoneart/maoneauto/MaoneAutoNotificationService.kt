@@ -1,4 +1,4 @@
-package com.maoneart.whatsauto
+package com.maoneart.maoneauto
 
 import android.app.Notification
 import android.app.PendingIntent
@@ -12,9 +12,9 @@ import android.util.Log
 import org.json.JSONArray
 import org.json.JSONObject
 
-class WhatsAutoNotificationService : NotificationListenerService() {
+class MaoneAutoNotificationService : NotificationListenerService() {
 
-    private val TAG = "WhatsAutoService"
+    private val TAG = "MaoneAutoService"
     private val processedKeys = mutableMapOf<String, Long>()
     private val sessionState = mutableMapOf<String, String>() // senderId -> current parentId
 

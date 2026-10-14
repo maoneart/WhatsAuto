@@ -1,5 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.maoneart.whatsauto">
+    package="com.maoneart.maoneauto">
 
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
@@ -7,7 +7,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
 
     <application
-        android:label="WhatsAuto"
+        android:label="MaoneAuto"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:theme="@style/LaunchTheme"
@@ -32,8 +32,8 @@
         </activity>
 
         <service
-            android:name=".WhatsAutoNotificationService"
-            android:label="WhatsAuto Bot Service"
+            android:name=".MaoneAutoNotificationService"
+            android:label="MaoneAuto Bot Service"
             android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"
             android:exported="true">
             <intent-filter>

@@ -1,4 +1,4 @@
-package com.maoneart.whatsauto
+package com.maoneart.maoneauto
 
 import android.content.ComponentName
 import android.content.Intent
@@ -9,7 +9,7 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity: FlutterActivity() {
-    private val CHANNEL = "com.maoneart.whatsauto/service"
+    private val CHANNEL = "com.maoneart.maoneauto/service"
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
