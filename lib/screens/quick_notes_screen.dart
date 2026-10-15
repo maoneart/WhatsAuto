@@ -167,21 +167,22 @@ class _QuickNotesScreenState extends State<QuickNotesScreen> {
     );
   }
 
-  void _deleteNote(QuickNote note) {
-    GlassmorphismModal.showConfirmModal(
+  void _deleteNote(QuickNote note) async {
+    final confirmed = await GlassmorphismModal.showConfirmModal(
       context: context,
       title: 'Hapus Catatan?',
       message: 'Apakah Anda yakin ingin menghapus catatan "${note.title}"?',
       confirmText: 'Hapus',
       cancelText: 'Batal',
-      isDestructive: true,
-      onConfirm: () {
-        setState(() {
-          _notes.removeWhere((n) => n.id == note.id);
-        });
-        _saveNotes();
-      },
+      confirmColor: Colors.redAccent,
+      icon: Icons.delete_outline,
     );
+    if (confirmed == true) {
+      setState(() {
+        _notes.removeWhere((n) => n.id == note.id);
+      });
+      _saveNotes();
+    }
   }
 
   void _copyNote(QuickNote note) {
