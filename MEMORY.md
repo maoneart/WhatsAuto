@@ -386,6 +386,22 @@
      - Menghindari unhandled PlatformException ke sisi Flutter.
 - **Versi**: Dinaikkan ke `v1.0.21+22`.
 
+### 🔍 Ekstraksi Sender Person & Penanganan Notifikasi Ringkasan WhatsApp (v1.0.22+23 - 15 Oktober 2026)
+- **Problem**:
+  - Muncul log: `[19:29:37] Notifikasi dari 'WhatsApp tidak memiliki Action Balas Cepat (RemoteInput)`.
+  - Log ini membingungkan karena pengirim tertulis 'WhatsApp' dan diberi ikon peringatan ⚠️ seolah-olah terjadi kegagalan sistem.
+- **Akar Masalah**:
+  - Android dan WhatsApp memancarkan 2 jenis notifikasi saat pesan masuk: notifikasi chat individual (ada RemoteInput) dan notifikasi ringkasan / summary ("WhatsApp" / "WA Business: X pesan baru") yang memang TIDAK memiliki Action Balas Cepat.
+  - Selain itu, pada beberapa versi Android modern, `EXTRA_TITLE` pada notifikasi percakapan bisa bernilai "WhatsApp" secara global, sementara nama pengirim aslinya berada di dalam objek `person.name` pada `NotificationCompat.MessagingStyle.Message`.
+- **Solusi**:
+  1. **Ekstraksi Nama Pengirim via `lastMsg.person?.name`**:
+     - Jika `rawTitle` adalah "WhatsApp" atau "WA Business", sistem mengekstrak nama kontak asli dari `lastMsg.person?.name` di `MessagingStyle`.
+  2. **Penanganan Anggun Notifikasi Ringkasan**:
+     - Mengubah log ringkasan sistem "WhatsApp" / "WA Business" menjadi log informatif (`ℹ️`) tanpa tanda peringatan keliru.
+  3. **Multi-layer RemoteInput Discovery**:
+     - Menambahkan fallback layer ketiga menggunakan `NotificationCompat.getActionCount` dan mapping `RemoteInput.Builder` untuk memastikan aksi balas cepat di vendor OS (Samsung One UI, dsb) tertangkap sempurna.
+- **Versi**: Dinaikkan ke `v1.0.22+23`.
+
 ---
 
 ## 📋 Active Tasks / Next Steps
@@ -401,8 +417,9 @@
 - [x] Penyelarasan total RemoteInput notification.extras & prioritas kata kunci vs menu persis WhatsAuto resmi (v1.0.19+20).
 - [x] Bangun sistem Live Monitor & Log Diagnostik real-time, perbaikan RemoteInput clean Bundle, ekstraksi MessagingStyle WhatsApp (v1.0.20+21).
 - [x] Eliminasi PatternSyntaxException di formatTags dengan literal replace & safe simulation handler (v1.0.21+22).
-- [x] Push commit ke GitHub repository `maoneart/WhatsAuto` dan trigger GitHub Actions build APK v1.0.21.
-- [x] Unduh APK rilis `v1.0.21` ke `/sdcard/Download/MaoneAuto.apk` dan verifikasi integritas.
+- [x] Ekstraksi person.name dari MessagingStyle, multi-layer NotificationCompat action scanner, dan penanganan graceful ringkasan WhatsApp (v1.0.22+23).
+- [x] Push commit ke GitHub repository `maoneart/WhatsAuto` dan trigger GitHub Actions build APK v1.0.22.
+- [x] Unduh APK rilis `v1.0.22` ke `/sdcard/Download/MaoneAuto.apk` dan verifikasi integritas.
 
 
 

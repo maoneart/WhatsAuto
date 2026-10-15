@@ -155,6 +155,10 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                     val lastMsg = messagingStyle.messages.lastOrNull()
                     if (lastMsg != null && !lastMsg.text.isNullOrBlank()) {
                         rawText = lastMsg.text.toString()
+                        val personName = lastMsg.person?.name?.toString()
+                        if (!personName.isNullOrBlank() && (rawTitle.isEmpty() || rawTitle.equals("WhatsApp", ignoreCase = true) || rawTitle.equals("WA Business", ignoreCase = true))) {
+                            rawTitle = personName
+                        }
                     }
                 }
             } catch (_: Exception) {}
@@ -240,6 +244,10 @@ class MaoneAutoNotificationService : NotificationListenerService() {
             // 5. Cari Quick Reply Action dengan RemoteInput (actions standar + fallback WearableExtender)
             val quickReplyAction = findQuickReplyAction(notification)
             if (quickReplyAction == null) {
+                if (cleanSender.equals("WhatsApp", ignoreCase = true) || cleanSender.equals("WA Business", ignoreCase = true)) {
+                    ServiceLogManager.log("ℹ️ Notifikasi ringkasan sistem '$cleanSender' diabaikan")
+                    return
+                }
                 ServiceLogManager.log("⚠️ Notifikasi dari '$cleanSender' tidak memiliki Action Balas Cepat (RemoteInput)")
                 return
             }
@@ -323,6 +331,28 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                             pendingIntent = action.actionIntent
                             break
                         }
+                    }
+                }
+            } catch (_: Exception) {}
+        }
+
+        // 3. Fallback scan via AndroidX NotificationCompat
+        if (pendingIntent == null || remoteInputs == null) {
+            try {
+                val count = androidx.core.app.NotificationCompat.getActionCount(notification)
+                for (i in 0 until count) {
+                    val compatAction = androidx.core.app.NotificationCompat.getAction(notification, i)
+                    val ris = compatAction?.remoteInputs
+                    if (compatAction != null && ris != null && ris.isNotEmpty()) {
+                        val platformInputs = ris.map { ci ->
+                            RemoteInput.Builder(ci.resultKey)
+                                .setLabel(ci.label)
+                                .setChoices(ci.choices)
+                                .setAllowFreeFormInput(ci.allowFreeFormInput)
+                                .addExtras(ci.extras)
+                                .build()
+                        }.toTypedArray()
+                        return ActionInfo(compatAction.actionIntent, platformInputs)
                     }
                 }
             } catch (_: Exception) {}
