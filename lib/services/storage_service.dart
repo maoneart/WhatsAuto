@@ -64,15 +64,57 @@ class StorageService {
     await prefs.setString('server_webhook_url', settings.serverWebhookUrl);
   }
 
+  static Future<void> initializeDefaultsIfNeeded() async {
+    // 1. Inisialisasi Settings jika belum ada
+    final settings = await loadSettings();
+    await saveSettings(settings);
+
+    // 2. Inisialisasi Aturan Kata Kunci Bawaan ('hay' & 'menu')
+    await loadKeywordReplies();
+
+    // 3. Inisialisasi Pohon Menu Bawaan
+    await loadMenuNodes();
+  }
+
   static Future<List<KeywordReply>> loadKeywordReplies() async {
     final prefs = await SharedPreferences.getInstance();
     final jsonStr = prefs.getString(_keyKeywordReplies);
     if (jsonStr != null && jsonStr.isNotEmpty) {
       try {
         final List<dynamic> list = json.decode(jsonStr);
-        return list.map((item) => KeywordReply.fromJson(item as Map<String, dynamic>)).toList();
+        final rules = list.map((item) => KeywordReply.fromJson(item as Map<String, dynamic>)).toList();
+        if (rules.isNotEmpty) {
+          return rules;
+        }
       } catch (_) {}
     }
+
+    // Default kata kunci bawaan saat awal pasang/install (hay -> hallo, menu -> menu balas)
+    final hasInitialized = prefs.getBool('flutter.initialized_default_keywords_v3') ?? false;
+    if (!hasInitialized) {
+      final defaultRules = [
+        KeywordReply(
+          id: 'default_hay',
+          incomingKeywords: 'hay',
+          replyMessage: 'hallo',
+          isExactMatch: true,
+          isEnabled: true,
+          useMenuReply: false,
+        ),
+        KeywordReply(
+          id: 'default_menu',
+          incomingKeywords: 'menu',
+          replyMessage: 'Silakan pilih menu layanan kami di bawah ini:',
+          isExactMatch: true,
+          isEnabled: true,
+          useMenuReply: true,
+        ),
+      ];
+      await saveKeywordReplies(defaultRules);
+      await prefs.setBool('flutter.initialized_default_keywords_v3', true);
+      return defaultRules;
+    }
+
     return [];
   }
 

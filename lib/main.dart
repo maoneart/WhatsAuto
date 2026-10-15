@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'screens/main_navigation_screen.dart';
+import 'services/storage_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Inisialisasi awal pengaturan, aturan kata kunci bawaan (hay & menu), dan pohon menu
+  await StorageService.initializeDefaultsIfNeeded();
 
   // Konfigurasi System UI Overlay agar senada dengan Dark Mode WhatsAuto
   SystemChrome.setSystemUIOverlayStyle(

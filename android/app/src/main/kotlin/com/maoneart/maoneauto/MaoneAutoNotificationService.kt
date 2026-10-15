@@ -447,7 +447,10 @@ class MaoneAutoNotificationService : NotificationListenerService() {
             // A. Cek Balasan Kata Kunci (Keyword Replies)
             // WhatsAuto mengecek Exact Match terlebih dahulu, lalu Contains Match
             val isKeywordEnabled = prefs.getBoolean("flutter.is_keyword_reply_enabled", true)
-            val keywordJsonStr = prefs.getString("flutter.keyword_replies_cache", null)
+            var keywordJsonStr = prefs.getString("flutter.keyword_replies_cache", null)
+            if (keywordJsonStr == null) {
+                keywordJsonStr = """[{"id":"default_hay","incomingKeywords":"hay","replyMessage":"hallo","isExactMatch":true,"isEnabled":true,"useMenuReply":false},{"id":"default_menu","incomingKeywords":"menu","replyMessage":"Silakan pilih menu layanan kami di bawah ini:","isExactMatch":true,"isEnabled":true,"useMenuReply":true}]"""
+            }
             if (isKeywordEnabled && !keywordJsonStr.isNullOrEmpty()) {
                 try {
                     val kwArray = JSONArray(keywordJsonStr)

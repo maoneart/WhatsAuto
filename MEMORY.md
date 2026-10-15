@@ -317,7 +317,21 @@
   4. Menambahkan pengecekan `cleanKw.isNotEmpty()` pada exact match dan contains match agar tidak terjadi false positive matching pada string kosong.
   5. Menambahkan pengecekan `action == null` pada array `notification.actions` dan `WearableExtender.actions`, serta null guard pada `RemoteInput.resultKey`.
   6. Mengganti `v!` dengan fallback aman `v ?? true` dan `v ?? false` di `add_edit_keyword_reply_screen.dart`.
-- **Versi**: Dinaikkan ke `v1.0.17+18`.
+### 🚀 Inisialisasi Otomatis Default Keywords (hay & menu) dan Caches Siap Pakai (v1.0.18+19 - 15 Oktober 2026)
+- **Problem**: Pengguna menginginkan aturan kata kunci pengujian langsung tersedia secara otomatis begitu aplikasi dipasang (*ready out-of-the-box*), yaitu:
+  1. Kata kunci `hay` ➔ Dibalas `hallo` (Cocokan Tepat).
+  2. Kata kunci `menu` ➔ Memunculkan Menu Balas bertingkat interaktif (Cocokan Tepat).
+  Aturan bawaan ini dapat diedit maupun dihapus oleh pengguna dari UI kapan saja.
+- **Solusi**:
+  1. Di `StorageService.dart`:
+     - Menambahkan fungsi `initializeDefaultsIfNeeded()`.
+     - Pada `loadKeywordReplies()`: Jika daftar kosong / belum diinisialisasi, sistem otomatis menambahkan dan menyimpan dua aturan kata kunci bawaan:
+       * `hay` (isExactMatch: true) ➔ `hallo`.
+       * `menu` (isExactMatch: true, useMenuReply: true) ➔ `Silakan pilih menu layanan kami di bawah ini:`.
+     - Di `main.dart`: Memanggil `StorageService.initializeDefaultsIfNeeded()` di awal `main()`.
+  2. Di `MaoneAutoNotificationService.kt`:
+     - Menambahkan fallback instan jika cache SharedPreferences belum terbaca oleh background listener: otomatis menggunakan aturan default `hay` dan `menu`.
+- **Versi**: Dinaikkan ke `v1.0.18+19`.
 
 ---
 
@@ -330,8 +344,10 @@
 - [x] Aset ikon launcher adaptif & round lengkap, default reply mode switch (v1.0.15+16).
 - [x] Penyelarasan total engine notifikasi WhatsAuto resmi: hapus summary drop, perbaiki evaluasi kata kunci mandiri, perbaiki RemoteInput array, deteksi live `isListenerConnected` (v1.0.16+17).
 - [x] Eliminasi total crash saat ganti opsi kata kunci "mengandung": wrap service dalam master try-catch, quote regex replacement, amankan null checks dan sanitasi empty keyword (v1.0.17+18).
-- [x] Push commit ke GitHub repository `maoneart/WhatsAuto` dan trigger GitHub Actions build APK v1.0.17.
-- [x] Unduh APK rilis `v1.0.17` ke `/sdcard/Download/MaoneAuto.apk` dan verifikasi integritas.
+- [x] Auto-populate default keyword rules 'hay' -> 'hallo' dan 'menu' -> Menu Balas saat install/startup, fallback native service (v1.0.18+19).
+- [ ] Push commit ke GitHub repository `maoneart/WhatsAuto` dan trigger GitHub Actions build APK v1.0.18.
+- [ ] Unduh APK rilis `v1.0.18` ke `/sdcard/Download/MaoneAuto.apk` dan verifikasi integritas.
+
 
 
 
