@@ -105,20 +105,44 @@ class _SpreadsheetSyncScreenState extends State<SpreadsheetSyncScreen> {
       return;
     }
 
-    // Exact Match
+    String? wildcardReply;
+
+    // 1. Exact Match
     for (final item in _config.items) {
-      if (item.matchOption == 0 && item.keyword.trim().toLowerCase() == input) {
-        setState(() => _testResult = '✅ Cocok (Tepat / Exact):\n"${item.reply}"');
-        return;
+      final raw = item.keyword.trim();
+      if (raw == '*') {
+        wildcardReply = item.reply;
+        continue;
+      }
+      if (item.matchOption == 0) {
+        final kwList = raw.split(',').map((e) => e.replaceAll(RegExp(r'[?!.]'), '').trim().toLowerCase()).where((k) => k.isNotEmpty);
+        if (kwList.any((kw) => kw == input)) {
+          setState(() => _testResult = '✅ Cocok (Tepat / Exact):\n"${item.reply}"');
+          return;
+        }
       }
     }
 
-    // Contains Match
+    // 2. Contains Match
     for (final item in _config.items) {
-      if (item.matchOption == 1 && (input.contains(item.keyword.trim().toLowerCase()) || item.keyword.trim().toLowerCase().contains(input))) {
-        setState(() => _testResult = '✅ Cocok (Mengandung / Contains):\n"${item.reply}"');
-        return;
+      final raw = item.keyword.trim();
+      if (raw == '*') {
+        wildcardReply = item.reply;
+        continue;
       }
+      if (item.matchOption == 1) {
+        final kwList = raw.split(',').map((e) => e.replaceAll(RegExp(r'[?!.]'), '').trim().toLowerCase()).where((k) => k.isNotEmpty);
+        if (kwList.any((kw) => input.contains(kw) || kw.contains(input))) {
+          setState(() => _testResult = '✅ Cocok (Mengandung / Contains):\n"${item.reply}"');
+          return;
+        }
+      }
+    }
+
+    // 3. Fallback Wildcard (*)
+    if (wildcardReply != null && wildcardReply.trim().isNotEmpty) {
+      setState(() => _testResult = '⭐ Cocok dengan Wildcard (*) Spreadsheet:\n"$wildcardReply"');
+      return;
     }
 
     setState(() => _testResult = '❌ Tidak ada kata kunci yang cocok di spreadsheet.');
@@ -376,6 +400,8 @@ class _SpreadsheetSyncScreenState extends State<SpreadsheetSyncScreen> {
           _buildGuideRow('Kolom A', 'Kata Kunci Pesan Masuk (misal: "harga", "ongkir", "katalog")'),
           _buildGuideRow('Kolom B', 'Teks Balasan Otomatis bot'),
           _buildGuideRow('Kolom C', 'Opsi: 0 = Tepat (Exact), 1 = Mengandung (Contains)'),
+          _buildGuideRow('Kolom A = *', 'Gunakan "*" jika ingin membalas SEMUA pesan dengan balasan spreadsheet'),
+          _buildGuideRow('Multi-Kata', 'Bisa menulis beberapa kata kunci dipisah koma (misal: "harga, tarif, paket")'),
           const SizedBox(height: 6),
           const Text(
             '* Pastikan setelan akses Google Sheet diubah ke "Siapa saja yang memiliki link dapat melihat".',

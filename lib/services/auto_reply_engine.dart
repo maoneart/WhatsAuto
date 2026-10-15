@@ -295,12 +295,19 @@ class AutoReplyEngine {
     // B. Cek Balasan Google Spreadsheet (Katalog Harga / FAQ dari Lembar Kerja)
     if (isSheetEnabled && sheetItems.isNotEmpty) {
       final paddedMsg = " $normalizedMsg ";
+      String? wildcardReply;
 
       // 1. Exact Match di Sheet
       for (final item in sheetItems) {
+        final rawKw = item.keyword.trim();
+        if (rawKw == '*') {
+          wildcardReply = item.reply;
+          continue;
+        }
         if (item.matchOption != 0) continue;
-        final cleanKw = item.keyword.replaceAll(RegExp(r'[?!.]'), '').trim().toLowerCase();
-        if (cleanKw.isNotEmpty && cleanKw == normalizedMsg) {
+
+        final kwList = rawKw.split(',').map((e) => e.replaceAll(RegExp(r'[?!.]'), '').trim().toLowerCase()).where((k) => k.isNotEmpty);
+        if (kwList.any((kw) => kw == normalizedMsg)) {
           final reply = applyTags(item.reply, senderId: senderId, incomingMessage: cleanMsg);
           if (reply.trim().isNotEmpty) return reply;
         }
@@ -308,12 +315,24 @@ class AutoReplyEngine {
 
       // 2. Contains Match di Sheet
       for (final item in sheetItems) {
+        final rawKw = item.keyword.trim();
+        if (rawKw == '*') {
+          wildcardReply = item.reply;
+          continue;
+        }
         if (item.matchOption != 1) continue;
-        final cleanKw = item.keyword.replaceAll(RegExp(r'[?!.]'), '').trim().toLowerCase();
-        if (cleanKw.isNotEmpty && (paddedMsg.contains(" $cleanKw ") || normalizedMsg.contains(cleanKw))) {
+
+        final kwList = rawKw.split(',').map((e) => e.replaceAll(RegExp(r'[?!.]'), '').trim().toLowerCase()).where((k) => k.isNotEmpty);
+        if (kwList.any((kw) => paddedMsg.contains(" $kw ") || normalizedMsg.contains(kw))) {
           final reply = applyTags(item.reply, senderId: senderId, incomingMessage: cleanMsg);
           if (reply.trim().isNotEmpty) return reply;
         }
+      }
+
+      // 3. Fallback Wildcard (*) dari Sheet (balas semua jika tidak ada kata kunci spesifik yang cocok)
+      if (wildcardReply != null && wildcardReply.trim().isNotEmpty) {
+        final reply = applyTags(wildcardReply, senderId: senderId, incomingMessage: cleanMsg);
+        if (reply.trim().isNotEmpty) return reply;
       }
     }
 

@@ -670,27 +670,53 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                 try {
                     val sheetArray = JSONArray(sheetJsonStr)
                     val paddedMsg = " $normalizedMsg "
+                    var wildcardReply: String? = null
 
-                    // Exact Match
+                    // 1. Exact Match di Sheet
                     for (i in 0 until sheetArray.length()) {
                         val item = sheetArray.getJSONObject(i)
+                        val rawKw = item.optString("keyword", "").trim()
+                        if (rawKw == "*") {
+                            wildcardReply = item.optString("reply", "")
+                            continue
+                        }
                         if (item.optInt("matchOption", 1) != 0) continue
-                        val kw = item.optString("keyword", "").replace(Regex("[?!.]"), "").trim().lowercase()
-                        if (kw.isNotEmpty() && (kw == normalizedMsg || kw.replace(Regex("[ ?!.\\n]"), "") == compactMsg)) {
+
+                        val kwList = rawKw.split(",").map { it.replace(Regex("[?!.]"), "").trim().lowercase() }.filter { it.isNotEmpty() }
+                        val isMatch = kwList.any { kw ->
+                            val cleanKw = kw.replace(Regex("[ ?!.\\n]"), "")
+                            kw == normalizedMsg || (cleanKw.isNotEmpty() && cleanKw == compactMsg)
+                        }
+                        if (isMatch) {
                             val rep = formatTags(item.optString("reply", ""), sender, cleanMsg)
                             if (rep.isNotBlank()) return rep
                         }
                     }
 
-                    // Contains Match
+                    // 2. Contains Match di Sheet
                     for (i in 0 until sheetArray.length()) {
                         val item = sheetArray.getJSONObject(i)
+                        val rawKw = item.optString("keyword", "").trim()
+                        if (rawKw == "*") {
+                            wildcardReply = item.optString("reply", "")
+                            continue
+                        }
                         if (item.optInt("matchOption", 1) != 1) continue
-                        val kw = item.optString("keyword", "").replace(Regex("[?!.]"), "").trim().lowercase()
-                        if (kw.isNotEmpty() && (paddedMsg.contains(" $kw ") || normalizedMsg.contains(kw))) {
+
+                        val kwList = rawKw.split(",").map { it.replace(Regex("[?!.]"), "").trim().lowercase() }.filter { it.isNotEmpty() }
+                        val isMatch = kwList.any { kw ->
+                            val cleanKw = kw.replace(Regex("[ ?!.\\n]"), "")
+                            cleanKw.isNotEmpty() && (paddedMsg.contains(" $kw ") || normalizedMsg.contains(kw) || compactMsg.contains(cleanKw))
+                        }
+                        if (isMatch) {
                             val rep = formatTags(item.optString("reply", ""), sender, cleanMsg)
                             if (rep.isNotBlank()) return rep
                         }
+                    }
+
+                    // 3. Fallback Wildcard (*) dari Spreadsheet (Balas semua jika tidak ada kata kunci spesifik yang cocok)
+                    if (!wildcardReply.isNullOrBlank()) {
+                        return formatTags(wildcardReply, sender, cleanMsg)
                     }
                 } catch (e: Exception) {
                     Log.e(TAG, "Error checking spreadsheet replies: ${e.message}")

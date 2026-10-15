@@ -425,6 +425,20 @@
      - Menolak teks seperti `"1 pesan baru"`, `"2 pesan baru"`, dll agar tidak pernah memicu default reply.
 - **Versi**: Dinaikkan ke `v1.0.23+24`.
 
+### 📊 Dukungan Multi-Keyword Koma & Wildcard (*) di Google Spreadsheet (v1.0.24+25 - 15 Oktober 2026)
+- **Konteks & Kebutuhan Pengguna**:
+  - Pengguna menanyakan bagaimana cara kerja kata kunci Spreadsheet: apakah harus dimasukkan satu-satu atau bisa pakai `*` untuk membalas semua pesan dari spreadsheet.
+- **Penyelarasan & Implementasi**:
+  1. **Otomatis Tanpa Input Manual di Aplikasi**:
+     - Kolom A otomatis menjadi kata kunci, Kolom B otomatis menjadi balasan. Pengguna tidak perlu mendaftarkan kata kunci spreadsheet di menu Kata Kunci aplikasi.
+  2. **Dukungan Multi-Keyword Dipisah Koma**:
+     - Di Kolom A Google Sheet, pengguna kini dapat menulis beberapa kata kunci sekaligus dipisahkan koma (misal: `harga, tarif, paket, biaya`). Baik di engine Dart maupun Kotlin service, semuanya dievaluasi fleksibel.
+  3. **Dukungan Simbol Wildcard `*` di Kolom A**:
+     - Jika pengguna membuat baris dengan Kolom A bertuliskan `*`, baris tersebut akan menjadi **fallback balasan umum** dari Spreadsheet. Jika ada pesan masuk yang tidak cocok dengan kata kunci lain, bot otomatis membalas menggunakan teks di baris `*` tersebut.
+  4. **Pembaruan Pengujian & Panduan**:
+     - Pengujian kata kunci interaktif dan panduan format kolom di layar `SpreadsheetSyncScreen` diperbarui untuk menampilkan cara penggunaan `*` dan koma.
+- **Versi**: Dinaikkan ke `v1.0.24+25`.
+
 ---
 
 ## 📋 Active Tasks / Next Steps
@@ -442,8 +456,9 @@
 - [x] Eliminasi PatternSyntaxException di formatTags dengan literal replace & safe simulation handler (v1.0.21+22).
 - [x] Ekstraksi person.name dari MessagingStyle, multi-layer NotificationCompat action scanner, dan penanganan graceful ringkasan WhatsApp (v1.0.22+23).
 - [x] Eliminasi total balasan ganda via 4-Layer Echo Shield (isSelf check, recentSentReplies cache, 3s debounce, summary text filter) (v1.0.23+24).
-- [x] Push commit ke GitHub repository `maoneart/WhatsAuto` dan trigger GitHub Actions build APK v1.0.23.
-- [x] Unduh APK rilis `v1.0.23` ke `/sdcard/Download/MaoneAuto.apk` dan verifikasi integritas.
+- [x] Dukungan multi-keyword koma dan wildcard (*) di Google Spreadsheet (v1.0.24+25).
+- [x] Push commit ke GitHub repository `maoneart/WhatsAuto` dan trigger GitHub Actions build APK v1.0.24.
+- [x] Unduh APK rilis `v1.0.24` ke `/sdcard/Download/MaoneAuto.apk` dan verifikasi integritas.
 
 
 
