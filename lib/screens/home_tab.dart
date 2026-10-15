@@ -11,11 +11,15 @@ import 'ai_reply_screen.dart';
 class HomeTab extends StatefulWidget {
   final AppSettings settings;
   final VoidCallback onSettingsChanged;
+  final bool isNotificationPermissionGranted;
+  final VoidCallback? onRequestPermission;
 
   const HomeTab({
     super.key,
     required this.settings,
     required this.onSettingsChanged,
+    this.isNotificationPermissionGranted = true,
+    this.onRequestPermission,
   });
 
   @override
@@ -161,6 +165,10 @@ class _HomeTabState extends State<HomeTab> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // 0. Permission Warning Banner jika Akses Notifikasi belum aktif
+            if (!widget.isNotificationPermissionGranted)
+              _buildPermissionWarningBanner(),
+
             // 1. Hero Master Card: Balasan otomatis HIDUP / MATI
             Container(
               padding: const EdgeInsets.all(16),
@@ -591,6 +599,79 @@ class _HomeTabState extends State<HomeTab> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildPermissionWarningBanner() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFF23180F),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFF59E0B).withOpacity(0.5), width: 1.2),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFF59E0B).withOpacity(0.12),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFF59E0B),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.priority_high_rounded, color: Colors.black, size: 16),
+              ),
+              const SizedBox(width: 10),
+              const Expanded(
+                child: Text(
+                  'Akses Notifikasi Belum Aktif!',
+                  style: TextStyle(color: Color(0xFFF59E0B), fontSize: 14, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'MaoneAuto memerlukan izin "Akses Notifikasi" di pengaturan HP agar dapat mendeteksi chat WhatsApp masuk dan membalas otomatis.',
+            style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.35),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            height: 40,
+            child: ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFF59E0B),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                elevation: 2,
+              ),
+              icon: const Icon(Icons.settings_outlined, color: Colors.black, size: 18),
+              label: const Text(
+                'AKTIFKAN SEKARANG DI PENGATURAN',
+                style: TextStyle(color: Colors.black, fontSize: 12, fontWeight: FontWeight.bold),
+              ),
+              onPressed: () {
+                if (widget.onRequestPermission != null) {
+                  widget.onRequestPermission!();
+                } else {
+                  const MethodChannel('com.maoneart.maoneauto/service')
+                      .invokeMethod('openNotificationSettings');
+                }
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

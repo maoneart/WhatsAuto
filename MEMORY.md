@@ -213,15 +213,38 @@
      - Mengintegrasikan data spreadsheet ke `TestReplySimulatorScreen` sehingga simulasi chat langsung mengenali kata kunci sheet.
 - **Versi**: Dinaikkan ke `v1.0.12+13`.
 
+### 🔔 Solusi Tuntas Akses Notifikasi Android & Penanganan CharSequence (v1.0.13+14 - 15 Oktober 2026)
+- **Problem**: Pengguna melaporkan bahwa saat diuji coba di simulator chat berhasil ("di uji coba mah jalan"), tetapi saat dites di WhatsApp asli tidak membalas ("pas saya ke wa ga mau padahal saya pakai 2 wa").
+- **Akar Masalah**:
+  1. Izin Android "Akses Notifikasi" (*Notification Listener Service*) belum aktif atau terhalang *Restricted Settings* (Setelan Dibatasi) pada Android 13/14/15, dan di aplikasi tidak ada banner pengingat visual yang menetap jika izin belum diberikan.
+  2. `android:enabled="false"` di `AndroidManifest.xml` membuat sebagian sistem Android menyembunyikan service dari daftar listener saat pertama kali dipasang.
+  3. `extras.getString(Notification.EXTRA_TITLE)` mengembalikan `null` jika WhatsApp mengirim teks berformat `SpannableString`/`CharSequence`, sehingga notifikasi ter-drop.
+  4. Nilai default `flutter.is_auto_reply_enabled` di service native adalah `false` jika belum ada interaksi simpan setting.
+- **Solusi Komprehensif**:
+  1. `AndroidManifest.xml`: Mengubah `android:enabled="true"` pada `MaoneAutoNotificationService`.
+  2. `MaoneAutoNotificationService.kt`:
+     - Membaca `rawTitle` secara aman menggunakan `getCharSequence(Notification.EXTRA_TITLE)?.toString()`.
+     - Membaca `rawText` secara aman dengan fallback ke `EXTRA_BIG_TEXT` dan `EXTRA_TEXT_LINES`.
+     - Mengubah nilai default `is_auto_reply_enabled` menjadi `true`.
+     - Merelaksasi filter `selfDisplayName` agar hanya memblokir jika pengirim persis sama (bukan pencocokan substring).
+  3. `MainNavigationScreen.dart`:
+     - Menambahkan `WidgetsBindingObserver` untuk re-evaluasi izin notifikasi saat pengguna kembali dari Settings (`resumed`).
+     - Menyimpan konfigurasi otomatis saat aplikasi dibuka pertama kali.
+     - Menampilkan modal popup izin MaoneArt Glassmorphism saat startup jika izin belum aktif.
+  4. `HomeTab.dart`:
+     - Menambahkan *Glowing Amber Warning Banner* di bagian paling atas Beranda jika izin akses notifikasi belum aktif, lengkap dengan tombol langsung ke Pengaturan Android.
+- **Versi**: Dinaikkan ke `v1.0.13+14`.
+
 ---
 
 ## 📋 Active Tasks / Next Steps
 - [x] Bedah APK WhatsAuto official (`com.guibais.whatsauto.apk`) via JADX decompiler.
-- [x] Serap logika self-message prevention (`android.selfDisplayName`), WearableExtender RemoteInput, filter aplikasi, group/contact filtering, serta header/footer & delay timer.
 - [x] Redesign UI menyeluruh: Hero Master Card, WhatsApp Preview Bubble, Bento Grid Fitur Pintar, Custom Target Selectors, Live Header/Footer Preview, MaoneArt VIP Card, dan Glassmorphic Modals (v1.0.11+12).
 - [x] Implementasi 5 menu fitur lengkap: Google Spreadsheet Sync, AI 9Router Gateway, Pesan Sambutan, Webhook Server, dan Catatan Cepat (v1.0.12+13).
-- [x] Push commit ke GitHub repository `maoneart/WhatsAuto` dan trigger GitHub Actions build APK v1.0.12.
-- [x] Unduh APK hasil build rilis ke `/sdcard/Download/MaoneAuto.apk` dan verifikasi integritas.
+- [x] Perbaikan tuntas Akses Notifikasi Android: enabled manifest, CharSequence parsing, startup save, dan sticky permission banner (v1.0.13+14).
+- [ ] Push commit ke GitHub repository `maoneart/WhatsAuto` dan trigger GitHub Actions build APK v1.0.13.
+- [ ] Unduh APK hasil build rilis ke `/sdcard/Download/MaoneAuto.apk` dan verifikasi integritas.
+
 
 
 

@@ -43,7 +43,7 @@ class MaoneAutoNotificationService : NotificationListenerService() {
 
         // 2. Baca pengaturan dari Flutter SharedPreferences
         val prefs = getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
-        val isEnabled = prefs.getBoolean("flutter.is_auto_reply_enabled", false)
+        val isEnabled = prefs.getBoolean("flutter.is_auto_reply_enabled", true)
         if (!isEnabled) return
 
         // 2a. Filter Aplikasi yang Didukung (Supported Apps)
@@ -64,10 +64,16 @@ class MaoneAutoNotificationService : NotificationListenerService() {
 
         val extras = notification.extras ?: return
 
-        val rawTitle = extras.getString(Notification.EXTRA_TITLE) ?: ""
-        var rawText = extras.getCharSequence(Notification.EXTRA_TEXT)?.toString() ?: ""
+        // Ekstraksi Title & Text secara aman untuk CharSequence / SpannableString
+        val rawTitle = extras.getCharSequence(Notification.EXTRA_TITLE)?.toString()
+            ?: extras.getString(Notification.EXTRA_TITLE) ?: ""
+        var rawText = extras.getCharSequence(Notification.EXTRA_TEXT)?.toString()
+            ?: extras.getCharSequence(Notification.EXTRA_BIG_TEXT)?.toString() ?: ""
         if (rawText.isEmpty()) {
-            rawText = extras.getCharSequence(Notification.EXTRA_BIG_TEXT)?.toString() ?: ""
+            val textLines = extras.getCharSequenceArray(Notification.EXTRA_TEXT_LINES)
+            if (textLines != null && textLines.isNotEmpty()) {
+                rawText = textLines.lastOrNull()?.toString() ?: ""
+            }
         }
 
         if (rawTitle.isEmpty() || rawText.isEmpty()) return
@@ -81,9 +87,9 @@ class MaoneAutoNotificationService : NotificationListenerService() {
         cleanSender = cleanSender.replace(Regex("[\u200e\u2068\u2069]"), "").trim()
         val cleanMsg = rawText.replace(Regex("[\u200e\u2068\u2069]"), "").trim()
 
-        // 2b. Deteksi & Abaikan Pesan Sendiri (Self-Message Prevention)
-        val selfDisplayName = extras.getString("android.selfDisplayName") ?: ""
-        if (selfDisplayName.isNotEmpty() && (cleanSender.equals(selfDisplayName, ignoreCase = true) || rawTitle.contains(selfDisplayName, ignoreCase = true))) {
+        // 2b. Deteksi & Abaikan Pesan Sendiri (Hanya jika sender persis sama dengan selfDisplayName)
+        val selfDisplayName = extras.getCharSequence("android.selfDisplayName")?.toString() ?: ""
+        if (selfDisplayName.isNotEmpty() && cleanSender.equals(selfDisplayName, ignoreCase = true)) {
             Log.d(TAG, "Abaikan pesan sendiri dari: $cleanSender (selfDisplayName=$selfDisplayName)")
             return
         }
