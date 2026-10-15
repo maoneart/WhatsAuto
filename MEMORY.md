@@ -313,7 +313,7 @@
 - [x] Aset ikon launcher adaptif & round lengkap, default reply mode switch (v1.0.15+16).
 - [x] Penyelarasan total engine notifikasi WhatsAuto resmi: hapus summary drop, perbaiki evaluasi kata kunci mandiri, perbaiki RemoteInput array, deteksi live `isListenerConnected` (v1.0.16+17).
 - [x] Push commit ke GitHub repository `maoneart/WhatsAuto` dan trigger GitHub Actions build APK v1.0.16.
-- [ ] Unduh APK rilis `v1.0.16` ke `/sdcard/Download/MaoneAuto.apk` dan verifikasi integritas.
+- [x] Unduh APK rilis `v1.0.16` ke `/sdcard/Download/MaoneAuto.apk` dan verifikasi integritas.
 
 
 
