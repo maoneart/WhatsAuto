@@ -145,6 +145,7 @@ class AutoReplyEngine {
     final lowerMsg = cleanMsg.toLowerCase();
     // Normalisasi tanda baca persis WhatsAuto: buang [?!.\n]
     final normalizedMsg = cleanMsg.replaceAll(RegExp(r'[?!.\n]'), '').trim().toLowerCase();
+    final paddedMsg = " $normalizedMsg ";
     final currentParent = _sessions[senderId] ?? 'idle';
 
     // =========================================================================
@@ -152,7 +153,6 @@ class AutoReplyEngine {
     // Persis WhatsAuto resmi: kata kunci selalu memiliki prioritas lebih tinggi daripada menu
     // =========================================================================
     if (settings.isKeywordReplyEnabled && keywordReplies.isNotEmpty) {
-      final paddedMsg = " $normalizedMsg ";
 
       // 1. Prioritas 1: Exact Match (Cocokan Tepat) untuk kata kunci spesifik (bukan '*')
       for (final rule in keywordReplies) {
@@ -320,7 +320,6 @@ class AutoReplyEngine {
 
     // B. Cek Balasan Google Spreadsheet (Katalog Harga / FAQ dari Lembar Kerja)
     if (isSheetEnabled && sheetItems.isNotEmpty) {
-      final paddedMsg = " $normalizedMsg ";
       String? wildcardReply;
 
       // 1. Exact Match di Sheet
