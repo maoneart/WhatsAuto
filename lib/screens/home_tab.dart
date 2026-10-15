@@ -8,6 +8,7 @@ import 'test_reply_simulator_screen.dart';
 import 'keyword_reply_list_screen.dart';
 import 'spreadsheet_sync_screen.dart';
 import 'ai_reply_screen.dart';
+import 'diagnostic_log_screen.dart';
 
 class HomeTab extends StatefulWidget {
   final AppSettings settings;
@@ -162,6 +163,15 @@ class _HomeTabState extends State<HomeTab> {
               );
             },
             tooltip: 'Tanggapan Uji / Simulator',
+          ),
+          IconButton(
+            icon: const Icon(Icons.terminal_rounded, color: Color(0xFF38BDF8)),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const DiagnosticLogScreen()),
+              );
+            },
+            tooltip: 'Live Monitor & Log Diagnostik',
           ),
           IconButton(
             icon: const Icon(Icons.send_outlined, color: Colors.white70),
@@ -598,6 +608,71 @@ class _HomeTabState extends State<HomeTab> {
                 ),
               ),
             ),
+            const SizedBox(height: 12),
+
+            // 5. Live Monitor & Log Diagnostik Card
+            InkWell(
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const DiagnosticLogScreen()),
+                );
+              },
+              borderRadius: BorderRadius.circular(16),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      const Color(0xFF38BDF8).withOpacity(0.12),
+                      const Color(0xFF111B21),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: const Color(0xFF38BDF8).withOpacity(0.3),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF38BDF8).withOpacity(0.18),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.terminal_rounded, color: Color(0xFF38BDF8), size: 22),
+                    ),
+                    const SizedBox(width: 14),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Live Monitor & Log Diagnostik',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                          SizedBox(height: 2),
+                          Text(
+                            'Pantau pesan masuk WhatsApp & uji logika real-time',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.white70,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(Icons.arrow_forward_ios, color: Color(0xFF38BDF8), size: 14),
+                  ],
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -789,6 +864,27 @@ class _HomeTabState extends State<HomeTab> {
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            height: 38,
+            child: OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                side: BorderSide(color: const Color(0xFF38BDF8).withOpacity(0.4)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              icon: const Icon(Icons.terminal_rounded, color: Color(0xFF38BDF8), size: 16),
+              label: const Text(
+                'Buka Live Monitor & Log Diagnostik',
+                style: TextStyle(color: Color(0xFF38BDF8), fontSize: 12, fontWeight: FontWeight.bold),
+              ),
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const DiagnosticLogScreen()),
+                );
+              },
+            ),
           ),
         ],
       ),

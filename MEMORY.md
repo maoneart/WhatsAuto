@@ -352,7 +352,23 @@
      - Jika kata kunci cocok dan `!useMenuReply`, sesi di-reset ke `idle` dan mengirimkan balasan langsung (`hallo`).
      - Jika kata kunci cocok dan `useMenuReply`, sesi diaktifkan ke `parent` dan memunculkan menu.
   4. Menambahkan izin `POST_NOTIFICATIONS` dan `WAKE_LOCK` di `AndroidManifest.xml`.
-- **Versi**: Dinaikkan ke `v1.0.19+20`.
+### 📊 Live Monitor, Log Diagnostik & Perbaikan Ekstraksi MessagingStyle WhatsApp (v1.0.20+21 - 15 Oktober 2026)
+- **Problem**: 
+  1. Pengguna melaporkan bot masih belum merespons pesan WhatsApp dan tidak ada visibilitas apakah notifikasi berhasil ditangkap atau diabaikan oleh sistem.
+  2. Saat aplikasi di-uninstall & di-install ulang, Android otomatis mencabut izin Akses Notifikasi sehingga listener terputus.
+  3. Format notifikasi WhatsApp modern menggunakan `MessagingStyle` yang memerlukan ekstraksi hierarki pesan khusus.
+- **Solusi Komprehensif**:
+  1. **Live Monitor & Log Diagnostik (`diagnostic_log_screen.dart` & `ServiceLogManager`)**:
+     - Menambahkan logging in-memory real-time pada native Kotlin service (`ServiceLogManager`).
+     - Setiap event dicatat detik demi detik: notifikasi masuk, nama pengirim, isi pesan, filter grup/debounce, kecocokan kata kunci, dan status pengiriman RemoteInput.
+     - Dibuatkan antarmuka Live Terminal Log di aplikasi dengan auto-polling 2 detik, tombol uji simulasi instan, dan tombol perbaiki koneksi service.
+  2. **Perbaikan `sendReply` RemoteInput**:
+     - Mengembalikan pembuatan `Bundle()` bersih khusus `resultKey` balasan agar intent tidak kelebihan muatan (bloated) oleh bundle `notification.extras` yang berisi bitmap/drawables besar.
+  3. **Ekstraksi Teks `NotificationCompat.MessagingStyle`**:
+     - Mendukung parsing pesan pesan WhatsApp gaya baru via `extractMessagingStyleFromNotification` dan array `android.messages`.
+  4. **Pembaruan Dependensi**:
+     - Menambahkan `androidx.core:core-ktx:1.12.0` di `build.gradle`.
+- **Versi**: Dinaikkan ke `v1.0.20+21`.
 
 ---
 
@@ -367,8 +383,9 @@
 - [x] Eliminasi total crash saat ganti opsi kata kunci "mengandung": wrap service dalam master try-catch, quote regex replacement, amankan null checks dan sanitasi empty keyword (v1.0.17+18).
 - [x] Auto-populate default keyword rules 'hay' -> 'hallo' dan 'menu' -> Menu Balas saat install/startup, fallback native service (v1.0.18+19).
 - [x] Penyelarasan total RemoteInput notification.extras & prioritas kata kunci vs menu persis WhatsAuto resmi (v1.0.19+20).
-- [x] Push commit ke GitHub repository `maoneart/WhatsAuto` dan trigger GitHub Actions build APK v1.0.19.
-- [x] Unduh APK rilis `v1.0.19` ke `/sdcard/Download/MaoneAuto.apk` dan verifikasi integritas.
+- [x] Bangun sistem Live Monitor & Log Diagnostik real-time, perbaikan RemoteInput clean Bundle, ekstraksi MessagingStyle WhatsApp (v1.0.20+21).
+- [ ] Push commit ke GitHub repository `maoneart/WhatsAuto` dan trigger GitHub Actions build APK v1.0.20.
+- [ ] Unduh APK rilis `v1.0.20` ke `/sdcard/Download/MaoneAuto.apk` dan verifikasi integritas.
 
 
 

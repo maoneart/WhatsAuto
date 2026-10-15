@@ -15,25 +15,70 @@ import java.util.Locale
 import org.json.JSONArray
 import org.json.JSONObject
 
+object ServiceLogManager {
+    val logs = java.util.concurrent.CopyOnWriteArrayList<String>()
+
+    fun log(msg: String) {
+        val time = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(java.util.Date())
+        val entry = "[$time] $msg"
+        logs.add(entry)
+        while (logs.size > 50) {
+            logs.removeAt(0)
+        }
+        Log.i("MaoneAutoService", msg)
+    }
+
+    fun getLogs(): List<String> = logs.toList()
+    fun clearLogs() = logs.clear()
+}
+
 class MaoneAutoNotificationService : NotificationListenerService() {
 
     companion object {
         var isServiceConnected: Boolean = false
+        var instance: MaoneAutoNotificationService? = null
+
+        fun simulateTestReply(sender: String, messageText: String, prefs: android.content.SharedPreferences): String {
+            val service = instance ?: MaoneAutoNotificationService()
+            ServiceLogManager.log("🧪 [TEST SIMULASI] Pesan masuk dari '$sender': '$messageText'")
+            val reply = service.computeReply(sender, messageText, prefs)
+            if (reply.isNullOrBlank()) {
+                ServiceLogManager.log("⚠️ [TEST SIMULASI] Tidak ada balasan yang cocok untuk '$messageText'")
+                return "⚠️ Tidak ada balasan yang cocok."
+            }
+            ServiceLogManager.log("✅ [TEST SIMULASI] Balasan dihasilkan: '$reply'")
+            return reply
+        }
     }
 
     private val TAG = "MaoneAutoService"
     private val processedKeys = mutableMapOf<String, Long>()
     private val lastReplyPerSender = mutableMapOf<String, Long>()
 
+    override fun onCreate() {
+        super.onCreate()
+        instance = this
+        ServiceLogManager.log("🚀 Service onCreate() diinisialisasi")
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        instance = null
+        ServiceLogManager.log("🛑 Service onDestroy() dihentikan")
+    }
+
     override fun onListenerConnected() {
         super.onListenerConnected()
         isServiceConnected = true
+        instance = this
+        ServiceLogManager.log("🟢 Listener Notifikasi TERHUBUNG ke Android!")
         Log.i(TAG, "MaoneAutoNotificationService listener connected successfully!")
     }
 
     override fun onListenerDisconnected() {
         super.onListenerDisconnected()
         isServiceConnected = false
+        ServiceLogManager.log("🔴 Listener Notifikasi TERPUTUS dari Android!")
         Log.w(TAG, "MaoneAutoNotificationService listener disconnected!")
         try {
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
@@ -66,7 +111,7 @@ class MaoneAutoNotificationService : NotificationListenerService() {
             val prefs = getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
             val isEnabled = prefs.getBoolean("flutter.is_auto_reply_enabled", true)
             if (!isEnabled) {
-                Log.d(TAG, "Auto-reply is disabled in settings")
+                ServiceLogManager.log("⏸️ Abaikan: Balasan Otomatis sedang MATI di sakelar aplikasi")
                 return
             }
 
@@ -83,7 +128,7 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                         else -> true
                     }
                     if (!isAppAllowed) {
-                        Log.d(TAG, "App $packageName is not enabled in supported apps")
+                        ServiceLogManager.log("⏸️ Abaikan: Aplikasi $packageName dinonaktifkan di pengaturan")
                         return
                     }
                 } catch (_: Exception) {}
@@ -91,11 +136,28 @@ class MaoneAutoNotificationService : NotificationListenerService() {
 
             val extras = notification.extras ?: return
 
-            // Ekstraksi Title & Text secara aman untuk CharSequence / SpannableString
-            val rawTitle = extras.getCharSequence(Notification.EXTRA_TITLE)?.toString()
+            // Ekstraksi Title & Text secara aman (MessagingStyle + CharSequence + SpannableString)
+            var rawTitle = extras.getCharSequence(Notification.EXTRA_TITLE)?.toString()
                 ?: extras.getString(Notification.EXTRA_TITLE) ?: ""
-            var rawText = extras.getCharSequence(Notification.EXTRA_TEXT)?.toString()
-                ?: extras.getCharSequence(Notification.EXTRA_BIG_TEXT)?.toString() ?: ""
+            if (rawTitle.isEmpty()) {
+                rawTitle = extras.getCharSequence(Notification.EXTRA_CONVERSATION_TITLE)?.toString() ?: ""
+            }
+
+            var rawText = ""
+            try {
+                val messagingStyle = androidx.core.app.NotificationCompat.MessagingStyle.extractMessagingStyleFromNotification(notification)
+                if (messagingStyle != null && messagingStyle.messages.isNotEmpty()) {
+                    val lastMsg = messagingStyle.messages.lastOrNull()
+                    if (lastMsg != null && !lastMsg.text.isNullOrBlank()) {
+                        rawText = lastMsg.text.toString()
+                    }
+                }
+            } catch (_: Exception) {}
+
+            if (rawText.isEmpty()) {
+                rawText = extras.getCharSequence(Notification.EXTRA_TEXT)?.toString()
+                    ?: extras.getCharSequence(Notification.EXTRA_BIG_TEXT)?.toString() ?: ""
+            }
             if (rawText.isEmpty()) {
                 val textLines = extras.getCharSequenceArray(Notification.EXTRA_TEXT_LINES)
                 if (textLines != null && textLines.isNotEmpty()) {
@@ -104,10 +166,18 @@ class MaoneAutoNotificationService : NotificationListenerService() {
             }
             if (rawText.isEmpty()) {
                 try {
-                    val messages = extras.getParcelableArray("android.messages")
-                    if (messages != null && messages.isNotEmpty()) {
-                        val lastBundle = messages.lastOrNull() as? Bundle
-                        rawText = lastBundle?.getCharSequence("text")?.toString() ?: ""
+                    val parcelables = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                        extras.getParcelableArray(Notification.EXTRA_MESSAGES, android.os.Parcelable::class.java)
+                    } else {
+                        @Suppress("DEPRECATION")
+                        extras.getParcelableArray(Notification.EXTRA_MESSAGES)
+                    }
+                    if (parcelables != null && parcelables.isNotEmpty()) {
+                        val msgs = Notification.MessagingStyle.Message.getMessagesFromBundleArray(parcelables)
+                        val last = msgs.lastOrNull()
+                        if (last != null && !last.text.isNullOrBlank()) {
+                            rawText = last.text.toString()
+                        }
                     }
                 } catch (_: Exception) {}
             }
@@ -123,7 +193,7 @@ class MaoneAutoNotificationService : NotificationListenerService() {
             cleanSender = cleanSender.replace(Regex("[\u200e\u2068\u2069]"), "").trim()
             val cleanMsg = rawText.replace(Regex("[\u200e\u2068\u2069]"), "").trim()
 
-            Log.i(TAG, "Processing incoming notification -> App: $packageName | Sender: $cleanSender | Msg: $cleanMsg")
+            ServiceLogManager.log("📩 Notif masuk dari $packageName: '$cleanSender' -> '$cleanMsg'")
 
             // 2c. Deteksi & Filter Pesan Grup WhatsApp (Akurat menggunakan EXTRA_IS_GROUP_CONVERSATION)
             val isGroup = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
@@ -133,7 +203,7 @@ class MaoneAutoNotificationService : NotificationListenerService() {
             }
             val enableGroups = prefs.getBoolean("flutter.enable_groups", false)
             if (isGroup && !enableGroups) {
-                Log.d(TAG, "Abaikan pesan grup karena grup dinonaktifkan: $cleanSender (rawTitle=$rawTitle)")
+                ServiceLogManager.log("👥 Abaikan pesan grup '$cleanSender' karena fitur Grup dinonaktifkan")
                 return
             }
 
@@ -141,7 +211,7 @@ class MaoneAutoNotificationService : NotificationListenerService() {
             val replyTo = prefs.getString("flutter.reply_to", "all") ?: "all"
             val isPhoneNumber = cleanSender.replace(Regex("[+0-9\\s\\-()]"), "").isEmpty()
             if (replyTo == "except_phone" && !isPhoneNumber) {
-                Log.d(TAG, "Abaikan kontak tersimpan karena hanya membalas nomor baru: $cleanSender")
+                ServiceLogManager.log("👤 Abaikan '$cleanSender': hanya membalas nomor baru (Kecuali Kontak Telepon)")
                 return
             }
 
@@ -150,7 +220,7 @@ class MaoneAutoNotificationService : NotificationListenerService() {
             // 3. Debounce per-pengirim: jangan balas lebih dari 1 kali dalam 1 detik untuk pengirim yang sama
             val lastSenderReply = lastReplyPerSender[cleanSender] ?: 0L
             if (now - lastSenderReply < 1000) {
-                Log.d(TAG, "Debounce active for sender: $cleanSender (${now - lastSenderReply}ms ago)")
+                ServiceLogManager.log("⏳ Debounce aktif untuk '$cleanSender' (${now - lastSenderReply}ms lalu)")
                 return
             }
 
@@ -158,21 +228,21 @@ class MaoneAutoNotificationService : NotificationListenerService() {
             val messageKey = "$packageName:$cleanSender:$cleanMsg"
             val lastSeen = processedKeys[messageKey] ?: 0L
             if (now - lastSeen < 1000) {
-                Log.d(TAG, "Duplicate message key dropped: $messageKey (${now - lastSeen}ms ago)")
+                ServiceLogManager.log("🔁 Duplikat terdeteksi untuk '$cleanSender': '$cleanMsg' (${now - lastSeen}ms lalu)")
                 return
             }
 
             // 5. Cari Quick Reply Action dengan RemoteInput (actions standar + fallback WearableExtender)
             val quickReplyAction = findQuickReplyAction(notification)
             if (quickReplyAction == null) {
-                Log.d(TAG, "No quick reply action found for notification from $packageName")
+                ServiceLogManager.log("⚠️ Notifikasi dari '$cleanSender' tidak memiliki Action Balas Cepat (RemoteInput)")
                 return
             }
 
             // 6. Hitung teks balasan dengan Tree Menu & Rule Kata Kunci
             val replyText = computeReply(cleanSender, cleanMsg, prefs)
             if (replyText.isNullOrBlank()) {
-                Log.d(TAG, "No reply computed for message: '$cleanMsg' from $cleanSender")
+                ServiceLogManager.log("ℹ️ Tidak ada aturan balasan untuk '$cleanMsg' dari '$cleanSender'")
                 return
             }
 
@@ -201,22 +271,23 @@ class MaoneAutoNotificationService : NotificationListenerService() {
             if (replyTimeMode == "once") {
                 val hasRepliedKey = "flutter.has_replied_$cleanSender"
                 if (prefs.getBoolean(hasRepliedKey, false)) {
-                    Log.d(TAG, "Abaikan pengirim $cleanSender: sudah pernah dibalas sekali")
+                    ServiceLogManager.log("1️⃣ Abaikan '$cleanSender': mode Balas Sekali (sudah pernah dibalas)")
                     return
                 }
                 prefs.edit().putBoolean(hasRepliedKey, true).apply()
             }
 
-            Log.i(TAG, "Sending auto-reply to $cleanSender ($packageName): $finalReply")
+            ServiceLogManager.log("🚀 Membalas '$cleanSender': '$finalReply'")
 
             if (replyTimeMode == "delay" && replyDelaySeconds > 0) {
                 android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                    sendReply(this, notification, quickReplyAction, finalReply)
+                    sendReply(this, quickReplyAction, finalReply)
                 }, (replyDelaySeconds * 1000).toLong())
             } else {
-                sendReply(this, notification, quickReplyAction, finalReply)
+                sendReply(this, quickReplyAction, finalReply)
             }
         } catch (t: Throwable) {
+            ServiceLogManager.log("❌ Unhandled error: ${t.message}")
             Log.e(TAG, "Unhandled error in onNotificationPosted: ${t.message}", t)
         }
     }
@@ -232,6 +303,7 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                 if (action != null && action.remoteInputs != null && action.remoteInputs.isNotEmpty()) {
                     remoteInputs = action.remoteInputs
                     pendingIntent = action.actionIntent
+                    break
                 }
             }
         }
@@ -244,6 +316,7 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                         if (action != null && action.remoteInputs != null && action.remoteInputs.isNotEmpty()) {
                             remoteInputs = action.remoteInputs
                             pendingIntent = action.actionIntent
+                            break
                         }
                     }
                 }
@@ -256,14 +329,12 @@ class MaoneAutoNotificationService : NotificationListenerService() {
         return null
     }
 
-    private fun sendReply(context: Context, notification: Notification, actionInfo: ActionInfo, replyMessage: String) {
+    private fun sendReply(context: Context, actionInfo: ActionInfo, replyMessage: String) {
         try {
             val intent = Intent().apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
-            // Persis WhatsAuto resmi (u method): gunakan notification.extras asli
-            // agar token percakapan WhatsApp tidak hilang saat dikirim via RemoteInput
-            val bundle = notification.extras ?: Bundle()
+            val bundle = Bundle()
             for (ri in actionInfo.remoteInputs) {
                 if (ri != null && ri.resultKey != null) {
                     bundle.putCharSequence(ri.resultKey, replyMessage)
@@ -271,8 +342,10 @@ class MaoneAutoNotificationService : NotificationListenerService() {
             }
             RemoteInput.addResultsToIntent(actionInfo.remoteInputs, intent, bundle)
             actionInfo.pendingIntent.send(context, 0, intent)
+            ServiceLogManager.log("✅ RemoteInput TERKIRIM SUKSES ke WhatsApp!")
             Log.i(TAG, "Auto-reply sent successfully via RemoteInput: $replyMessage")
         } catch (e: Throwable) {
+            ServiceLogManager.log("❌ Gagal eksekusi sendReply: ${e.message}")
             Log.e(TAG, "Failed to send auto-reply: ${e.message}", e)
         }
     }
