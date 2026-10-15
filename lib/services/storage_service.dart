@@ -6,6 +6,8 @@ import '../models/app_settings.dart';
 import 'csv_service.dart';
 
 import '../models/keyword_reply.dart';
+import '../models/spreadsheet_model.dart';
+import '../models/quick_note_model.dart';
 
 class StorageService {
   static const String _keySettings = 'app_settings';
@@ -16,6 +18,9 @@ class StorageService {
   static const String _keyKeywordReplies = 'keyword_replies';
   static const String _keyNativeKeywordRepliesCache = 'keyword_replies_cache';
   static const String _keyNativeKeywordEnabled = 'is_keyword_reply_enabled';
+  static const String _keySpreadsheetConfig = 'spreadsheet_config';
+  static const String _keyNativeSpreadsheetCache = 'spreadsheet_items_cache';
+  static const String _keyQuickNotes = 'quick_notes';
 
   static Future<AppSettings> loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
@@ -48,6 +53,15 @@ class StorageService {
     await prefs.setInt('reply_delay_seconds', settings.replyDelaySeconds);
     await prefs.setString('reply_time_mode', settings.replyTimeMode);
     await prefs.setString('supported_apps', json.encode(settings.supportedApps));
+
+    // Sync AI, Welcome & Webhook settings to native SharedPreferences
+    await prefs.setBool('welcome_message_enabled', settings.welcomeMessageEnabled);
+    await prefs.setString('welcome_message', settings.welcomeMessage);
+    await prefs.setBool('ai_reply_enabled', settings.aiReplyEnabled);
+    await prefs.setString('ai_provider', settings.aiProvider);
+    await prefs.setString('ai_api_key', settings.aiApiKey);
+    await prefs.setString('ai_custom_prompt', settings.aiCustomPrompt);
+    await prefs.setString('server_webhook_url', settings.serverWebhookUrl);
   }
 
   static Future<List<KeywordReply>> loadKeywordReplies() async {
@@ -127,5 +141,72 @@ class StorageService {
     }
     final sampleNodes = await CsvService.loadDefaultSampleCsv();
     await saveMenuNodes(sampleNodes);
+  }
+
+  // =========================================================================
+  // Google Spreadsheet Sync
+  // =========================================================================
+  static Future<SpreadsheetConfig> loadSpreadsheetConfig() async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonStr = prefs.getString(_keySpreadsheetConfig);
+    if (jsonStr != null && jsonStr.isNotEmpty) {
+      try {
+        final Map<String, dynamic> map = json.decode(jsonStr);
+        return SpreadsheetConfig.fromJson(map);
+      } catch (_) {}
+    }
+    return SpreadsheetConfig();
+  }
+
+  static Future<void> saveSpreadsheetConfig(SpreadsheetConfig config) async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonStr = json.encode(config.toJson());
+    await prefs.setString(_keySpreadsheetConfig, jsonStr);
+
+    // Sync to native SharedPreferences for background notification service
+    await prefs.setBool('is_spreadsheet_reply_enabled', config.isEnabled);
+    final itemsList = config.items.map((i) => i.toJson()).toList();
+    await prefs.setString(_keyNativeSpreadsheetCache, json.encode(itemsList));
+  }
+
+  // =========================================================================
+  // Catatan Cepat (Quick Notes)
+  // =========================================================================
+  static Future<List<QuickNote>> loadQuickNotes() async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonStr = prefs.getString(_keyQuickNotes);
+    if (jsonStr != null && jsonStr.isNotEmpty) {
+      try {
+        final List<dynamic> list = json.decode(jsonStr);
+        return list.map((item) => QuickNote.fromJson(item as Map<String, dynamic>)).toList();
+      } catch (_) {}
+    }
+    // Return default sample quick notes
+    return [
+      QuickNote(
+        id: '1',
+        title: 'Nomor Rekening Pembayaran',
+        content: 'BCA: 1234567890 a.n. MaoneArt\nMandiri: 9876543210 a.n. MaoneArt\nKonfirmasi bukti transfer ke nomor ini ya Kak.',
+        updatedAt: DateTime.now(),
+      ),
+      QuickNote(
+        id: '2',
+        title: 'Alamat Toko & Jam Operasional',
+        content: '📍 Alamat Toko: Jl. Karang Satria No. 88, Bekasi.\n🕒 Buka Setiap Hari: 08.00 - 21.00 WIB.',
+        updatedAt: DateTime.now(),
+      ),
+      QuickNote(
+        id: '3',
+        title: 'Format Pemesanan Cepat',
+        content: 'Nama:\nNo. HP:\nAlamat Lengkap:\nPesanan:\nJumlah:',
+        updatedAt: DateTime.now(),
+      ),
+    ];
+  }
+
+  static Future<void> saveQuickNotes(List<QuickNote> notes) async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonList = notes.map((n) => n.toJson()).toList();
+    await prefs.setString(_keyQuickNotes, json.encode(jsonList));
   }
 }

@@ -421,7 +421,41 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                 }
             }
 
-            // B. Kata kunci default pemanggil menu ("menu", "katalog", "bantuan")
+            // B. Cek Balasan Google Spreadsheet (Katalog Lembar Kerja)
+            val isSheetEnabled = prefs.getBoolean("flutter.is_spreadsheet_reply_enabled", false)
+            val sheetJsonStr = prefs.getString("flutter.spreadsheet_items_cache", null)
+            if (isSheetEnabled && !sheetJsonStr.isNullOrEmpty()) {
+                try {
+                    val sheetArray = JSONArray(sheetJsonStr)
+                    val paddedMsg = " $normalizedMsg "
+
+                    // Prioritas 1: Exact Match di Sheet
+                    for (i in 0 until sheetArray.length()) {
+                        val item = sheetArray.getJSONObject(i)
+                        if (item.optInt("matchOption", 1) != 0) continue
+                        val kw = item.optString("keyword", "").replace(Regex("[?!.]"), "").trim().lowercase()
+                        if (kw.isNotEmpty() && kw == normalizedMsg) {
+                            val rep = formatTags(item.optString("reply", ""), sender, cleanMsg)
+                            if (rep.isNotBlank()) return rep
+                        }
+                    }
+
+                    // Prioritas 2: Contains Match di Sheet
+                    for (i in 0 until sheetArray.length()) {
+                        val item = sheetArray.getJSONObject(i)
+                        if (item.optInt("matchOption", 1) != 1) continue
+                        val kw = item.optString("keyword", "").replace(Regex("[?!.]"), "").trim().lowercase()
+                        if (kw.isNotEmpty() && (paddedMsg.contains(" $kw ") || normalizedMsg.contains(kw))) {
+                            val rep = formatTags(item.optString("reply", ""), sender, cleanMsg)
+                            if (rep.isNotBlank()) return rep
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error checking spreadsheet replies: ${e.message}")
+                }
+            }
+
+            // C. Kata kunci default pemanggil menu ("menu", "katalog", "bantuan")
             if (normalizedMsg == "menu" ||
                 normalizedMsg == "katalog" ||
                 normalizedMsg == "pilihan" ||
@@ -430,7 +464,18 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                 return renderMenu(nodes, "parent")
             }
 
-            // C. Pesan biasa di luar menu -> Diam sepenuhnya jika bukan kata kunci terdaftar!
+            // D. Pesan Sambutan untuk kontak baru pertama kali (Welcome Message)
+            val isWelcomeEnabled = prefs.getBoolean("flutter.welcome_message_enabled", false)
+            val welcomeText = prefs.getString("flutter.welcome_message", "") ?: ""
+            if (isWelcomeEnabled && welcomeText.isNotBlank()) {
+                val welcomeKey = "flutter.welcomed_$cleanSender"
+                if (!prefs.getBoolean(welcomeKey, false)) {
+                    prefs.edit().putBoolean(welcomeKey, true).apply()
+                    return formatTags(welcomeText, sender, cleanMsg)
+                }
+            }
+
+            // E. Pesan biasa di luar menu -> Diam sepenuhnya jika hanya membalas kata kunci!
             val onlyKeywords = prefs.getBoolean("flutter.only_reply_keywords", true)
             if (onlyKeywords) {
                 return null

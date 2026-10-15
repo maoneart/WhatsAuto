@@ -29,10 +29,13 @@ class _TestReplySimulatorScreenState extends State<TestReplySimulatorScreen> {
     final nodes = await StorageService.loadMenuNodes();
     final settings = await StorageService.loadSettings();
     final keywordReplies = await StorageService.loadKeywordReplies();
+    final sheetConfig = await StorageService.loadSpreadsheetConfig();
 
     _engine = AutoReplyEngine(
       nodes: nodes,
       keywordReplies: keywordReplies,
+      sheetItems: sheetConfig.items,
+      isSheetEnabled: sheetConfig.isEnabled,
       settings: settings,
     );
 

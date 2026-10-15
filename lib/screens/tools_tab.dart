@@ -6,6 +6,11 @@ import '../widgets/glassmorphism_modal.dart';
 import 'menu_reply_screen.dart';
 import 'test_reply_simulator_screen.dart';
 import 'keyword_reply_list_screen.dart';
+import 'ai_reply_screen.dart';
+import 'spreadsheet_sync_screen.dart';
+import 'welcome_message_screen.dart';
+import 'webhook_server_screen.dart';
+import 'quick_notes_screen.dart';
 
 class ToolsTab extends StatefulWidget {
   final AppSettings settings;
@@ -414,10 +419,8 @@ class _ToolsTabState extends State<ToolsTab> {
                   title: 'Balasan AI',
                   subtitle: '9Router lokal port 20128 & model Gemini.',
                   onTap: () {
-                    GlassmorphismModal.showAlertModal(
-                      context: context,
-                      title: '9Router AI Gateway',
-                      message: 'Terhubung ke server AI lokal port 20128 & Google Gemini API.',
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const AiReplyScreen()),
                     );
                   },
                 ),
@@ -429,10 +432,8 @@ class _ToolsTabState extends State<ToolsTab> {
                   title: 'Lembar Kerja',
                   subtitle: 'Hubungkan Google Sheet untuk katalog harga.',
                   onTap: () {
-                    GlassmorphismModal.showAlertModal(
-                      context: context,
-                      title: 'Google Spreadsheet',
-                      message: 'Integrasi spreadsheet online untuk katalog produk dan harga.',
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const SpreadsheetSyncScreen()),
                     );
                   },
                 ),
@@ -457,10 +458,8 @@ class _ToolsTabState extends State<ToolsTab> {
                   title: 'Pesan Sambutan',
                   subtitle: 'Kirim sapaan hangat saat pelanggan pertama chat.',
                   onTap: () {
-                    GlassmorphismModal.showAlertModal(
-                      context: context,
-                      title: 'Pesan Selamat Datang',
-                      message: 'Sambutan ramah otomatis untuk kontak baru yang pertama kali chat.',
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const WelcomeMessageScreen()),
                     );
                   },
                 ),
@@ -472,10 +471,8 @@ class _ToolsTabState extends State<ToolsTab> {
                   title: 'Webhook Server',
                   subtitle: 'Respon dinamis dari backend lokal port 8085.',
                   onTap: () {
-                    GlassmorphismModal.showAlertModal(
-                      context: context,
-                      title: 'Webhook Server',
-                      message: 'Kirim payload pesan ke API lokal (port 8085 / 8088) dan terima respon dinamis.',
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const WebhookServerScreen()),
                     );
                   },
                 ),
@@ -500,10 +497,8 @@ class _ToolsTabState extends State<ToolsTab> {
                   title: 'Catatan Cepat',
                   subtitle: 'Buat memo & template teks pesan bisnis.',
                   onTap: () {
-                    GlassmorphismModal.showAlertModal(
-                      context: context,
-                      title: 'Catatan Cepat',
-                      message: 'Simpan template teks dan catatan penting untuk dibagikan secara instan.',
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const QuickNotesScreen()),
                     );
                   },
                 ),

@@ -5,6 +5,8 @@ import '../widgets/glassmorphism_modal.dart';
 import 'menu_reply_screen.dart';
 import 'test_reply_simulator_screen.dart';
 import 'keyword_reply_list_screen.dart';
+import 'spreadsheet_sync_screen.dart';
+import 'ai_reply_screen.dart';
 
 class HomeTab extends StatefulWidget {
   final AppSettings settings;
@@ -390,10 +392,8 @@ class _HomeTabState extends State<HomeTab> {
                   accentColor: const Color(0xFF00D2A0),
                   tag: 'AI PRO',
                   onTap: () {
-                    GlassmorphismModal.showAlertModal(
-                      context: context,
-                      title: 'Balasan AI Terintegrasi',
-                      message: 'Fitur Balasan AI otomatis terhubung dengan 9Router Gateway port 20128 & Google Gemini API.',
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const AiReplyScreen()),
                     );
                   },
                 ),
@@ -434,10 +434,8 @@ class _HomeTabState extends State<HomeTab> {
                   accentColor: const Color(0xFF38BDF8),
                   tag: 'SHEETS',
                   onTap: () {
-                    GlassmorphismModal.showAlertModal(
-                      context: context,
-                      title: 'Integrasi Google Sheets',
-                      message: 'Sinkronkan data spreadsheet Anda secara langsung untuk balasan otomatis.',
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const SpreadsheetSyncScreen()),
                     );
                   },
                 ),

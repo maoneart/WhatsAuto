@@ -1,16 +1,21 @@
 import '../models/menu_node.dart';
 import '../models/app_settings.dart';
 import '../models/keyword_reply.dart';
+import '../models/spreadsheet_model.dart';
 
 class AutoReplyEngine {
   final List<MenuNode> nodes;
   final List<KeywordReply> keywordReplies;
+  final List<SheetReplyItem> sheetItems;
+  final bool isSheetEnabled;
   final AppSettings settings;
   final Map<String, String> _sessions = {}; // senderId -> 'idle', 'parent', or '<node_id>'
 
   AutoReplyEngine({
     required this.nodes,
     this.keywordReplies = const [],
+    this.sheetItems = const [],
+    this.isSheetEnabled = false,
     required this.settings,
   });
 
@@ -285,7 +290,32 @@ class AutoReplyEngine {
       }
     }
 
-    // B. Kata kunci umum pemanggil menu utama
+    // B. Cek Balasan Google Spreadsheet (Katalog Harga / FAQ dari Lembar Kerja)
+    if (isSheetEnabled && sheetItems.isNotEmpty) {
+      final paddedMsg = " $normalizedMsg ";
+
+      // 1. Exact Match di Sheet
+      for (final item in sheetItems) {
+        if (item.matchOption != 0) continue;
+        final cleanKw = item.keyword.replaceAll(RegExp(r'[?!.]'), '').trim().toLowerCase();
+        if (cleanKw.isNotEmpty && cleanKw == normalizedMsg) {
+          final reply = applyTags(item.reply, senderId: senderId, incomingMessage: cleanMsg);
+          if (reply.trim().isNotEmpty) return reply;
+        }
+      }
+
+      // 2. Contains Match di Sheet
+      for (final item in sheetItems) {
+        if (item.matchOption != 1) continue;
+        final cleanKw = item.keyword.replaceAll(RegExp(r'[?!.]'), '').trim().toLowerCase();
+        if (cleanKw.isNotEmpty && (paddedMsg.contains(" $cleanKw ") || normalizedMsg.contains(cleanKw))) {
+          final reply = applyTags(item.reply, senderId: senderId, incomingMessage: cleanMsg);
+          if (reply.trim().isNotEmpty) return reply;
+        }
+      }
+    }
+
+    // C. Kata kunci umum pemanggil menu utama
     if (normalizedMsg == 'menu' || normalizedMsg == 'katalog' || normalizedMsg == 'pilihan' || normalizedMsg == 'bantuan') {
       _sessions[senderId] = 'parent';
       return renderMenu('parent');
