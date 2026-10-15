@@ -345,8 +345,9 @@
 - [x] Penyelarasan total engine notifikasi WhatsAuto resmi: hapus summary drop, perbaiki evaluasi kata kunci mandiri, perbaiki RemoteInput array, deteksi live `isListenerConnected` (v1.0.16+17).
 - [x] Eliminasi total crash saat ganti opsi kata kunci "mengandung": wrap service dalam master try-catch, quote regex replacement, amankan null checks dan sanitasi empty keyword (v1.0.17+18).
 - [x] Auto-populate default keyword rules 'hay' -> 'hallo' dan 'menu' -> Menu Balas saat install/startup, fallback native service (v1.0.18+19).
-- [ ] Push commit ke GitHub repository `maoneart/WhatsAuto` dan trigger GitHub Actions build APK v1.0.18.
-- [ ] Unduh APK rilis `v1.0.18` ke `/sdcard/Download/MaoneAuto.apk` dan verifikasi integritas.
+- [x] Push commit ke GitHub repository `maoneart/WhatsAuto` dan trigger GitHub Actions build APK v1.0.18.
+- [x] Unduh APK rilis `v1.0.18` ke `/sdcard/Download/MaoneAuto.apk` dan verifikasi integritas.
+
 
 
 
