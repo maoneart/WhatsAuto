@@ -121,12 +121,38 @@
      - Menggunakan pengirim realistis `'Budi Santoso'` sehingga pengujian tag `{{nama}}`, `{{jam}}`, dan `{{tanggal}}` langsung tampil sempurna di layar simulator.
 - **Versi**: Dinaikkan ke `v1.0.8+9`.
 
+### 🔬 Reverse Engineering WhatsAuto Official v4.65 & Deep Engine Alignment (v1.0.9+10 - 15 Oktober 2026)
+- **Problem**: Pengguna meminta membedah APK resmi WhatsAuto (`com.guibais.whatsauto`) dari APKPure untuk mempelajari seluruh mekanisme internal dan menyamakannya 100% ke dalam MaoneAuto.
+- **Temuan Hasil Dekompilasi JADX pada WhatsAuto Official v4.65**:
+  1. **Notification Parsing & Hidden Unicode**:
+     - Judul notifikasi dibersihkan dari regex `^.+ \\(\\d+ \\S+\\)$` (misal "Budi (2 pesan)").
+     - Karakter Unicode tersembunyi `\u200e`, `\u2068`, `\u2069` dihapus.
+     - Awalan channel seperti `WA Business:` dan `WhatsApp:` dihilangkan.
+     - Format pengirim grup dipisahkan dari tanda `@` (`Pengirim @ Grup`) atau `:` (`Grup: Pengirim`).
+  2. **Keyword Normalization & Matching Logic**:
+     - Tanda baca `[?!.\n]` dihilangkan dari pesan masuk dan keyword.
+     - Mode Cocokan Tepat (*Exact Match*) diproses pertama kali.
+     - Mode Mengandung (*Contains Match*) diperiksa kedua dengan pembungkus spasi word-boundary `" " + cleanMsg + " "` dan `" " + cleanKw + " "` untuk mencegah *false positives*.
+  3. **Navigasi Pohon Menu Balas**:
+     - Root parent ID selalu `"parent"`.
+     - Ditambahkan opsi dinamis `${options.length + 1}. ↩️ Menu Sebelumnya` untuk naik 1 tingkat menu di atasnya, dan `0. 🏠 Kembali ke Menu Utama`.
+     - Leaf node (node informasi/harga tanpa anak) otomatis menyelesaikan sesi menu (`session = 'idle'`) persis flag `message_type == 1` di WhatsAuto.
+  4. **Sistem Tag Variabel**:
+     - Mendukung tag kurung kurawal ganda `{{...}}` maupun tunggal `{...}` case-insensitive: `{name}`, `{first name}`, `{last name}`, `{time}`, `{date}`, `{message}`, `{{jam}}`, `{{tanggal}}`, `{{hari}}`, `{{pesan}}`.
+     - Ditambahkan tag chip `pesan` (`{{pesan}}`) ke slider horizontal di `AddEditKeywordReplyScreen`.
+- **Implementasi**:
+  1. `lib/services/auto_reply_engine.dart`: Sinkronisasi pembersihan unicode, pemisahan grup, normalisasi tanda baca, prioritas exact vs contains, navigasi N+1 (Menu Sebelumnya) dan 0 (Menu Utama), serta leaf reset.
+  2. `android/app/src/main/kotlin/com/maoneart/maoneauto/MaoneAutoNotificationService.kt`: Sinkronisasi penuh title cleanup, group format regex, exact/contains matching, tree navigation, dan tag interpolation.
+  3. `lib/screens/add_edit_keyword_reply_screen.dart`: Tambah chip `pesan` ke slider tag horizontal.
+- **Versi**: Dinaikkan ke `v1.0.9+10`.
+
 ---
 
 ## 📋 Active Tasks / Next Steps
-- [x] Rilis MaoneAuto v1.0.8+9 selesai dikompilasi via GitHub Actions dan tersimpan di `/sdcard/Download/MaoneAuto.apk`.
-- [ ] Verifikasi uji coba tag `{{jam}}`, `{{tanggal}}`, `{{hari}}`, dan panggilan `"Kak"` untuk nomor baru di WhatsApp.
-- [ ] Integrasi webhook lokal opsional (Termux Port 3000 / 8085).
+- [x] Bedah APK WhatsAuto official v4.65 via JADX decompiler.
+- [x] Terapkan algoritma pencocokan kata kunci, navigasi pohon menu (Menu Sebelumnya & Utama), pembersihan unicode/tanda baca, dan tag lengkap.
+- [x] Rilis MaoneAuto v1.0.9+10 ke GitHub dan download APK ke `/sdcard/Download/MaoneAuto.apk`.
+- [ ] Pengujian langsung di perangkat WhatsApp nyata.
 
 
 
