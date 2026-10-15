@@ -96,6 +96,15 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                 rawText = textLines.lastOrNull()?.toString() ?: ""
             }
         }
+        if (rawText.isEmpty()) {
+            try {
+                val messages = extras.getParcelableArray("android.messages")
+                if (messages != null && messages.isNotEmpty()) {
+                    val lastBundle = messages.lastOrNull() as? Bundle
+                    rawText = lastBundle?.getCharSequence("text")?.toString() ?: ""
+                }
+            } catch (_: Exception) {}
+        }
 
         if (rawTitle.isEmpty() || rawText.isEmpty()) return
         if (rawTitle.contains("WhatsApp", ignoreCase = true) && rawText.contains("checking for new messages", ignoreCase = true)) return
@@ -107,13 +116,6 @@ class MaoneAutoNotificationService : NotificationListenerService() {
         }
         cleanSender = cleanSender.replace(Regex("[\u200e\u2068\u2069]"), "").trim()
         val cleanMsg = rawText.replace(Regex("[\u200e\u2068\u2069]"), "").trim()
-
-        // 2b. Deteksi & Abaikan Pesan Sendiri (Hanya jika sender persis sama dengan selfDisplayName dan bukan nomor telepon)
-        val selfDisplayName = extras.getCharSequence("android.selfDisplayName")?.toString() ?: ""
-        if (selfDisplayName.isNotEmpty() && cleanSender.equals(selfDisplayName, ignoreCase = true) && !cleanSender.startsWith("+")) {
-            Log.d(TAG, "Abaikan pesan sendiri dari: $cleanSender (selfDisplayName=$selfDisplayName)")
-            return
-        }
 
         // 2c. Deteksi & Filter Pesan Grup WhatsApp (Akurat menggunakan EXTRA_IS_GROUP_CONVERSATION)
         val isGroup = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
@@ -137,14 +139,14 @@ class MaoneAutoNotificationService : NotificationListenerService() {
 
         val now = System.currentTimeMillis()
 
-        // 3. Debounce per-pengirim: jangan balas lebih dari 1 kali dalam 2.5 detik untuk pengirim yang sama
+        // 3. Debounce per-pengirim: jangan balas lebih dari 1 kali dalam 1 detik untuk pengirim yang sama
         val lastSenderReply = lastReplyPerSender[cleanSender] ?: 0L
-        if (now - lastSenderReply < 2500) return
+        if (now - lastSenderReply < 1000) return
 
-        // 4. Deduplikasi pesan identik dalam 3 detik
+        // 4. Deduplikasi pesan identik dalam 1 detik
         val messageKey = "$packageName:$cleanSender:$cleanMsg"
         val lastSeen = processedKeys[messageKey] ?: 0L
-        if (now - lastSeen < 3000) return
+        if (now - lastSeen < 1000) return
         processedKeys[messageKey] = now
 
         // 5. Cari Quick Reply Action dengan RemoteInput (actions standar + fallback WearableExtender)
@@ -309,7 +311,7 @@ class MaoneAutoNotificationService : NotificationListenerService() {
         val defaultReply = prefs.getString("flutter.default_reply", "Halo! Terima kasih telah menghubungi kami.") ?: "Halo!"
 
         if (treeJsonStr.isNullOrEmpty()) {
-            val onlyKeywords = prefs.getBoolean("flutter.only_reply_keywords", true)
+            val onlyKeywords = prefs.getBoolean("flutter.only_reply_keywords", false)
             return if (onlyKeywords) null else formatTags(defaultReply, sender, cleanMsg)
         }
 
@@ -506,15 +508,15 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                 }
             }
 
-            // E. Pesan biasa di luar menu -> Diam sepenuhnya jika hanya membalas kata kunci!
-            val onlyKeywords = prefs.getBoolean("flutter.only_reply_keywords", true)
+            // E. Pesan biasa di luar menu -> Balas dengan balasan default (kecuali user sengaja mengaktifkan only_reply_keywords)
+            val onlyKeywords = prefs.getBoolean("flutter.only_reply_keywords", false)
             if (onlyKeywords) {
                 return null
             }
             return formatTags(defaultReply, sender, cleanMsg)
         } catch (e: Exception) {
             Log.e(TAG, "Error in computeReply: ${e.message}")
-            val onlyKeywords = prefs.getBoolean("flutter.only_reply_keywords", true)
+            val onlyKeywords = prefs.getBoolean("flutter.only_reply_keywords", false)
             return if (onlyKeywords) null else formatTags(defaultReply, sender, cleanMsg)
         }
     }

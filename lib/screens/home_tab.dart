@@ -364,6 +364,70 @@ class _HomeTabState extends State<HomeTab> {
                       ],
                     ),
                   ),
+
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF132027),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.white.withOpacity(0.06)),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          widget.settings.onlyReplyKeywords
+                              ? Icons.filter_alt_outlined
+                              : Icons.all_inclusive,
+                          size: 18,
+                          color: widget.settings.onlyReplyKeywords
+                              ? const Color(0xFFF59E0B)
+                              : const Color(0xFF00A884),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                widget.settings.onlyReplyKeywords
+                                    ? 'Mode: Hanya Balas Kata Kunci'
+                                    : 'Mode: Balas Semua Pesan Masuk',
+                                style: TextStyle(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.bold,
+                                  color: widget.settings.onlyReplyKeywords
+                                      ? const Color(0xFFF59E0B)
+                                      : Colors.white,
+                                ),
+                              ),
+                              Text(
+                                widget.settings.onlyReplyKeywords
+                                    ? 'Hanya membalas jika pesan cocok dengan daftar kata kunci'
+                                    : 'Membalas pesan apapun (termasuk tes/halo) dengan teks di atas',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.white.withOpacity(0.55),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Switch(
+                          value: !widget.settings.onlyReplyKeywords,
+                          onChanged: (val) {
+                            setState(() {
+                              widget.settings.onlyReplyKeywords = !val;
+                            });
+                            StorageService.saveSettings(widget.settings);
+                            widget.onSettingsChanged();
+                          },
+                          activeColor: const Color(0xFF00A884),
+                          activeTrackColor: const Color(0xFF00A884).withOpacity(0.4),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),

@@ -257,6 +257,32 @@
      - Menjamin modal perizinan muncul di startup dengan `addPostFrameCallback`.
 - **Versi**: Dinaikkan ke `v1.0.14+15`.
 
+### 🚀 Solusi Ikon Launcher Sempurna & Balasan Dual WA 1 HP (v1.0.15+16 - 15 Oktober 2026)
+- **Problem**: Pengguna melaporkan logo/ikon aplikasi hilang (blank/hilang dari home screen) dan bot tetap tidak merespons saat diuji coba antar 2 WA dalam 1 HP (1 WA biasa & 1 WA bisnis).
+- **Akar Masalah**:
+  1. **Ikon Launcher Hilang**: 
+     - Atribut `android:roundIcon` tidak ada di `AndroidManifest.xml`.
+     - File `ic_launcher_round.xml` dan `ic_launcher_round.png` belum ada.
+     - Dimensi `ic_launcher_foreground.png` di mipmap density sebelumnya tidak sesuai spesifikasi resmi Android Adaptive Icon (harus kanvas 108dp dengan safe zone 72dp di tengah), menyebabkan launcher OEM (Xiaomi HyperOS, Samsung OneUI, dll.) menolak merender ikon adaptif dan menampilkan ruang kosong / robot hijau default.
+  2. **Dual WA 1 HP Tidak Merespons**:
+     - `onlyReplyKeywords` berstatus default `true` tanpa switch kontrol di UI, sehingga pesan tes biasa ("halo", "tes", "p") langsung di-drop dengan return `null` karena bukan kata kunci yang didaftarkan.
+     - Pengecekan `selfDisplayName` memblokir pengirim jika nama kontak pengirim sama persis dengan nama profil akun penerima (sangat umum terjadi saat mengetes kontak sendiri di 1 HP).
+     - Debounce dan duplikasi terlalu panjang (2.5 - 3 detik).
+- **Solusi Komprehensif**:
+  1. **Aset Ikon Launcher Lengkap**:
+     - Menghasilkan seluruh density `ic_launcher.png` (48x48 hingga 192x192).
+     - Menghasilkan seluruh density `ic_launcher_round.png` dengan circular mask halus.
+     - Menghasilkan seluruh density `ic_launcher_foreground.png` dengan kanvas resmi 108dp (108x108 hingga 432x432) dan inner safe zone 72dp.
+     - Menambahkan `ic_launcher_round.xml` di `mipmap-anydpi-v26/`.
+     - Menambahkan `android:roundIcon="@mipmap/ic_launcher_round"` di `AndroidManifest.xml`.
+  2. **Dual WA 1 HP & Default Reply Switch**:
+     - Mengubah default `onlyReplyKeywords` menjadi `false` di `AppSettings` dan `MaoneAutoNotificationService.kt`, sehingga pesan apapun yang masuk otomatis dibalas dengan `defaultReply`.
+     - Menambahkan switch interaktif di kartu Beranda: "Mode: Balas Semua Pesan Masuk" vs "Mode: Hanya Balas Kata Kunci".
+     - Menghapus filter `selfDisplayName` yang memblokir pengetesan kontak sendiri.
+     - Menambahkan fallback parsing `android.messages` (MessagingStyle Bundle) jika `EXTRA_TEXT` kosong.
+     - Memperpendek debounce per pengirim dan deduplikasi pesan menjadi 1 detik.
+- **Versi**: Dinaikkan ke `v1.0.15+16`.
+
 ---
 
 ## 📋 Active Tasks / Next Steps
@@ -265,8 +291,9 @@
 - [x] Implementasi 5 menu fitur lengkap: Google Spreadsheet Sync, AI 9Router Gateway, Pesan Sambutan, Webhook Server, dan Catatan Cepat (v1.0.12+13).
 - [x] Perbaikan tuntas Akses Notifikasi Android: enabled manifest, CharSequence parsing, startup save, dan sticky permission banner (v1.0.13+14).
 - [x] Auto-rebind service, fix false group drop, 2-column actions, dan kartu Akses Notifikasi permanen (v1.0.14+15).
-- [x] Push commit ke GitHub repository `maoneart/WhatsAuto` dan trigger GitHub Actions build APK v1.0.14.
-- [x] Unduh APK hasil build rilis ke `/sdcard/Download/MaoneAuto.apk` dan verifikasi integritas.
+- [x] Solusi tuntas ikon launcher adaptive & round, aktifkan balasan default dual WA 1 HP, dan switch mode balasan di Beranda (v1.0.15+16).
+- [ ] Push commit ke GitHub repository `maoneart/WhatsAuto` dan trigger GitHub Actions build APK v1.0.15.
+- [ ] Unduh APK hasil build rilis ke `/sdcard/Download/MaoneAuto.apk` dan verifikasi integritas.
 
 
 
