@@ -437,7 +437,26 @@
      - Jika pengguna membuat baris dengan Kolom A bertuliskan `*`, baris tersebut akan menjadi **fallback balasan umum** dari Spreadsheet. Jika ada pesan masuk yang tidak cocok dengan kata kunci lain, bot otomatis membalas menggunakan teks di baris `*` tersebut.
   4. **Pembaruan Pengujian & Panduan**:
      - Pengujian kata kunci interaktif dan panduan format kolom di layar `SpreadsheetSyncScreen` diperbarui untuk menampilkan cara penggunaan `*` dan koma.
-- **Versi**: Dinaikkan ke `v1.0.24+25`.
+### 🎯 Tombol Cepat "Semua (*)", Wildcard Catch-All, & Opsi Web Server (v1.0.25+26 - 15 Oktober 2026)
+- **Konteks & Kebutuhan Pengguna**:
+  - Pengguna menanyakan bagaimana cara menambahkan kata kunci spreadsheet jika di spreadsheet sudah ada kata kunci & balasan sendiri: apakah diisi `*` untuk membalas semua yang ada di spreadsheet, atau perlukah tombol 'Balas Semua' / disingkat 'Semua' yang otomatis mengisi `*`.
+  - Pengguna juga menegaskan bahwa Google Spreadsheet sudah memiliki menu mandiri sehingga checkbox Google Sheets di form kata kunci diganti dengan **Web Server (Server Webhook)**.
+- **Penyelarasan & Implementasi**:
+  1. **Tombol Cepat "Semua (*)" di Atas Input Keyword**:
+     - Ditambahkan header interaktif di atas kolom `Keyword Masuk` pada `AddEditKeywordReplyScreen`: menampilkan judul dan tombol chip `[⭐ Semua (*)]`.
+     - Ketika tombol ditekan, input keyword otomatis terisi `*` (atau di-clear jika ditekan ulang).
+     - Label petunjuk berubah menjadi: `"⭐ Mode Balas Semua: Menangkap APAPUN pesan masuk (Wildcard)"`.
+  2. **Penggantian Opsi Balasan: Google Sheets ➔ Web Server**:
+     - Checkbox `Google Sheets` di Opsi Balasan diganti menjadi `Web Server` (`useWebhook`).
+     - Live chat bubble preview dan list card badge disinkronkan menampilkan `Web Server`.
+  3. **Engine Wildcard Catch-All (`*`) & Webhook Handler**:
+     - Di `AutoReplyEngine.dart` & `MaoneAutoNotificationService.kt`:
+       * Keyword spesifik dievaluasi terlebih dahulu (exact & contains).
+       * Jika pesan tidak cocok dengan kata kunci spesifik dan tidak berada dalam sesi menu aktif, sistem mengevaluasi aturan wildcard `*`.
+       * Jika aturan `*` (atau aturan spesifik) mencentang `useWebhook`, sistem memanggil endpoint `server_webhook_url` via HTTP POST (`queryWebhook`) dan mengembalikan jawaban dinamis dari web server backend!
+  4. **Pembaruan List Card**:
+     - Di `KeywordReplyListScreen`, chip keyword `*` dirender elegan sebagai `⭐ Semua (*)` dan badge status `Balas Semua` serta badge `Web Server`.
+- **Versi**: Dinaikkan ke `v1.0.25+26`.
 
 ---
 
@@ -457,8 +476,9 @@
 - [x] Ekstraksi person.name dari MessagingStyle, multi-layer NotificationCompat action scanner, dan penanganan graceful ringkasan WhatsApp (v1.0.22+23).
 - [x] Eliminasi total balasan ganda via 4-Layer Echo Shield (isSelf check, recentSentReplies cache, 3s debounce, summary text filter) (v1.0.23+24).
 - [x] Dukungan multi-keyword koma dan wildcard (*) di Google Spreadsheet (v1.0.24+25).
-- [x] Push commit ke GitHub repository `maoneart/WhatsAuto` dan trigger GitHub Actions build APK v1.0.24.
-- [x] Unduh APK rilis `v1.0.24` ke `/sdcard/Download/MaoneAuto.apk` dan verifikasi integritas.
+- [x] Tombol cepat "Semua (*)" di atas keyword, wildcard catch-all engine, penggantian opsi Google Sheets ke Web Server di Balasan Kata Kunci (v1.0.25+26).
+- [x] Push commit ke GitHub repository `maoneart/WhatsAuto` dan trigger GitHub Actions build APK v1.0.25.
+- [ ] Unduh APK rilis `v1.0.25` ke `/sdcard/Download/MaoneAuto.apk` dan verifikasi integritas.
 
 
 
