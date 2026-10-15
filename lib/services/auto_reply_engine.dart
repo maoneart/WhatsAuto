@@ -17,14 +17,23 @@ class AutoReplyEngine {
   static Map<String, String> resolveSenderAndDateTime({
     required String senderId,
     DateTime? now,
+    String? incomingMessage,
   }) {
     final current = now ?? DateTime.now();
 
-    // 1. Bersihkan nama pengirim & tangani kontak tanpa nama / nomor telepon
-    var cleanName = senderId.trim();
+    // 1. Bersihkan karakter tersembunyi Unicode WhatsApp (\u200e, \u2068, \u2069)
+    var cleanName = senderId.replaceAll(RegExp(r'[\u200e\u2068\u2069]'), '').trim();
     if (cleanName.startsWith('~')) {
       cleanName = cleanName.substring(1).trim();
     }
+
+    // Ekstraksi nama jika format grup WhatsApp ("Pengirim @ Grup" atau "Grup: Pengirim")
+    if (cleanName.contains('@') && cleanName.indexOf('@') > 1) {
+      cleanName = cleanName.substring(0, cleanName.indexOf('@') - 1).trim();
+    } else if (cleanName.contains(':') && !cleanName.startsWith('+')) {
+      cleanName = cleanName.substring(cleanName.lastIndexOf(':') + 1).trim();
+    }
+
     // Jika hanya nomor telepon (angka, +, spasi, minus, kurung), fallback ke 'Kak'
     final isPhone = RegExp(r'^[+0-9\s\-()]+$').hasMatch(cleanName);
     final displayName = (isPhone || cleanName.isEmpty) ? 'Kak' : cleanName;
@@ -33,7 +42,7 @@ class AutoReplyEngine {
     final firstName = parts.isNotEmpty ? parts.first : displayName;
     final lastName = parts.length > 1 ? parts.sublist(1).join(' ') : '';
 
-    // 2. Format jam & tanggal Indonesia hari ini
+    // 2. Format jam & tanggal Indonesia hari ini (Persis WhatsAuto dd-MM-yyyy / format lokal)
     final jam = '${current.hour.toString().padLeft(2, '0')}:${current.minute.toString().padLeft(2, '0')}';
     const days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
     const months = [
@@ -42,6 +51,7 @@ class AutoReplyEngine {
     ];
     final hari = days[current.weekday - 1];
     final tanggal = '${current.day} ${months[current.month - 1]} ${current.year}';
+    final tanggalSingkat = '${current.day.toString().padLeft(2, '0')}-${current.month.toString().padLeft(2, '0')}-${current.year}';
 
     return {
       'nama': displayName,
@@ -49,19 +59,50 @@ class AutoReplyEngine {
       'nama_belakang': lastName,
       'jam': jam,
       'tanggal': tanggal,
+      'tanggal_singkat': tanggalSingkat,
       'hari': hari,
+      'pesan': incomingMessage ?? '',
     };
   }
 
-  static String applyTags(String template, {required String senderId, DateTime? now}) {
-    final tags = resolveSenderAndDateTime(senderId: senderId, now: now);
+  static String applyTags(
+    String template, {
+    required String senderId,
+    DateTime? now,
+    String? incomingMessage,
+  }) {
+    final tags = resolveSenderAndDateTime(
+      senderId: senderId,
+      now: now,
+      incomingMessage: incomingMessage,
+    );
     var rep = template;
-    rep = rep.replaceAll(RegExp(r'\{\{nama\}\}', caseSensitive: false), tags['nama']!);
-    rep = rep.replaceAll(RegExp(r'\{\{nama_depan\}\}', caseSensitive: false), tags['nama_depan']!);
-    rep = rep.replaceAll(RegExp(r'\{\{nama_belakang\}\}', caseSensitive: false), tags['nama_belakang']!);
-    rep = rep.replaceAll(RegExp(r'\{\{jam\}\}', caseSensitive: false), tags['jam']!);
-    rep = rep.replaceAll(RegExp(r'\{\{tanggal\}\}', caseSensitive: false), tags['tanggal']!);
-    rep = rep.replaceAll(RegExp(r'\{\{hari\}\}', caseSensitive: false), tags['hari']!);
+
+    // Dukung kurung kurawal ganda {{...}} MAUPUN kurung kurawal tunggal {...} persis WhatsAuto asli
+    rep = rep.replaceAll(RegExp(r'\{\{?nama\}?\}', caseSensitive: false), tags['nama']!);
+    rep = rep.replaceAll(RegExp(r'\{\{?name\}?\}', caseSensitive: false), tags['nama']!);
+
+    rep = rep.replaceAll(RegExp(r'\{\{?nama_depan\}?\}', caseSensitive: false), tags['nama_depan']!);
+    rep = rep.replaceAll(RegExp(r'\{\{?nama depan\}?\}', caseSensitive: false), tags['nama_depan']!);
+    rep = rep.replaceAll(RegExp(r'\{\{?first_name\}?\}', caseSensitive: false), tags['nama_depan']!);
+    rep = rep.replaceAll(RegExp(r'\{\{?first name\}?\}', caseSensitive: false), tags['nama_depan']!);
+
+    rep = rep.replaceAll(RegExp(r'\{\{?nama_belakang\}?\}', caseSensitive: false), tags['nama_belakang']!);
+    rep = rep.replaceAll(RegExp(r'\{\{?nama belakang\}?\}', caseSensitive: false), tags['nama_belakang']!);
+    rep = rep.replaceAll(RegExp(r'\{\{?last_name\}?\}', caseSensitive: false), tags['nama_belakang']!);
+    rep = rep.replaceAll(RegExp(r'\{\{?last name\}?\}', caseSensitive: false), tags['nama_belakang']!);
+
+    rep = rep.replaceAll(RegExp(r'\{\{?jam\}?\}', caseSensitive: false), tags['jam']!);
+    rep = rep.replaceAll(RegExp(r'\{\{?time\}?\}', caseSensitive: false), tags['jam']!);
+
+    rep = rep.replaceAll(RegExp(r'\{\{?tanggal\}?\}', caseSensitive: false), tags['tanggal']!);
+    rep = rep.replaceAll(RegExp(r'\{\{?date\}?\}', caseSensitive: false), tags['tanggal']!);
+
+    rep = rep.replaceAll(RegExp(r'\{\{?hari\}?\}', caseSensitive: false), tags['hari']!);
+
+    rep = rep.replaceAll(RegExp(r'\{\{?pesan\}?\}', caseSensitive: false), tags['pesan']!);
+    rep = rep.replaceAll(RegExp(r'\{\{?message\}?\}', caseSensitive: false), tags['pesan']!);
+
     return rep;
   }
 
@@ -73,8 +114,11 @@ class AutoReplyEngine {
     required String senderId,
     required String incomingMessage,
   }) {
-    final cleanMsg = incomingMessage.trim();
+    // Bersihkan karakter Unicode tersembunyi WhatsApp (\u200e, \u2068, \u2069)
+    final cleanMsg = incomingMessage.replaceAll(RegExp(r'[\u200e\u2068\u2069]'), '').trim();
     final lowerMsg = cleanMsg.toLowerCase();
+    // Normalisasi tanda baca persis WhatsAuto: buang [?!.\n]
+    final normalizedMsg = cleanMsg.replaceAll(RegExp(r'[?!.\n]'), '').trim().toLowerCase();
     final currentParent = _sessions[senderId] ?? 'idle';
 
     // -------------------------------------------------------------------------
@@ -82,13 +126,13 @@ class AutoReplyEngine {
     // -------------------------------------------------------------------------
     if (currentParent != 'idle') {
       // 1. Perintah Keluar / Batal
-      if (lowerMsg == 'batal' || lowerMsg == 'keluar' || lowerMsg == 'exit') {
+      if (normalizedMsg == 'batal' || normalizedMsg == 'keluar' || normalizedMsg == 'exit') {
         _sessions[senderId] = 'idle';
         return 'Anda telah keluar dari menu interaktif. Ketik *menu* kapan saja untuk membukanya kembali.';
       }
 
       // 2. Tombol 0 (Kembali ke Menu Utama atau Keluar)
-      if (cleanMsg == '0') {
+      if (normalizedMsg == '0') {
         if (currentParent != 'parent') {
           _sessions[senderId] = 'parent';
           return renderMenu('parent');
@@ -100,16 +144,34 @@ class AutoReplyEngine {
 
       // 3. Ambil opsi di bawah parent saat ini
       final options = nodes.where((n) => n.parentId == currentParent && n.type == 2).toList();
-      MenuNode? matchedOption;
+      final previousMenuNum = options.length + 1; // Nomor untuk 'Menu Sebelumnya' persis WhatsAuto
 
-      final int? numChoice = int.tryParse(cleanMsg);
+      // Cek apakah user memilih tombol 'Menu Sebelumnya' (angka options.length + 1 atau teks 'kembali')
+      final int? numChoice = int.tryParse(normalizedMsg);
+      if (numChoice == previousMenuNum || normalizedMsg == 'kembali' || normalizedMsg == 'back') {
+        if (currentParent != 'parent') {
+          // Cari parent dari currentParent
+          final currentNode = nodes.firstWhere(
+            (n) => n.id == currentParent,
+            orElse: () => MenuNode(id: '', text: '', parentId: 'parent', type: 0),
+          );
+          final grandParent = currentNode.parentId.isEmpty ? 'parent' : currentNode.parentId;
+          _sessions[senderId] = grandParent;
+          return renderMenu(grandParent);
+        } else {
+          _sessions[senderId] = 'idle';
+          return 'Anda telah keluar dari menu interaktif. Ketik *menu* kapan saja untuk membukanya kembali.';
+        }
+      }
+
+      MenuNode? matchedOption;
       if (numChoice != null && numChoice >= 1 && numChoice <= options.length) {
         matchedOption = options[numChoice - 1];
       } else {
         matchedOption = options.firstWhere(
           (opt) {
-            final title = opt.text.toLowerCase().trim();
-            return title == lowerMsg || title.contains(lowerMsg);
+            final title = opt.text.replaceAll(RegExp(r'[?!.\n]'), '').toLowerCase().trim();
+            return title == normalizedMsg || title.contains(normalizedMsg);
           },
           orElse: () => MenuNode(id: '', text: '', parentId: '', type: 0),
         );
@@ -129,10 +191,14 @@ class AutoReplyEngine {
           _sessions[senderId] = selectedId;
           return renderMenu(selectedId);
         } else if (subPrompt.id.isNotEmpty) {
-          // Leaf response (detail info/harga)
-          return '${subPrompt.text.trim()}\n\n*(Ketik 0 untuk kembali ke menu, atau ketik "keluar")*';
+          // Leaf response (detail info/harga) -> reset sesi persis WhatsAuto e == 1
+          _sessions[senderId] = 'idle';
+          final renderedLeaf = applyTags(subPrompt.text.trim(), senderId: senderId, incomingMessage: cleanMsg);
+          return '$renderedLeaf\n\n*(Sesi menu selesai. Ketik "menu" untuk membuka kembali)*';
         } else {
-          return '${matchedOption.text.trim()}\n\n*(Ketik 0 untuk kembali ke menu, atau ketik "keluar")*';
+          _sessions[senderId] = 'idle';
+          final renderedLeaf = applyTags(matchedOption.text.trim(), senderId: senderId, incomingMessage: cleanMsg);
+          return '$renderedLeaf\n\n*(Sesi menu selesai. Ketik "menu" untuk membuka kembali)*';
         }
       }
 
@@ -145,30 +211,52 @@ class AutoReplyEngine {
     // -------------------------------------------------------------------------
 
     // A. Cek Balasan Kata Kunci (Keyword Replies)
+    // WhatsAuto memeriksa Exact Match terlebih dahulu, lalu Contains Match
     if (settings.isKeywordReplyEnabled && keywordReplies.isNotEmpty) {
+      final paddedMsg = " $normalizedMsg ";
+
+      // 1. Prioritas 1: Exact Match (Cocokan Tepat)
       for (final rule in keywordReplies) {
-        if (!rule.isEnabled) continue;
-        final keywords = rule.incomingKeywords
-            .split(',')
-            .map((k) => k.trim().toLowerCase())
-            .where((k) => k.isNotEmpty);
+        if (!rule.isEnabled || !rule.isExactMatch) continue;
+        final keywords = rule.incomingKeywords.split(',');
+        final isMatch = keywords.any((k) {
+          final cleanKw = k.replaceAll(RegExp(r'[?!.]'), '').trim().toLowerCase();
+          return cleanKw.isNotEmpty && cleanKw == normalizedMsg;
+        });
 
-        bool isMatch = false;
-        if (rule.isExactMatch) {
-          isMatch = keywords.any((k) => lowerMsg == k);
-        } else {
-          isMatch = keywords.any((k) => lowerMsg.contains(k));
-        }
         if (isMatch) {
-          var reply = applyTags(rule.replyMessage, senderId: senderId);
+          var reply = applyTags(rule.replyMessage, senderId: senderId, incomingMessage: cleanMsg);
 
-          // Jika aturan ini memanggil Menu Balas -> Aktifkan sesi menu!
           if (rule.useMenuReply) {
             _sessions[senderId] = 'parent';
             final menuText = renderMenu('parent');
             return reply.trim().isEmpty ? menuText : '$reply\n\n$menuText';
           }
+          if (reply.trim().isNotEmpty) {
+            return reply;
+          }
+        }
+      }
 
+      // 2. Prioritas 2: Contains Match (Mengandung)
+      for (final rule in keywordReplies) {
+        if (!rule.isEnabled || rule.isExactMatch) continue;
+        final keywords = rule.incomingKeywords.split(',');
+        final isMatch = keywords.any((k) {
+          final cleanKw = k.replaceAll(RegExp(r'[?!.]'), '').trim().toLowerCase();
+          if (cleanKw.isEmpty) return false;
+          // Word boundary check persis WhatsAuto: cek dengan spasi atau substring
+          return paddedMsg.contains(" $cleanKw ") || normalizedMsg.contains(cleanKw);
+        });
+
+        if (isMatch) {
+          var reply = applyTags(rule.replyMessage, senderId: senderId, incomingMessage: cleanMsg);
+
+          if (rule.useMenuReply) {
+            _sessions[senderId] = 'parent';
+            final menuText = renderMenu('parent');
+            return reply.trim().isEmpty ? menuText : '$reply\n\n$menuText';
+          }
           if (reply.trim().isNotEmpty) {
             return reply;
           }
@@ -177,7 +265,7 @@ class AutoReplyEngine {
     }
 
     // B. Kata kunci umum pemanggil menu utama
-    if (lowerMsg == 'menu' || lowerMsg == 'katalog' || lowerMsg == 'pilihan' || lowerMsg == 'bantuan') {
+    if (normalizedMsg == 'menu' || normalizedMsg == 'katalog' || normalizedMsg == 'pilihan' || normalizedMsg == 'bantuan') {
       _sessions[senderId] = 'parent';
       return renderMenu('parent');
     }
@@ -187,7 +275,7 @@ class AutoReplyEngine {
       // Diam / jangan balas apapun jika bukan kata kunci terdaftar!
       return '';
     }
-    return applyTags(settings.defaultReply, senderId: senderId);
+    return applyTags(settings.defaultReply, senderId: senderId, incomingMessage: cleanMsg);
   }
 
   String renderMenu(String parentId) {
@@ -216,7 +304,9 @@ class AutoReplyEngine {
 
     buffer.writeln();
     if (parentId != 'parent') {
-      buffer.writeln('0. ↩️ Kembali ke Menu Utama');
+      // Persis WhatsAuto: opsi N untuk Previous Menu, dan 0 untuk Main Menu
+      buffer.writeln('${options.length + 1}. ↩️ Menu Sebelumnya');
+      buffer.writeln('0. 🏠 Kembali ke Menu Utama');
     } else {
       buffer.writeln('0. ❌ Tutup Menu');
     }

@@ -57,9 +57,13 @@ class MaoneAutoNotificationService : NotificationListenerService() {
         if (rawTitle.isEmpty() || rawText.isEmpty()) return
         if (rawTitle.contains("WhatsApp", ignoreCase = true) && rawText.contains("checking for new messages", ignoreCase = true)) return
 
-        // Bersihkan title pengirim dari embel-embel "(1 pesan)"
-        val cleanSender = rawTitle.replace(Regex("\\s*\\(\\d+\\s+pesan\\)", RegexOption.IGNORE_CASE), "").trim()
-        val cleanMsg = rawText.trim()
+        // Bersihkan prefix WA Business / WhatsApp dan format "(1 pesan)" persis WhatsAuto asli
+        var cleanSender = rawTitle.replace("WA Business:", "").replace("WhatsApp:", "").trim()
+        if (cleanSender.matches(Regex("^.+ \\(\\d+ \\S+\\)$")) && cleanSender.lastIndexOf('(') != -1) {
+            cleanSender = cleanSender.substring(0, cleanSender.lastIndexOf('('))
+        }
+        cleanSender = cleanSender.replace(Regex("[\u200e\u2068\u2069]"), "").trim()
+        val cleanMsg = rawText.replace(Regex("[\u200e\u2068\u2069]"), "").trim()
 
         val now = System.currentTimeMillis()
 
@@ -116,13 +120,20 @@ class MaoneAutoNotificationService : NotificationListenerService() {
     private fun formatTags(
         template: String,
         sender: String,
+        incomingMessage: String = "",
         calendar: Calendar = Calendar.getInstance()
     ): String {
-        // 1. Bersihkan nama & tangani kontak tanpa nama / nomor telepon
+        // 1. Ekstraksi nama pengirim (deteksi format grup & tilde WhatsApp)
         var cleanSender = sender.trim()
         if (cleanSender.startsWith("~")) {
             cleanSender = cleanSender.removePrefix("~").trim()
         }
+        if (cleanSender.contains("@") && cleanSender.indexOf('@') > 1) {
+            cleanSender = cleanSender.substring(0, cleanSender.indexOf('@') - 1).trim()
+        } else if (cleanSender.contains(":") && !cleanSender.startsWith("+")) {
+            cleanSender = cleanSender.substring(cleanSender.lastIndexOf(':') + 1).trim()
+        }
+
         val isPhone = cleanSender.matches(Regex("^[+0-9\\s\\-()]+$"))
         val displayName = if (isPhone || cleanSender.isEmpty()) "Kak" else cleanSender
 
@@ -130,7 +141,7 @@ class MaoneAutoNotificationService : NotificationListenerService() {
         val firstName = senderParts.firstOrNull() ?: displayName
         val lastName = if (senderParts.size > 1) senderParts.drop(1).joinToString(" ") else ""
 
-        // 2. Format jam & tanggal Indonesia hari ini
+        // 2. Format jam & tanggal Indonesia hari ini (Persis WhatsAuto dd-MM-yyyy / format lokal)
         val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
         val currentJam = timeFormat.format(calendar.time)
 
@@ -143,23 +154,42 @@ class MaoneAutoNotificationService : NotificationListenerService() {
         val currentTanggal = "${calendar.get(Calendar.DAY_OF_MONTH)} ${monthNames[calendar.get(Calendar.MONTH)]} ${calendar.get(Calendar.YEAR)}"
 
         var rep = template
-        rep = rep.replace("{{nama}}", displayName, ignoreCase = true)
-        rep = rep.replace("{{nama_depan}}", firstName, ignoreCase = true)
-        rep = rep.replace("{{nama_belakang}}", lastName, ignoreCase = true)
-        rep = rep.replace("{{jam}}", currentJam, ignoreCase = true)
-        rep = rep.replace("{{tanggal}}", currentTanggal, ignoreCase = true)
-        rep = rep.replace("{{hari}}", currentHari, ignoreCase = true)
+        // Dukung kurung kurawal ganda {{...}} MAUPUN kurung kurawal tunggal {...} persis WhatsAuto
+        rep = rep.replace(Regex("(?i)\\{\\{?nama\\}?}"), displayName)
+        rep = rep.replace(Regex("(?i)\\{\\{?name\\}?}"), displayName)
+
+        rep = rep.replace(Regex("(?i)\\{\\{?nama_depan\\}?}"), firstName)
+        rep = rep.replace(Regex("(?i)\\{\\{?nama depan\\}?}"), firstName)
+        rep = rep.replace(Regex("(?i)\\{\\{?first_name\\}?}"), firstName)
+        rep = rep.replace(Regex("(?i)\\{\\{?first name\\}?}"), firstName)
+
+        rep = rep.replace(Regex("(?i)\\{\\{?nama_belakang\\}?}"), lastName)
+        rep = rep.replace(Regex("(?i)\\{\\{?nama belakang\\}?}"), lastName)
+        rep = rep.replace(Regex("(?i)\\{\\{?last_name\\}?}"), lastName)
+        rep = rep.replace(Regex("(?i)\\{\\{?last name\\}?}"), lastName)
+
+        rep = rep.replace(Regex("(?i)\\{\\{?jam\\}?}"), currentJam)
+        rep = rep.replace(Regex("(?i)\\{\\{?time\\}?}"), currentJam)
+
+        rep = rep.replace(Regex("(?i)\\{\\{?tanggal\\}?}"), currentTanggal)
+        rep = rep.replace(Regex("(?i)\\{\\{?date\\}?}"), currentTanggal)
+
+        rep = rep.replace(Regex("(?i)\\{\\{?hari\\}?}"), currentHari)
+
+        rep = rep.replace(Regex("(?i)\\{\\{?pesan\\}?}"), incomingMessage)
+        rep = rep.replace(Regex("(?i)\\{\\{?message\\}?}"), incomingMessage)
         return rep
     }
 
     private fun computeReply(sender: String, messageText: String, prefs: android.content.SharedPreferences): String? {
         val cleanMsg = messageText.trim()
+        val normalizedMsg = cleanMsg.replace(Regex("[?!.\\n]"), "").trim().lowercase()
         val treeJsonStr = prefs.getString("flutter.menu_nodes_cache", null)
         val defaultReply = prefs.getString("flutter.default_reply", "Halo! Terima kasih telah menghubungi kami.") ?: "Halo!"
 
         if (treeJsonStr.isNullOrEmpty()) {
             val onlyKeywords = prefs.getBoolean("flutter.only_reply_keywords", true)
-            return if (onlyKeywords) null else formatTags(defaultReply, sender)
+            return if (onlyKeywords) null else formatTags(defaultReply, sender, cleanMsg)
         }
 
         try {
@@ -177,15 +207,13 @@ class MaoneAutoNotificationService : NotificationListenerService() {
             // =========================================================================
             if (currentParent != "idle") {
                 // 1. Perintah Keluar / Batal
-                if (cleanMsg.equals("batal", ignoreCase = true) ||
-                    cleanMsg.equals("keluar", ignoreCase = true) ||
-                    cleanMsg.equals("exit", ignoreCase = true)) {
+                if (normalizedMsg == "batal" || normalizedMsg == "keluar" || normalizedMsg == "exit") {
                     prefs.edit().putString(sessionPrefKey, "idle").apply()
                     return "Anda telah keluar dari menu interaktif. Ketik *menu* kapan saja untuk membukanya kembali."
                 }
 
                 // 2. Tombol 0 (Kembali ke Menu Utama atau Keluar)
-                if (cleanMsg == "0") {
+                if (normalizedMsg == "0") {
                     if (currentParent != "parent") {
                         prefs.edit().putString(sessionPrefKey, "parent").apply()
                         return renderMenu(nodes, "parent")
@@ -197,15 +225,29 @@ class MaoneAutoNotificationService : NotificationListenerService() {
 
                 // 3. Cocokkan pilihan dengan opsi di bawah currentParent
                 val options = nodes.filter { it.optString("parentId") == currentParent && it.optInt("type") == 2 }
-                var matchedOption: JSONObject? = null
+                val previousMenuNum = options.size + 1
 
-                val numChoice = cleanMsg.toIntOrNull()
+                val numChoice = normalizedMsg.toIntOrNull()
+                // Cek tombol 'Menu Sebelumnya' persis WhatsAuto
+                if (numChoice == previousMenuNum || normalizedMsg == "kembali" || normalizedMsg == "back") {
+                    if (currentParent != "parent") {
+                        val currentNode = nodes.firstOrNull { it.optString("id") == currentParent }
+                        val grandParent = currentNode?.optString("parentId")?.ifEmpty { "parent" } ?: "parent"
+                        prefs.edit().putString(sessionPrefKey, grandParent).apply()
+                        return renderMenu(nodes, grandParent)
+                    } else {
+                        prefs.edit().putString(sessionPrefKey, "idle").apply()
+                        return "Anda telah keluar dari menu interaktif. Ketik *menu* kapan saja untuk membukanya kembali."
+                    }
+                }
+
+                var matchedOption: JSONObject? = null
                 if (numChoice != null && numChoice in 1..options.size) {
                     matchedOption = options[numChoice - 1]
                 } else {
                     matchedOption = options.firstOrNull {
-                        val optText = it.optString("text").trim()
-                        optText.equals(cleanMsg, ignoreCase = true) || optText.contains(cleanMsg, ignoreCase = true)
+                        val optText = it.optString("text").replace(Regex("[?!.\\n]"), "").trim().lowercase()
+                        optText == normalizedMsg || optText.contains(normalizedMsg)
                     }
                 }
 
@@ -219,11 +261,14 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                         prefs.edit().putString(sessionPrefKey, matchedId).apply()
                         return renderMenu(nodes, matchedId)
                     } else if (subPrompt != null) {
-                        // Leaf response (detail produk/harga)
-                        val returnPrompt = "\n\n*(Ketik 0 untuk kembali ke menu, atau ketik 'keluar')*"
-                        return subPrompt.optString("text") + returnPrompt
+                        // Leaf response (detail produk/harga) -> reset sesi persis WhatsAuto
+                        prefs.edit().putString(sessionPrefKey, "idle").apply()
+                        val rendered = formatTags(subPrompt.optString("text").trim(), sender, cleanMsg)
+                        return "$rendered\n\n*(Sesi menu selesai. Ketik 'menu' untuk membuka kembali)*"
                     } else {
-                        return matchedOption.optString("text") + "\n\n*(Ketik 0 untuk kembali ke menu, atau ketik 'keluar')*"
+                        prefs.edit().putString(sessionPrefKey, "idle").apply()
+                        val rendered = formatTags(matchedOption.optString("text").trim(), sender, cleanMsg)
+                        return "$rendered\n\n*(Sesi menu selesai. Ketik 'menu' untuk membuka kembali)*"
                     }
                 }
 
@@ -236,37 +281,49 @@ class MaoneAutoNotificationService : NotificationListenerService() {
             // =========================================================================
 
             // A. Cek Balasan Kata Kunci (Keyword Replies)
+            // WhatsAuto mengecek Exact Match (k=0) terlebih dahulu, lalu Contains Match (k=1)
             val isKeywordEnabled = prefs.getBoolean("flutter.is_keyword_reply_enabled", true)
             val keywordJsonStr = prefs.getString("flutter.keyword_replies_cache", null)
             if (isKeywordEnabled && !keywordJsonStr.isNullOrEmpty()) {
                 try {
                     val kwArray = JSONArray(keywordJsonStr)
+                    val paddedMsg = " $normalizedMsg "
+
+                    // Prioritas 1: Exact Match
                     for (i in 0 until kwArray.length()) {
                         val rule = kwArray.getJSONObject(i)
-                        if (!rule.optBoolean("isEnabled", true)) continue
+                        if (!rule.optBoolean("isEnabled", true) || !rule.optBoolean("isExactMatch", true)) continue
                         val rawKeywords = rule.optString("incomingKeywords", "")
-                        val isExact = rule.optBoolean("isExactMatch", true)
-                        val keywordsList = rawKeywords.split(",").map { it.trim().lowercase() }.filter { it.isNotEmpty() }
-                        val lowerMsg = cleanMsg.lowercase()
+                        val keywordsList = rawKeywords.split(",").map { it.replace(Regex("[?!.]"), "").trim().lowercase() }.filter { it.isNotEmpty() }
 
-                        val isMatch = if (isExact) {
-                            keywordsList.any { lowerMsg == it }
-                        } else {
-                            keywordsList.any { lowerMsg.contains(it) }
-                        }
-
+                        val isMatch = keywordsList.any { it == normalizedMsg }
                         if (isMatch) {
-                            val rep = formatTags(rule.optString("replyMessage", ""), sender)
-
-                            // Jika aturan ini memanggil Menu Balas -> Aktifkan sesi menu!
+                            val rep = formatTags(rule.optString("replyMessage", ""), sender, cleanMsg)
                             if (rule.optBoolean("useMenuReply", false)) {
                                 prefs.edit().putString(sessionPrefKey, "parent").apply()
                                 val menuText = renderMenu(nodes, "parent")
                                 return if (rep.isBlank()) menuText else "$rep\n\n$menuText"
                             }
-                            if (rep.isNotBlank()) {
-                                return rep
+                            if (rep.isNotBlank()) return rep
+                        }
+                    }
+
+                    // Prioritas 2: Contains Match
+                    for (i in 0 until kwArray.length()) {
+                        val rule = kwArray.getJSONObject(i)
+                        if (!rule.optBoolean("isEnabled", true) || rule.optBoolean("isExactMatch", true)) continue
+                        val rawKeywords = rule.optString("incomingKeywords", "")
+                        val keywordsList = rawKeywords.split(",").map { it.replace(Regex("[?!.]"), "").trim().lowercase() }.filter { it.isNotEmpty() }
+
+                        val isMatch = keywordsList.any { paddedMsg.contains(" $it ") || normalizedMsg.contains(it) }
+                        if (isMatch) {
+                            val rep = formatTags(rule.optString("replyMessage", ""), sender, cleanMsg)
+                            if (rule.optBoolean("useMenuReply", false)) {
+                                prefs.edit().putString(sessionPrefKey, "parent").apply()
+                                val menuText = renderMenu(nodes, "parent")
+                                return if (rep.isBlank()) menuText else "$rep\n\n$menuText"
                             }
+                            if (rep.isNotBlank()) return rep
                         }
                     }
                 } catch (e: Exception) {
@@ -275,10 +332,10 @@ class MaoneAutoNotificationService : NotificationListenerService() {
             }
 
             // B. Kata kunci default pemanggil menu ("menu", "katalog", "bantuan")
-            if (cleanMsg.equals("menu", ignoreCase = true) ||
-                cleanMsg.equals("katalog", ignoreCase = true) ||
-                cleanMsg.equals("pilihan", ignoreCase = true) ||
-                cleanMsg.equals("bantuan", ignoreCase = true)) {
+            if (normalizedMsg == "menu" ||
+                normalizedMsg == "katalog" ||
+                normalizedMsg == "pilihan" ||
+                normalizedMsg == "bantuan") {
                 prefs.edit().putString(sessionPrefKey, "parent").apply()
                 return renderMenu(nodes, "parent")
             }
@@ -288,11 +345,11 @@ class MaoneAutoNotificationService : NotificationListenerService() {
             if (onlyKeywords) {
                 return null
             }
-            return formatTags(defaultReply, sender)
+            return formatTags(defaultReply, sender, cleanMsg)
         } catch (e: Exception) {
             Log.e(TAG, "Error in computeReply: ${e.message}")
             val onlyKeywords = prefs.getBoolean("flutter.only_reply_keywords", true)
-            return if (onlyKeywords) null else formatTags(defaultReply, sender)
+            return if (onlyKeywords) null else formatTags(defaultReply, sender, cleanMsg)
         }
     }
 
@@ -308,13 +365,16 @@ class MaoneAutoNotificationService : NotificationListenerService() {
         for (i in options.indices) {
             val opt = options[i]
             val rawTitle = opt.optString("text").trim()
-            // Clean leading numbers if any to avoid double numbering
             val cleanTitle = rawTitle.replaceFirst(Regex("^\\d+\\.\\s*"), "")
             sb.append("${i + 1}. ").append(cleanTitle).append("\n")
         }
 
         if (parentId != "parent") {
-            sb.append("\n0. ↩️ Kembali ke Menu Utama")
+            // Persis WhatsAuto asli: opsi N untuk Menu Sebelumnya, dan 0 untuk Menu Utama
+            sb.append("\n${options.size + 1}. ↩️ Menu Sebelumnya\n")
+            sb.append("0. 🏠 Kembali ke Menu Utama")
+        } else {
+            sb.append("\n0. ❌ Tutup Menu")
         }
 
         return sb.toString().trim()

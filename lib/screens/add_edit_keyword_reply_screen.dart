@@ -336,7 +336,8 @@ class _AddEditKeywordReplyScreenState extends State<AddEditKeywordReplyScreen> {
                                 '• {{nama_belakang}} : Nama belakang kontak\n'
                                 '• {{jam}} : Waktu saat ini (contoh: 14:30)\n'
                                 '• {{tanggal}} : Tanggal hari ini (contoh: 15 Oktober 2026)\n'
-                                '• {{hari}} : Nama hari ini (contoh: Kamis)',
+                                '• {{hari}} : Nama hari ini (contoh: Kamis)\n'
+                                '• {{pesan}} : Teks pesan masuk dari pengirim',
                           );
                         },
                         child: const Icon(Icons.info_outline, color: Colors.white54, size: 18),
@@ -365,6 +366,8 @@ class _AddEditKeywordReplyScreenState extends State<AddEditKeywordReplyScreen> {
                         _buildTagChip('tanggal', 'tanggal', Icons.calendar_today_outlined),
                         const SizedBox(width: 8),
                         _buildTagChip('hari', 'hari', Icons.today_outlined),
+                        const SizedBox(width: 8),
+                        _buildTagChip('pesan', 'pesan', Icons.chat_bubble_outline),
                       ],
                     ),
                   ),
