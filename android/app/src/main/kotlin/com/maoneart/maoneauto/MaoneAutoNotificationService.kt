@@ -468,7 +468,7 @@ class MaoneAutoNotificationService : NotificationListenerService() {
             val isWelcomeEnabled = prefs.getBoolean("flutter.welcome_message_enabled", false)
             val welcomeText = prefs.getString("flutter.welcome_message", "") ?: ""
             if (isWelcomeEnabled && welcomeText.isNotBlank()) {
-                val welcomeKey = "flutter.welcomed_$cleanSender"
+                val welcomeKey = "flutter.welcomed_$sender"
                 if (!prefs.getBoolean(welcomeKey, false)) {
                     prefs.edit().putBoolean(welcomeKey, true).apply()
                     return formatTags(welcomeText, sender, cleanMsg)
