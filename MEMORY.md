@@ -291,9 +291,8 @@
 - [x] Implementasi 5 menu fitur lengkap: Google Spreadsheet Sync, AI 9Router Gateway, Pesan Sambutan, Webhook Server, dan Catatan Cepat (v1.0.12+13).
 - [x] Perbaikan tuntas Akses Notifikasi Android: enabled manifest, CharSequence parsing, startup save, dan sticky permission banner (v1.0.13+14).
 - [x] Auto-rebind service, fix false group drop, 2-column actions, dan kartu Akses Notifikasi permanen (v1.0.14+15).
-- [x] Solusi tuntas ikon launcher adaptive & round, aktifkan balasan default dual WA 1 HP, dan switch mode balasan di Beranda (v1.0.15+16).
-- [ ] Push commit ke GitHub repository `maoneart/WhatsAuto` dan trigger GitHub Actions build APK v1.0.15.
-- [ ] Unduh APK hasil build rilis ke `/sdcard/Download/MaoneAuto.apk` dan verifikasi integritas.
+- [x] Push commit ke GitHub repository `maoneart/WhatsAuto` dan trigger GitHub Actions build APK v1.0.15.
+- [x] Unduh APK hasil build rilis ke `/sdcard/Download/MaoneAuto.apk` dan verifikasi integritas.
 
 
 
