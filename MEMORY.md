@@ -368,7 +368,23 @@
      - Mendukung parsing pesan pesan WhatsApp gaya baru via `extractMessagingStyleFromNotification` dan array `android.messages`.
   4. **Pembaruan Dependensi**:
      - Menambahkan `androidx.core:core-ktx:1.12.0` di `build.gradle`.
-- **Versi**: Dinaikkan ke `v1.0.20+21`.
+### 🛡️ Eliminasi PatternSyntaxException di formatTags & Safe Simulation (v1.0.21+22 - 15 Oktober 2026)
+- **Problem**: 
+  - Saat pengguna menekan chip uji simulasi (misal 'hay' atau 'menu') di halaman Log Diagnostik, muncul error fatal:
+    `PlatformException(error, Syntax error in regexp pattern near index ...)` dan balasan tidak terkirim.
+- **Akar Masalah**:
+  - Di `formatTags` (`MaoneAutoNotificationService.kt`), regex penggantian tag menggunakan pola seperti `Regex("(?i)\\{\\{?nama\\}?}")`.
+  - Kurung kurawal tutup `\\}?}` hanya meng-escape kurung pertama (`\}`), sementara kurung kurawal kedua (`}`) tidak di-escape.
+  - Pada Android ICU regex engine, karakter `}` yang tidak di-escape dianggap sebagai quantifier yang salah sintaks dan melempar `java.util.regex.PatternSyntaxException`.
+  - Karena fungsi `formatTags` dipanggil setiap kali kata kunci cocok, pencarian kata kunci apapun langsung memicu crash regex ini.
+- **Solusi Komprehensif**:
+  1. **Penggantian Literal String Tanpa Regex**:
+     - Mengganti seluruh `Regex` di `formatTags` dengan pemetaan `tagMap` dan fungsi native Kotlin `String.replace("{{$tag}}", value, ignoreCase = true)` serta `String.replace("{$tag}", value, ignoreCase = true)`.
+     - 100% kebal dari error sintaks regex, mendukung karakter khusus, lebih hemat memori, dan dibungkus dalam blok pengaman `try-catch (Throwable)`.
+  2. **Top-Level Safe Try-Catch di Method Channel & Simulasi**:
+     - Membungkus pemanggilan `simulateTestReply` di `MaoneAutoNotificationService.kt` dan method channel `simulateTestMessage` di `MainActivity.kt` dengan `try-catch (Throwable)`.
+     - Menghindari unhandled PlatformException ke sisi Flutter.
+- **Versi**: Dinaikkan ke `v1.0.21+22`.
 
 ---
 
@@ -384,8 +400,9 @@
 - [x] Auto-populate default keyword rules 'hay' -> 'hallo' dan 'menu' -> Menu Balas saat install/startup, fallback native service (v1.0.18+19).
 - [x] Penyelarasan total RemoteInput notification.extras & prioritas kata kunci vs menu persis WhatsAuto resmi (v1.0.19+20).
 - [x] Bangun sistem Live Monitor & Log Diagnostik real-time, perbaikan RemoteInput clean Bundle, ekstraksi MessagingStyle WhatsApp (v1.0.20+21).
-- [x] Push commit ke GitHub repository `maoneart/WhatsAuto` dan trigger GitHub Actions build APK v1.0.20.
-- [x] Unduh APK rilis `v1.0.20` ke `/sdcard/Download/MaoneAuto.apk` dan verifikasi integritas.
+- [x] Eliminasi PatternSyntaxException di formatTags dengan literal replace & safe simulation handler (v1.0.21+22).
+- [x] Push commit ke GitHub repository `maoneart/WhatsAuto` dan trigger GitHub Actions build APK v1.0.21.
+- [x] Unduh APK rilis `v1.0.21` ke `/sdcard/Download/MaoneAuto.apk` dan verifikasi integritas.
 
 
 

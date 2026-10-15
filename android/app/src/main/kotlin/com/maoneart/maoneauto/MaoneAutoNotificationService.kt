@@ -39,15 +39,20 @@ class MaoneAutoNotificationService : NotificationListenerService() {
         var instance: MaoneAutoNotificationService? = null
 
         fun simulateTestReply(sender: String, messageText: String, prefs: android.content.SharedPreferences): String {
-            val service = instance ?: MaoneAutoNotificationService()
-            ServiceLogManager.log("🧪 [TEST SIMULASI] Pesan masuk dari '$sender': '$messageText'")
-            val reply = service.computeReply(sender, messageText, prefs)
-            if (reply.isNullOrBlank()) {
-                ServiceLogManager.log("⚠️ [TEST SIMULASI] Tidak ada balasan yang cocok untuk '$messageText'")
-                return "⚠️ Tidak ada balasan yang cocok."
+            try {
+                val service = instance ?: MaoneAutoNotificationService()
+                ServiceLogManager.log("🧪 [TEST SIMULASI] Pesan masuk dari '$sender': '$messageText'")
+                val reply = service.computeReply(sender, messageText, prefs)
+                if (reply.isNullOrBlank()) {
+                    ServiceLogManager.log("⚠️ [TEST SIMULASI] Tidak ada balasan yang cocok untuk '$messageText'")
+                    return "⚠️ Tidak ada balasan yang cocok."
+                }
+                ServiceLogManager.log("✅ [TEST SIMULASI] Balasan dihasilkan: '$reply'")
+                return reply
+            } catch (t: Throwable) {
+                ServiceLogManager.log("❌ [TEST SIMULASI] Error: ${t.message}")
+                return "Error: ${t.message}"
             }
-            ServiceLogManager.log("✅ [TEST SIMULASI] Balasan dihasilkan: '$reply'")
-            return reply
         }
     }
 
@@ -356,70 +361,66 @@ class MaoneAutoNotificationService : NotificationListenerService() {
         incomingMessage: String = "",
         calendar: Calendar = Calendar.getInstance()
     ): String {
-        // 1. Ekstraksi nama pengirim (deteksi format grup & tilde WhatsApp)
-        var cleanSender = sender.trim()
-        if (cleanSender.startsWith("~")) {
-            cleanSender = cleanSender.removePrefix("~").trim()
+        try {
+            // 1. Ekstraksi nama pengirim (deteksi format grup & tilde WhatsApp)
+            var cleanSender = sender.trim()
+            if (cleanSender.startsWith("~")) {
+                cleanSender = cleanSender.removePrefix("~").trim()
+            }
+            if (cleanSender.contains("@") && cleanSender.indexOf('@') > 1) {
+                cleanSender = cleanSender.substring(0, cleanSender.indexOf('@') - 1).trim()
+            } else if (cleanSender.contains(":") && !cleanSender.startsWith("+")) {
+                cleanSender = cleanSender.substring(cleanSender.lastIndexOf(':') + 1).trim()
+            }
+
+            val isPhone = cleanSender.matches(Regex("^[+0-9\\s\\-()]+$"))
+            val displayName = if (isPhone || cleanSender.isEmpty()) "Kak" else cleanSender
+
+            val senderParts = displayName.split(Regex("\\s+")).filter { it.isNotEmpty() }
+            val firstName = senderParts.firstOrNull() ?: displayName
+            val lastName = if (senderParts.size > 1) senderParts.drop(1).joinToString(" ") else ""
+
+            // 2. Format jam & tanggal Indonesia hari ini (Persis WhatsAuto dd-MM-yyyy / format lokal)
+            val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+            val currentJam = timeFormat.format(calendar.time)
+
+            val dayNames = arrayOf("Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu")
+            val monthNames = arrayOf(
+                "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+                "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+            )
+            val currentHari = dayNames[calendar.get(Calendar.DAY_OF_WEEK) - 1]
+            val currentTanggal = "${calendar.get(Calendar.DAY_OF_MONTH)} ${monthNames[calendar.get(Calendar.MONTH)]} ${calendar.get(Calendar.YEAR)}"
+
+            val tagMap = mapOf(
+                "nama" to displayName,
+                "name" to displayName,
+                "nama_depan" to firstName,
+                "nama depan" to firstName,
+                "first_name" to firstName,
+                "first name" to firstName,
+                "nama_belakang" to lastName,
+                "nama belakang" to lastName,
+                "last_name" to lastName,
+                "last name" to lastName,
+                "jam" to currentJam,
+                "time" to currentJam,
+                "tanggal" to currentTanggal,
+                "date" to currentTanggal,
+                "hari" to currentHari,
+                "pesan" to incomingMessage,
+                "message" to incomingMessage
+            )
+
+            var rep = template
+            for ((tag, value) in tagMap) {
+                rep = rep.replace("{{$tag}}", value, ignoreCase = true)
+                rep = rep.replace("{$tag}", value, ignoreCase = true)
+            }
+            return rep
+        } catch (_: Throwable) {
+            return template
         }
-        if (cleanSender.contains("@") && cleanSender.indexOf('@') > 1) {
-            cleanSender = cleanSender.substring(0, cleanSender.indexOf('@') - 1).trim()
-        } else if (cleanSender.contains(":") && !cleanSender.startsWith("+")) {
-            cleanSender = cleanSender.substring(cleanSender.lastIndexOf(':') + 1).trim()
-        }
-
-        val isPhone = cleanSender.matches(Regex("^[+0-9\\s\\-()]+$"))
-        val displayName = if (isPhone || cleanSender.isEmpty()) "Kak" else cleanSender
-
-        val senderParts = displayName.split(Regex("\\s+")).filter { it.isNotEmpty() }
-        val firstName = senderParts.firstOrNull() ?: displayName
-        val lastName = if (senderParts.size > 1) senderParts.drop(1).joinToString(" ") else ""
-
-        // 2. Format jam & tanggal Indonesia hari ini (Persis WhatsAuto dd-MM-yyyy / format lokal)
-        val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
-        val currentJam = timeFormat.format(calendar.time)
-
-        val dayNames = arrayOf("Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu")
-        val monthNames = arrayOf(
-            "Januari", "Februari", "Maret", "April", "Mei", "Juni",
-            "Juli", "Agustus", "September", "Oktober", "November", "Desember"
-        )
-        val currentHari = dayNames[calendar.get(Calendar.DAY_OF_WEEK) - 1]
-        val currentTanggal = "${calendar.get(Calendar.DAY_OF_MONTH)} ${monthNames[calendar.get(Calendar.MONTH)]} ${calendar.get(Calendar.YEAR)}"
-
-        val safeDisplayName = java.util.regex.Matcher.quoteReplacement(displayName)
-        val safeFirstName = java.util.regex.Matcher.quoteReplacement(firstName)
-        val safeLastName = java.util.regex.Matcher.quoteReplacement(lastName)
-        val safeJam = java.util.regex.Matcher.quoteReplacement(currentJam)
-        val safeTanggal = java.util.regex.Matcher.quoteReplacement(currentTanggal)
-        val safeHari = java.util.regex.Matcher.quoteReplacement(currentHari)
-        val safeIncomingMessage = java.util.regex.Matcher.quoteReplacement(incomingMessage)
-
-        var rep = template
-        // Dukung kurung kurawal ganda {{...}} MAUPUN kurung kurawal tunggal {...} persis WhatsAuto
-        rep = rep.replace(Regex("(?i)\\{\\{?nama\\}?}"), safeDisplayName)
-        rep = rep.replace(Regex("(?i)\\{\\{?name\\}?}"), safeDisplayName)
-
-        rep = rep.replace(Regex("(?i)\\{\\{?nama_depan\\}?}"), safeFirstName)
-        rep = rep.replace(Regex("(?i)\\{\\{?nama depan\\}?}"), safeFirstName)
-        rep = rep.replace(Regex("(?i)\\{\\{?first_name\\}?}"), safeFirstName)
-        rep = rep.replace(Regex("(?i)\\{\\{?first name\\}?}"), safeFirstName)
-
-        rep = rep.replace(Regex("(?i)\\{\\{?nama_belakang\\}?}"), safeLastName)
-        rep = rep.replace(Regex("(?i)\\{\\{?nama belakang\\}?}"), safeLastName)
-        rep = rep.replace(Regex("(?i)\\{\\{?last_name\\}?}"), safeLastName)
-        rep = rep.replace(Regex("(?i)\\{\\{?last name\\}?}"), safeLastName)
-
-        rep = rep.replace(Regex("(?i)\\{\\{?jam\\}?}"), safeJam)
-        rep = rep.replace(Regex("(?i)\\{\\{?time\\}?}"), safeJam)
-
-        rep = rep.replace(Regex("(?i)\\{\\{?tanggal\\}?}"), safeTanggal)
-        rep = rep.replace(Regex("(?i)\\{\\{?date\\}?}"), safeTanggal)
-
-        rep = rep.replace(Regex("(?i)\\{\\{?hari\\}?}"), safeHari)
-
-        rep = rep.replace(Regex("(?i)\\{\\{?pesan\\}?}"), safeIncomingMessage)
-        rep = rep.replace(Regex("(?i)\\{\\{?message\\}?}"), safeIncomingMessage)
-        return rep
     }
 
     private fun computeReply(sender: String, messageText: String, prefs: android.content.SharedPreferences): String? {

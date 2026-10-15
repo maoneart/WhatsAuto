@@ -73,11 +73,15 @@ class MainActivity: FlutterActivity() {
                     result.success(true)
                 }
                 "simulateTestMessage" -> {
-                    val sender = call.argument<String>("sender") ?: "Penguji WA"
-                    val message = call.argument<String>("message") ?: "hay"
-                    val prefs = getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
-                    val reply = MaoneAutoNotificationService.simulateTestReply(sender, message, prefs)
-                    result.success(reply)
+                    try {
+                        val sender = call.argument<String>("sender") ?: "Penguji WA"
+                        val message = call.argument<String>("message") ?: "hay"
+                        val prefs = getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
+                        val reply = MaoneAutoNotificationService.simulateTestReply(sender, message, prefs)
+                        result.success(reply)
+                    } catch (e: Throwable) {
+                        result.success("Error: ${e.message}")
+                    }
                 }
                 else -> result.notImplemented()
             }
