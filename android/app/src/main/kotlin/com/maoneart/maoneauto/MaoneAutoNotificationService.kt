@@ -351,7 +351,8 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                 for (i in 0 until count) {
                     val compatAction = androidx.core.app.NotificationCompat.getAction(notification, i)
                     val ris = compatAction?.remoteInputs
-                    if (compatAction != null && ris != null && ris.isNotEmpty()) {
+                    val intent = compatAction?.actionIntent
+                    if (compatAction != null && intent != null && ris != null && ris.isNotEmpty()) {
                         val platformInputs = ris.map { ci ->
                             RemoteInput.Builder(ci.resultKey)
                                 .setLabel(ci.label)
@@ -360,7 +361,7 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                                 .addExtras(ci.extras)
                                 .build()
                         }.toTypedArray()
-                        return ActionInfo(compatAction.actionIntent, platformInputs)
+                        return ActionInfo(intent, platformInputs)
                     }
                 }
             } catch (_: Exception) {}
