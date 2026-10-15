@@ -386,20 +386,25 @@
      - Menghindari unhandled PlatformException ke sisi Flutter.
 - **Versi**: Dinaikkan ke `v1.0.21+22`.
 
-### 🔍 Ekstraksi Sender Person & Penanganan Notifikasi Ringkasan WhatsApp (v1.0.22+23 - 15 Oktober 2026)
+### 🔍 Eliminasi ClassCastException Long to Integer, Sender Extraction & Summary Handling (v1.0.22+23 - 15 Oktober 2026)
 - **Problem**:
-  - Muncul log: `[19:29:37] Notifikasi dari 'WhatsApp tidak memiliki Action Balas Cepat (RemoteInput)`.
-  - Log ini membingungkan karena pengirim tertulis 'WhatsApp' dan diberi ikon peringatan ⚠️ seolah-olah terjadi kegagalan sistem.
-- **Akar Masalah**:
-  - Android dan WhatsApp memancarkan 2 jenis notifikasi saat pesan masuk: notifikasi chat individual (ada RemoteInput) dan notifikasi ringkasan / summary ("WhatsApp" / "WA Business: X pesan baru") yang memang TIDAK memiliki Action Balas Cepat.
-  - Selain itu, pada beberapa versi Android modern, `EXTRA_TITLE` pada notifikasi percakapan bisa bernilai "WhatsApp" secara global, sementara nama pengirim aslinya berada di dalam objek `person.name` pada `NotificationCompat.MessagingStyle.Message`.
-- **Solusi**:
-  1. **Ekstraksi Nama Pengirim via `lastMsg.person?.name`**:
+  - Notifikasi chat masuk dari WhatsApp: `Notif masuk dari com.whatsapp: 'Hermawan' 'Hay'`, namun bot tidak kunjung membalas dan muncul error:
+    `[19:29:37] X Unhandled error: java.lang.Long cannot be cast to java.lang.Integer`.
+- **Akar Masalah Fundamental**:
+  - Plugin `shared_preferences` di Flutter menyimpan nilai integer (`int`) ke file XML Android SharedPreferences sebagai tipe `Long` (`java.lang.Long`).
+  - Di `MaoneAutoNotificationService.kt`, kode native Android memanggil `prefs.getInt("flutter.reply_delay_seconds", 0)`.
+  - Android SharedPreferences melakukan casting langsung `(Integer) map.get(key)`. Karena tipe di map adalah `java.lang.Long`, Android melempar exception fatal `ClassCastException` tepat 1 baris sebelum `sendReply(...)` dieksekusi!
+- **Solusi Komprehensif**:
+  1. **Safe SharedPreferences Integer Reading**:
+     - Membaca `reply_delay_seconds` dengan `try-catch` berlapis: mencoba `getInt()`, dan jika gagal fallback ke `getLong().toInt()`.
+  2. **Pencatatan Waktu Reply**:
+     - Memindahkan pencatatan `lastReplyPerSender` dan `processedKeys` tepat sebelum `sendReply` agar kegagalan sebelum kirim tidak memblokir event berikutnya.
+  3. **Ekstraksi Nama Pengirim via `lastMsg.person?.name`**:
      - Jika `rawTitle` adalah "WhatsApp" atau "WA Business", sistem mengekstrak nama kontak asli dari `lastMsg.person?.name` di `MessagingStyle`.
-  2. **Penanganan Anggun Notifikasi Ringkasan**:
+  4. **Penanganan Anggun Notifikasi Ringkasan**:
      - Mengubah log ringkasan sistem "WhatsApp" / "WA Business" menjadi log informatif (`ℹ️`) tanpa tanda peringatan keliru.
-  3. **Multi-layer RemoteInput Discovery**:
-     - Menambahkan fallback layer ketiga menggunakan `NotificationCompat.getActionCount` dan mapping `RemoteInput.Builder` untuk memastikan aksi balas cepat di vendor OS (Samsung One UI, dsb) tertangkap sempurna.
+  5. **Multi-layer RemoteInput Discovery**:
+     - Menambahkan fallback layer ketiga menggunakan `NotificationCompat.getActionCount` dan mapping `RemoteInput.Builder`.
 - **Versi**: Dinaikkan ke `v1.0.22+23`.
 
 ---

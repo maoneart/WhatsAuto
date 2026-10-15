@@ -273,13 +273,17 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                 finalReply = finalReply + "\n" + footerText.trimStart()
             }
 
-            // 8. Catat waktu sebelum kirim agar event susulan langsung di-drop
-            lastReplyPerSender[cleanSender] = now
-            processedKeys[messageKey] = now
-
-            // 9. Cek Mode Timer / Delay / Once
+            // 8. Cek Mode Timer / Delay / Once
             val replyTimeMode = prefs.getString("flutter.reply_time_mode", "instantly") ?: "instantly"
-            val replyDelaySeconds = prefs.getInt("flutter.reply_delay_seconds", 0)
+            val replyDelaySeconds = try {
+                prefs.getInt("flutter.reply_delay_seconds", 0)
+            } catch (_: Exception) {
+                try {
+                    prefs.getLong("flutter.reply_delay_seconds", 0L).toInt()
+                } catch (_: Exception) {
+                    0
+                }
+            }
 
             if (replyTimeMode == "once") {
                 val hasRepliedKey = "flutter.has_replied_$cleanSender"
@@ -289,6 +293,10 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                 }
                 prefs.edit().putBoolean(hasRepliedKey, true).apply()
             }
+
+            // 9. Catat waktu sebelum kirim agar event susulan langsung di-drop
+            lastReplyPerSender[cleanSender] = now
+            processedKeys[messageKey] = now
 
             ServiceLogManager.log("🚀 Membalas '$cleanSender': '$finalReply'")
 
