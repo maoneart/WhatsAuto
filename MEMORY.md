@@ -281,7 +281,26 @@
      - Menghapus filter `selfDisplayName` yang memblokir pengetesan kontak sendiri.
      - Menambahkan fallback parsing `android.messages` (MessagingStyle Bundle) jika `EXTRA_TEXT` kosong.
      - Memperpendek debounce per pengirim dan deduplikasi pesan menjadi 1 detik.
-- **Versi**: Dinaikkan ke `v1.0.15+16`.
+### 🚀 Penyelarasan Engine Notifikasi Resmi WhatsAuto & Eliminasi Summary Drop (v1.0.16+17 - 15 Oktober 2026)
+- **Problem**: Pengguna telah mengaktifkan seluruh perizinan dan membuat kata kunci "ass" dan "menu", tetapi bot tetap tidak membalas saat dites dual WA di 1 HP ("sudah di hidupkan semua juga, tadi sudah saya uninstall dan hapus cache juga sama ttp ga bisa respon notifikasi").
+- **Akar Masalah Fundamental (Terungkap dari Dekompilasi WhatsAuto Resmi)**:
+  1. **Drop Fatal pada `FLAG_GROUP_SUMMARY` (Line 62)**: Di Android 10-15 (MIUI, HyperOS, ColorOS, OneUI), notifikasi WhatsApp selalu dibundel ke thread percakapan dengan flag `FLAG_GROUP_SUMMARY`. WhatsAuto asli **TIDAK PERNAH** memfilter `FLAG_GROUP_SUMMARY`, melainkan mengecek ketersediaan `RemoteInput` pada aksi notifikasi. Pengecekan line 62 sebelumnya langsung me-return/drop setiap notifikasi sebelum membaca pengirim maupun teks!
+  2. **Short-Circuit Fatal pada `computeReply`**: Jika `flutter.menu_nodes_cache` null/kosong (terjadi saat fresh install atau hapus cache sebelum membuka tab menu), `computeReply` langsung keluar di baris awal sebelum mengecek kata kunci terdaftar ("ass", "menu"). Akibatnya, kata kunci tidak pernah dievaluasi!
+  3. **Array `RemoteInput` Parsial**: WhatsAuto mengirim balasan ke seluruh `remoteInputs` dalam aksi, sedangkan implementasi sebelumnya hanya menyertakan 1 `remoteInput` tunggal.
+  4. **Premature Deduplication Key**: `processedKeys[messageKey] = now` dicatat sebelum pengecekan `findQuickReplyAction`, sehingga event notifikasi susulan yang membawa action intent langsung dibuang sebagai duplikat.
+  5. **State Koneksi Listener Tidak Terdeteksi di UI**: Saat reinstall, `isNotificationServiceEnabled` bisa bernilai `true` di secure settings meskipun sistem Android belum mengikat/mengaktifkan koneksi listener (`isListenerConnected == false`), sehingga banner perizinan tidak muncul.
+- **Solusi Komprehensif**:
+  1. Menghapus filter `FLAG_GROUP_SUMMARY` dari `MaoneAutoNotificationService.kt`, menyelaraskan dengan engine resmi WhatsAuto.
+  2. Memperbaiki `computeReply`: Rule kata kunci ("ass", "menu") kini dievaluasi secara independen dan prioritas utama, baik menu pohon sudah dikonfigurasi maupun belum.
+  3. Menambahkan normalisasi `compactMsg` (stripping spaces & punctuation seperti WhatsAuto resmi) sehingga kata kunci cocok sempurna pada variasi tanda baca/spasi.
+  4. Mengubah `ActionInfo` agar menampung `Array<RemoteInput>` lengkap dan mempopulasikan seluruh resultKey.
+  5. Memindahkan pencatatan `processedKeys` hanya saat balasan benar-benar berhasil dikirim.
+  6. Mengintegrasikan pengecekan `isListenerConnected` ke `HomeTab` dan `MainNavigationScreen`:
+     - Indikator status live: `Izin Belum Aktif` (Kuning) / `Layanan Belum Konek` (Oranye) / `Service Siap` (Hijau).
+     - Warning banner interaktif muncul otomatis jika service belum terhubung.
+     - Switch Balasan Otomatis otomatis memicu dialog izin/rebind jika service belum terhubung.
+  7. Menambahkan `forceReconnectService()` pada `MainActivity.onResume()`.
+- **Versi**: Dinaikkan ke `v1.0.16+17`.
 
 ---
 
@@ -291,8 +310,11 @@
 - [x] Implementasi 5 menu fitur lengkap: Google Spreadsheet Sync, AI 9Router Gateway, Pesan Sambutan, Webhook Server, dan Catatan Cepat (v1.0.12+13).
 - [x] Perbaikan tuntas Akses Notifikasi Android: enabled manifest, CharSequence parsing, startup save, dan sticky permission banner (v1.0.13+14).
 - [x] Auto-rebind service, fix false group drop, 2-column actions, dan kartu Akses Notifikasi permanen (v1.0.14+15).
-- [x] Push commit ke GitHub repository `maoneart/WhatsAuto` dan trigger GitHub Actions build APK v1.0.15.
-- [x] Unduh APK hasil build rilis ke `/sdcard/Download/MaoneAuto.apk` dan verifikasi integritas.
+- [x] Aset ikon launcher adaptif & round lengkap, default reply mode switch (v1.0.15+16).
+- [x] Penyelarasan total engine notifikasi WhatsAuto resmi: hapus summary drop, perbaiki evaluasi kata kunci mandiri, perbaiki RemoteInput array, deteksi live `isListenerConnected` (v1.0.16+17).
+- [x] Push commit ke GitHub repository `maoneart/WhatsAuto` dan trigger GitHub Actions build APK v1.0.16.
+- [ ] Unduh APK rilis `v1.0.16` ke `/sdcard/Download/MaoneAuto.apk` dan verifikasi integritas.
+
 
 
 
