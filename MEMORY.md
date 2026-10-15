@@ -407,6 +407,24 @@
      - Menambahkan fallback layer ketiga menggunakan `NotificationCompat.getActionCount` dan mapping `RemoteInput.Builder`.
 - **Versi**: Dinaikkan ke `v1.0.22+23`.
 
+### 🛡️ Eliminasi Total Balasan Ganda / Self-Echo Loop (v1.0.23+24 - 15 Oktober 2026)
+- **Problem**:
+  - Balasan otomatis berhasil terkirim (`hallo`), namun langsung disusul balasan kedua: `Halo! Saya menggunakan Aplikasi MaoneAuto.`.
+- **Akar Masalah Fundamental**:
+  - Ketika bot mengirimkan balasan `hallo` via `RemoteInput`, WhatsApp memperbarui tampilan notifikasi dengan menambahkan teks `hallo` ke riwayat obrolan `MessagingStyle`.
+  - Android memancarkan event `onNotificationPosted` kedua untuk pembaruan notifikasi tersebut.
+  - Karena pesan terakhir di notifikasi adalah `hallo` (hasil kiriman bot sendiri) dan tidak cocok dengan kata kunci `hay`, sistem salah mengira kontak mengirimkan pesan baru bertuliskan `hallo`, sehingga jatuh ke *Default Reply* (`Halo! Saya menggunakan Aplikasi MaoneAuto.`)!
+- **Solusi Komprehensif (4-Layer Echo Shield)**:
+  1. **Deteksi `isSelf` di `MessagingStyle`**:
+     - Memeriksa `lastMsg.person == null` atau `person.name == android.selfDisplayName`. Jika true, notifikasi langsung diabaikan seketika karena merupakan echo balasan sendiri.
+  2. **Echo Cache `recentSentReplies`**:
+     - Setiap balasan yang dikirim oleh bot disimpan dalam cache memori selama 15 detik. Jika notifikasi masuk memiliki teks yang persis dengan balasan yang baru dikirim bot, pesan langsung di-drop.
+  3. **Debounce 3000ms**:
+     - Jeda aman per pengirim dinaikkan dari 1000ms ke 3000ms persis standar WhatsAuto resmi.
+  4. **Penyaringan Teks Ringkasan Sistem**:
+     - Menolak teks seperti `"1 pesan baru"`, `"2 pesan baru"`, dll agar tidak pernah memicu default reply.
+- **Versi**: Dinaikkan ke `v1.0.23+24`.
+
 ---
 
 ## 📋 Active Tasks / Next Steps
@@ -423,8 +441,9 @@
 - [x] Bangun sistem Live Monitor & Log Diagnostik real-time, perbaikan RemoteInput clean Bundle, ekstraksi MessagingStyle WhatsApp (v1.0.20+21).
 - [x] Eliminasi PatternSyntaxException di formatTags dengan literal replace & safe simulation handler (v1.0.21+22).
 - [x] Ekstraksi person.name dari MessagingStyle, multi-layer NotificationCompat action scanner, dan penanganan graceful ringkasan WhatsApp (v1.0.22+23).
-- [x] Push commit ke GitHub repository `maoneart/WhatsAuto` dan trigger GitHub Actions build APK v1.0.22.
-- [x] Unduh APK rilis `v1.0.22` ke `/sdcard/Download/MaoneAuto.apk` dan verifikasi integritas.
+- [x] Eliminasi total balasan ganda via 4-Layer Echo Shield (isSelf check, recentSentReplies cache, 3s debounce, summary text filter) (v1.0.23+24).
+- [x] Push commit ke GitHub repository `maoneart/WhatsAuto` dan trigger GitHub Actions build APK v1.0.23.
+- [x] Unduh APK rilis `v1.0.23` ke `/sdcard/Download/MaoneAuto.apk` dan verifikasi integritas.
 
 
 

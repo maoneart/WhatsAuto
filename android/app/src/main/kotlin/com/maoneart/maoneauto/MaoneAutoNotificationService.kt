@@ -59,6 +59,7 @@ class MaoneAutoNotificationService : NotificationListenerService() {
     private val TAG = "MaoneAutoService"
     private val processedKeys = mutableMapOf<String, Long>()
     private val lastReplyPerSender = mutableMapOf<String, Long>()
+    private val recentSentReplies = java.util.concurrent.ConcurrentHashMap<String, Long>()
 
     override fun onCreate() {
         super.onCreate()
@@ -153,11 +154,23 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                 val messagingStyle = androidx.core.app.NotificationCompat.MessagingStyle.extractMessagingStyleFromNotification(notification)
                 if (messagingStyle != null && messagingStyle.messages.isNotEmpty()) {
                     val lastMsg = messagingStyle.messages.lastOrNull()
-                    if (lastMsg != null && !lastMsg.text.isNullOrBlank()) {
-                        rawText = lastMsg.text.toString()
-                        val personName = lastMsg.person?.name?.toString()
-                        if (!personName.isNullOrBlank() && (rawTitle.isEmpty() || rawTitle.equals("WhatsApp", ignoreCase = true) || rawTitle.equals("WA Business", ignoreCase = true))) {
-                            rawTitle = personName
+                    if (lastMsg != null) {
+                        val selfDisplayName = extras.getCharSequence("android.selfDisplayName")?.toString()
+                        val person = lastMsg.person
+                        val personName = person?.name?.toString()
+
+                        // Jika person == null atau sama dengan selfDisplayName, berarti pesan terakhir dikirim oleh diri sendiri/bot (echo)
+                        val isSelf = person == null || (selfDisplayName != null && personName.equals(selfDisplayName, ignoreCase = true))
+                        if (isSelf) {
+                            ServiceLogManager.log("⏸️ Abaikan: Pesan terakhir di chat dikirim oleh diri sendiri/bot (echo)")
+                            return
+                        }
+
+                        if (!lastMsg.text.isNullOrBlank()) {
+                            rawText = lastMsg.text.toString()
+                            if (!personName.isNullOrBlank() && (rawTitle.isEmpty() || rawTitle.equals("WhatsApp", ignoreCase = true) || rawTitle.equals("WA Business", ignoreCase = true))) {
+                                rawTitle = personName
+                            }
                         }
                     }
                 }
@@ -226,17 +239,35 @@ class MaoneAutoNotificationService : NotificationListenerService() {
 
             val now = System.currentTimeMillis()
 
-            // 3. Debounce per-pengirim: jangan balas lebih dari 1 kali dalam 1 detik untuk pengirim yang sama
+            // 2b. Abaikan jika pesan ini adalah balasan yang baru saja dikirim oleh bot (echo)
+            val cleanMsgNorm = cleanMsg.lowercase()
+            val sentTime = recentSentReplies[cleanMsgNorm]
+            if (sentTime != null && (now - sentTime) < 15000) {
+                ServiceLogManager.log("⏸️ Abaikan echo: Pesan '$cleanMsg' adalah balasan bot (${now - sentTime}ms lalu)")
+                return
+            }
+
+            // Abaikan teks ringkasan notifikasi sistem WhatsApp ("1 pesan baru", "2 pesan baru", dsb)
+            val isSummaryText = cleanMsg.matches(Regex("(?i)^\\d+\\s+pesan(\\s+baru)?$")) ||
+                                cleanMsg.matches(Regex("(?i)^\\d+\\s+new\\s+messages?$")) ||
+                                cleanMsg.equals("1 pesan baru", ignoreCase = true) ||
+                                cleanMsg.equals("1 new message", ignoreCase = true)
+            if (isSummaryText) {
+                ServiceLogManager.log("ℹ️ Abaikan teks ringkasan notifikasi: '$cleanMsg'")
+                return
+            }
+
+            // 3. Debounce per-pengirim: jangan balas lebih dari 1 kali dalam 3 detik untuk pengirim yang sama
             val lastSenderReply = lastReplyPerSender[cleanSender] ?: 0L
-            if (now - lastSenderReply < 1000) {
+            if (now - lastSenderReply < 3000) {
                 ServiceLogManager.log("⏳ Debounce aktif untuk '$cleanSender' (${now - lastSenderReply}ms lalu)")
                 return
             }
 
-            // 4. Deduplikasi pesan identik dalam 1 detik
+            // 4. Deduplikasi pesan identik dalam 3 detik
             val messageKey = "$packageName:$cleanSender:$cleanMsg"
             val lastSeen = processedKeys[messageKey] ?: 0L
-            if (now - lastSeen < 1000) {
+            if (now - lastSeen < 3000) {
                 ServiceLogManager.log("🔁 Duplikat terdeteksi untuk '$cleanSender': '$cleanMsg' (${now - lastSeen}ms lalu)")
                 return
             }
@@ -386,6 +417,12 @@ class MaoneAutoNotificationService : NotificationListenerService() {
             }
             RemoteInput.addResultsToIntent(actionInfo.remoteInputs, intent, bundle)
             actionInfo.pendingIntent.send(context, 0, intent)
+            val replyNorm = replyMessage.trim().lowercase()
+            recentSentReplies[replyNorm] = System.currentTimeMillis()
+            if (recentSentReplies.size > 100) {
+                val cutoff = System.currentTimeMillis() - 60000
+                recentSentReplies.entries.removeIf { it.value < cutoff }
+            }
             ServiceLogManager.log("✅ RemoteInput TERKIRIM SUKSES ke WhatsApp!")
             Log.i(TAG, "Auto-reply sent successfully via RemoteInput: $replyMessage")
         } catch (e: Throwable) {
