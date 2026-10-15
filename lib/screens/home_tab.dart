@@ -665,7 +665,7 @@ class _HomeTabState extends State<HomeTab> {
                 if (widget.onRequestPermission != null) {
                   widget.onRequestPermission!();
                 } else {
-                  const MethodChannel('com.maoneart.maoneauto/service')
+                  MethodChannel('com.maoneart.maoneauto/service')
                       .invokeMethod('openNotificationSettings');
                 }
               },
