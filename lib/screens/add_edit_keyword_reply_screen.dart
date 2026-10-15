@@ -20,6 +20,7 @@ class _AddEditKeywordReplyScreenState extends State<AddEditKeywordReplyScreen> {
   bool _useMenuReply = false;
   bool _useAiReply = false;
   bool _useWebhook = false;
+  bool _useGoogleSheets = false;
   bool _sendEmail = false;
 
   @override
@@ -33,8 +34,48 @@ class _AddEditKeywordReplyScreenState extends State<AddEditKeywordReplyScreen> {
       _useMenuReply = r.useMenuReply;
       _useAiReply = r.useAiReply;
       _useWebhook = r.useWebhook;
+      _useGoogleSheets = r.useGoogleSheets;
       _sendEmail = r.sendEmailNotification;
     }
+  }
+
+  void _selectReplyOption(String option) {
+    setState(() {
+      switch (option) {
+        case 'menu':
+          _useMenuReply = !_useMenuReply;
+          if (_useMenuReply) {
+            _useAiReply = false;
+            _useWebhook = false;
+            _useGoogleSheets = false;
+          }
+          break;
+        case 'ai':
+          _useAiReply = !_useAiReply;
+          if (_useAiReply) {
+            _useMenuReply = false;
+            _useWebhook = false;
+            _useGoogleSheets = false;
+          }
+          break;
+        case 'webhook':
+          _useWebhook = !_useWebhook;
+          if (_useWebhook) {
+            _useMenuReply = false;
+            _useAiReply = false;
+            _useGoogleSheets = false;
+          }
+          break;
+        case 'sheets':
+          _useGoogleSheets = !_useGoogleSheets;
+          if (_useGoogleSheets) {
+            _useMenuReply = false;
+            _useAiReply = false;
+            _useWebhook = false;
+          }
+          break;
+      }
+    });
   }
 
   @override
@@ -74,6 +115,9 @@ class _AddEditKeywordReplyScreenState extends State<AddEditKeywordReplyScreen> {
       if (_useWebhook) {
         return '🌐 [Web Server Aktif]\n(Dijawab otomatis oleh Server Webhook)';
       }
+      if (_useGoogleSheets) {
+        return '📊 [Google Sheets Aktif]\n(Data spreadsheet otomatis terkirim)';
+      }
       return 'Ketik pesan balasan Anda';
     }
 
@@ -89,6 +133,8 @@ class _AddEditKeywordReplyScreenState extends State<AddEditKeywordReplyScreen> {
       rendered = '$rendered\n\n🤖 [+ Jawaban AI terlampir]';
     } else if (_useWebhook) {
       rendered = '$rendered\n\n🌐 [+ Balasan Web Server terlampir]';
+    } else if (_useGoogleSheets) {
+      rendered = '$rendered\n\n📊 [+ Data Spreadsheet terlampir]';
     }
 
     return rendered;
@@ -108,11 +154,11 @@ class _AddEditKeywordReplyScreenState extends State<AddEditKeywordReplyScreen> {
       return;
     }
 
-    final hasDynamicSource = _useMenuReply || _useAiReply || _useWebhook;
+    final hasDynamicSource = _useMenuReply || _useAiReply || _useWebhook || _useGoogleSheets;
     if (reply.isEmpty && !hasDynamicSource) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Tulis pesan balasan, atau centang salah satu Opsi Balasan (Menu Balas / AI / Web Server)!'),
+          content: Text('Tulis pesan balasan, atau pilih salah satu Opsi Balasan (Menu Balas / AI / Web Server / Sheets)!'),
           backgroundColor: Colors.redAccent,
         ),
       );
@@ -128,6 +174,7 @@ class _AddEditKeywordReplyScreenState extends State<AddEditKeywordReplyScreen> {
       useMenuReply: _useMenuReply,
       useAiReply: _useAiReply,
       useWebhook: _useWebhook,
+      useGoogleSheets: _useGoogleSheets,
       sendEmailNotification: _sendEmail,
     );
 
@@ -448,36 +495,62 @@ class _AddEditKeywordReplyScreenState extends State<AddEditKeywordReplyScreen> {
                   ),
                   const SizedBox(height: 24),
 
-                  // Section: Opsi balasan
-                  const Text(
-                    'Opsi balasan',
-                    style: TextStyle(
-                      color: Color(0xFF00A884),
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
+                  // Section: Opsi balasan (Hanya bisa dipilih 1)
                   Row(
                     children: [
-                      _buildCheckboxTile(
-                        label: 'Menu Balas',
-                        value: _useMenuReply,
-                        onChanged: (v) => setState(() => _useMenuReply = v ?? false),
+                      const Text(
+                        'Opsi balasan',
+                        style: TextStyle(
+                          color: Color(0xFF00A884),
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                      const SizedBox(width: 14),
-                      _buildCheckboxTile(
-                        label: 'ChatGPT / AI',
-                        value: _useAiReply,
-                        onChanged: (v) => setState(() => _useAiReply = v ?? false),
-                      ),
-                      const SizedBox(width: 14),
-                      _buildCheckboxTile(
-                        label: 'Web Server',
-                        value: _useWebhook,
-                        onChanged: (v) => setState(() => _useWebhook = v ?? false),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.white10,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: const Text(
+                          'Pilih salah 1',
+                          style: TextStyle(color: Colors.white60, fontSize: 11),
+                        ),
                       ),
                     ],
+                  ),
+                  const SizedBox(height: 8),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    child: Row(
+                      children: [
+                        _buildCheckboxTile(
+                          label: 'Menu Balas',
+                          value: _useMenuReply,
+                          onChanged: (_) => _selectReplyOption('menu'),
+                        ),
+                        const SizedBox(width: 14),
+                        _buildCheckboxTile(
+                          label: 'ChatGPT / AI',
+                          value: _useAiReply,
+                          onChanged: (_) => _selectReplyOption('ai'),
+                        ),
+                        const SizedBox(width: 14),
+                        _buildCheckboxTile(
+                          label: 'Web Server',
+                          value: _useWebhook,
+                          onChanged: (_) => _selectReplyOption('webhook'),
+                        ),
+                        const SizedBox(width: 14),
+                        _buildCheckboxTile(
+                          label: 'Google Sheets',
+                          value: _useGoogleSheets,
+                          onChanged: (_) => _selectReplyOption('sheets'),
+                        ),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 24),
 

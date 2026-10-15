@@ -544,6 +544,64 @@ class MaoneAutoNotificationService : NotificationListenerService() {
         }
     }
 
+    private fun matchSheetItem(sheetJsonStr: String?, normalizedMsg: String, compactMsg: String, paddedMsg: String): String? {
+        if (sheetJsonStr.isNullOrEmpty()) return null
+        return try {
+            val sheetArray = JSONArray(sheetJsonStr)
+            var wildcardReply: String? = null
+
+            // 1. Exact Match di Sheet
+            for (i in 0 until sheetArray.length()) {
+                val item = sheetArray.getJSONObject(i)
+                val rawKw = item.optString("keyword", "").trim()
+                if (rawKw == "*") {
+                    wildcardReply = item.optString("reply", "")
+                    continue
+                }
+                if (item.optInt("matchOption", 1) != 0) continue
+
+                val kwList = rawKw.split(",").map { it.replace(Regex("[?!.]"), "").trim().lowercase() }.filter { it.isNotEmpty() }
+                val isMatch = kwList.any { kw ->
+                    val cleanKw = kw.replace(Regex("[ ?!.\\n]"), "")
+                    kw == normalizedMsg || (cleanKw.isNotEmpty() && cleanKw == compactMsg)
+                }
+                if (isMatch) {
+                    val rep = item.optString("reply", "").trim()
+                    if (rep.isNotEmpty()) return rep
+                }
+            }
+
+            // 2. Contains Match di Sheet
+            for (i in 0 until sheetArray.length()) {
+                val item = sheetArray.getJSONObject(i)
+                val rawKw = item.optString("keyword", "").trim()
+                if (rawKw == "*") {
+                    wildcardReply = item.optString("reply", "")
+                    continue
+                }
+                if (item.optInt("matchOption", 1) != 1) continue
+
+                val kwList = rawKw.split(",").map { it.replace(Regex("[?!.]"), "").trim().lowercase() }.filter { it.isNotEmpty() }
+                val isMatch = kwList.any { kw ->
+                    val cleanKw = kw.replace(Regex("[ ?!.\\n]"), "")
+                    cleanKw.isNotEmpty() && (paddedMsg.contains(" $kw ") || normalizedMsg.contains(kw) || compactMsg.contains(cleanKw))
+                }
+                if (isMatch) {
+                    val rep = item.optString("reply", "").trim()
+                    if (rep.isNotEmpty()) return rep
+                }
+            }
+
+            if (!wildcardReply.isNullOrBlank()) {
+                wildcardReply
+            } else {
+                null
+            }
+        } catch (_: Exception) {
+            null
+        }
+    }
+
     private fun computeReply(sender: String, messageText: String, prefs: android.content.SharedPreferences): String? {
         val cleanMsg = messageText.trim()
         if (cleanMsg.isEmpty()) return null
@@ -611,6 +669,14 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                                     return formatTags(hookRep, sender, cleanMsg)
                                 }
                             }
+                            if (rule.optBoolean("useGoogleSheets", false)) {
+                                val sheetCache = prefs.getString("flutter.spreadsheet_items_cache", null)
+                                val sRep = matchSheetItem(sheetCache, normalizedMsg, compactMsg, paddedMsg)
+                                if (!sRep.isNullOrBlank()) {
+                                    prefs.edit().putString(sessionPrefKey, "idle").apply()
+                                    return formatTags(sRep, sender, cleanMsg)
+                                }
+                            }
                             // Jika kata kunci biasa (tidak pakai menu), reset sesi menu menjadi idle
                             prefs.edit().putString(sessionPrefKey, "idle").apply()
                             if (rep.isNotBlank()) return rep
@@ -641,6 +707,14 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                                 if (!hookRep.isNullOrBlank()) {
                                     prefs.edit().putString(sessionPrefKey, "idle").apply()
                                     return formatTags(hookRep, sender, cleanMsg)
+                                }
+                            }
+                            if (rule.optBoolean("useGoogleSheets", false)) {
+                                val sheetCache = prefs.getString("flutter.spreadsheet_items_cache", null)
+                                val sRep = matchSheetItem(sheetCache, normalizedMsg, compactMsg, paddedMsg)
+                                if (!sRep.isNullOrBlank()) {
+                                    prefs.edit().putString(sessionPrefKey, "idle").apply()
+                                    return formatTags(sRep, sender, cleanMsg)
                                 }
                             }
                             // Jika kata kunci biasa (tidak pakai menu), reset sesi menu menjadi idle
@@ -806,6 +880,14 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                                 if (!hookRep.isNullOrBlank()) {
                                     prefs.edit().putString(sessionPrefKey, "idle").apply()
                                     return formatTags(hookRep, sender, cleanMsg)
+                                }
+                            }
+                            if (rule.optBoolean("useGoogleSheets", false)) {
+                                val sheetCache = prefs.getString("flutter.spreadsheet_items_cache", null)
+                                val sRep = matchSheetItem(sheetCache, normalizedMsg, compactMsg, paddedMsg)
+                                if (!sRep.isNullOrBlank()) {
+                                    prefs.edit().putString(sessionPrefKey, "idle").apply()
+                                    return formatTags(sRep, sender, cleanMsg)
                                 }
                             }
                             prefs.edit().putString(sessionPrefKey, "idle").apply()

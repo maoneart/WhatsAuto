@@ -7,6 +7,7 @@ class KeywordReply {
   bool useMenuReply; // Opsi balasan: Menu Balas
   bool useAiReply; // Opsi balasan: ChatGPT / AI
   bool useWebhook; // Opsi balasan: Web Server / Webhook
+  bool useGoogleSheets; // Opsi balasan: Google Sheets
   bool sendEmailNotification; // Pemberitahuan Balasan: Kirim Email
 
   KeywordReply({
@@ -18,6 +19,7 @@ class KeywordReply {
     this.useMenuReply = false,
     this.useAiReply = false,
     this.useWebhook = false,
+    this.useGoogleSheets = false,
     this.sendEmailNotification = false,
   });
 
@@ -30,6 +32,7 @@ class KeywordReply {
         'useMenuReply': useMenuReply,
         'useAiReply': useAiReply,
         'useWebhook': useWebhook,
+        'useGoogleSheets': useGoogleSheets,
         'sendEmailNotification': sendEmailNotification,
       };
 
@@ -41,7 +44,8 @@ class KeywordReply {
         isEnabled: json['isEnabled'] ?? true,
         useMenuReply: json['useMenuReply'] ?? false,
         useAiReply: json['useAiReply'] ?? false,
-        useWebhook: json['useWebhook'] ?? json['useGoogleSheets'] ?? false,
+        useWebhook: json['useWebhook'] ?? false,
+        useGoogleSheets: json['useGoogleSheets'] ?? false,
         sendEmailNotification: json['sendEmailNotification'] ?? false,
       );
 }
