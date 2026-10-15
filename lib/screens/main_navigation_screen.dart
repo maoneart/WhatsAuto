@@ -19,6 +19,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> with Widget
   AppSettings _settings = AppSettings();
   bool _isLoading = true;
   bool _isNotificationPermissionGranted = true;
+  bool _isListenerConnected = false;
 
   static const MethodChannel _platformChannel = MethodChannel('com.maoneart.maoneauto/service');
 
@@ -63,18 +64,21 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> with Widget
   Future<void> _checkNotificationPermission({bool showDialogIfNeeded = false}) async {
     try {
       await _platformChannel.invokeMethod('enableNotificationComponent');
-      final bool isEnabled = await _platformChannel.invokeMethod('isNotificationServiceEnabled');
+      final bool isEnabled = await _platformChannel.invokeMethod('isNotificationServiceEnabled') ?? false;
+      final bool isConnected = await _platformChannel.invokeMethod('isListenerConnected') ?? false;
       if (mounted) {
         setState(() {
           _isNotificationPermissionGranted = isEnabled;
+          _isListenerConnected = isConnected;
         });
 
-        if (!isEnabled && showDialogIfNeeded) {
+        if ((!isEnabled || !isConnected) && showDialogIfNeeded) {
           final openSettings = await GlassmorphismModal.showConfirmModal(
             context: context,
-            title: 'Izin Akses Notifikasi Dibutuhkan',
-            message:
-                'MaoneAuto memerlukan izin "Akses Notifikasi" agar bot dapat membaca pesan masuk dan mengirim balasan otomatis ke WhatsApp.\n\n⚠️ Khusus Android 13/14/15:\nJika tombol toggle abu-abu, buka "Info Aplikasi" -> tekan titik 3 (⋮) di pojok kanan atas -> pilih "Izinkan setelan yang dibatasi".',
+            title: !isEnabled ? 'Izin Akses Notifikasi Dibutuhkan' : 'Layanan Notifikasi Belum Terhubung',
+            message: !isEnabled
+                ? 'MaoneAuto memerlukan izin "Akses Notifikasi" agar bot dapat membaca pesan masuk dan mengirim balasan otomatis ke WhatsApp.\n\n⚠️ Khusus Android 13/14/15:\nJika tombol toggle abu-abu, buka "Info Aplikasi" -> tekan titik 3 (⋮) di pojok kanan atas -> pilih "Izinkan setelan yang dibatasi".'
+                : 'Izin notifikasi telah diberikan, namun sistem Android belum mengaktifkan koneksi listener.\n\nSilakan buka Pengaturan Notifikasi, matikan sakelar MaoneAuto lalu hidupkan kembali.',
             confirmText: 'Buka Pengaturan',
             cancelText: 'Nanti Saja',
             confirmColor: const Color(0xFF00A884),
@@ -121,6 +125,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> with Widget
         settings: _settings,
         onSettingsChanged: _onSettingsChanged,
         isNotificationPermissionGranted: _isNotificationPermissionGranted,
+        isListenerConnected: _isListenerConnected,
         onRequestPermission: _openSettings,
         onOpenAppDetails: _openAppDetails,
       ),

@@ -13,6 +13,7 @@ class HomeTab extends StatefulWidget {
   final AppSettings settings;
   final VoidCallback onSettingsChanged;
   final bool isNotificationPermissionGranted;
+  final bool isListenerConnected;
   final VoidCallback? onRequestPermission;
   final VoidCallback? onOpenAppDetails;
 
@@ -21,6 +22,7 @@ class HomeTab extends StatefulWidget {
     required this.settings,
     required this.onSettingsChanged,
     this.isNotificationPermissionGranted = true,
+    this.isListenerConnected = false,
     this.onRequestPermission,
     this.onOpenAppDetails,
   });
@@ -31,6 +33,9 @@ class HomeTab extends StatefulWidget {
 
 class _HomeTabState extends State<HomeTab> {
   void _toggleAutoReply(bool val) async {
+    if (val && (!widget.isNotificationPermissionGranted || !widget.isListenerConnected)) {
+      widget.onRequestPermission?.call();
+    }
     setState(() {
       widget.settings.isAutoReplyEnabled = val;
     });
@@ -103,7 +108,9 @@ class _HomeTabState extends State<HomeTab> {
                       decoration: BoxDecoration(
                         color: !widget.isNotificationPermissionGranted
                             ? const Color(0xFFF59E0B)
-                            : (isEnabled ? const Color(0xFF00A884) : Colors.white38),
+                            : (!widget.isListenerConnected
+                                ? const Color(0xFFF97316)
+                                : (isEnabled ? const Color(0xFF00A884) : Colors.white38)),
                         shape: BoxShape.circle,
                       ),
                     ),
@@ -111,12 +118,16 @@ class _HomeTabState extends State<HomeTab> {
                     Text(
                       !widget.isNotificationPermissionGranted
                           ? 'Izin Belum Aktif'
-                          : (isEnabled ? 'Service Aktif' : 'Service Dijeda'),
+                          : (!widget.isListenerConnected
+                              ? 'Layanan Belum Konek'
+                              : (isEnabled ? 'Service Aktif' : 'Service Dijeda')),
                       style: TextStyle(
                         fontSize: 11,
                         color: !widget.isNotificationPermissionGranted
                             ? const Color(0xFFF59E0B)
-                            : (isEnabled ? const Color(0xFF00A884) : Colors.white54),
+                            : (!widget.isListenerConnected
+                                ? const Color(0xFFF97316)
+                                : (isEnabled ? const Color(0xFF00A884) : Colors.white54)),
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -174,8 +185,8 @@ class _HomeTabState extends State<HomeTab> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 0. Permission Warning Banner jika Akses Notifikasi belum aktif
-            if (!widget.isNotificationPermissionGranted)
+            // 0. Permission Warning Banner jika Akses Notifikasi belum aktif atau listener belum terhubung
+            if (!widget.isNotificationPermissionGranted || !widget.isListenerConnected)
               _buildPermissionWarningBanner(),
 
             // 1. Hero Master Card: Balasan otomatis HIDUP / MATI
@@ -706,18 +717,22 @@ class _HomeTabState extends State<HomeTab> {
                 child: const Icon(Icons.priority_high_rounded, color: Colors.black, size: 16),
               ),
               const SizedBox(width: 10),
-              const Expanded(
+              Expanded(
                 child: Text(
-                  'Akses Notifikasi Belum Aktif!',
-                  style: TextStyle(color: Color(0xFFF59E0B), fontSize: 14, fontWeight: FontWeight.bold),
+                  !widget.isNotificationPermissionGranted
+                      ? 'Akses Notifikasi Belum Aktif!'
+                      : 'Layanan Notifikasi Belum Terhubung',
+                  style: const TextStyle(color: Color(0xFFF59E0B), fontSize: 14, fontWeight: FontWeight.bold),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 8),
-          const Text(
-            'MaoneAuto memerlukan izin "Akses Notifikasi" agar dapat mendeteksi chat WhatsApp dan membalas otomatis.\n\n⚠️ Khusus Android 13/14/15: Bila sakelar di pengaturan abu-abu, buka "Info Aplikasi" -> tekan titik 3 (⋮) di pojok kanan atas -> pilih "Izinkan setelan yang dibatasi".',
-            style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.4),
+          Text(
+            !widget.isNotificationPermissionGranted
+                ? 'MaoneAuto memerlukan izin "Akses Notifikasi" agar dapat mendeteksi chat WhatsApp dan membalas otomatis.\n\n⚠️ Khusus Android 13/14/15: Bila sakelar di pengaturan abu-abu, buka "Info Aplikasi" -> tekan titik 3 (⋮) di pojok kanan atas -> pilih "Izinkan setelan yang dibatasi".'
+                : 'Izin notifikasi sudah aktif, namun sistem Android belum menghubungkan listener background.\n\nTekan tombol "Pengaturan" di bawah, lalu matikan dan hidupkan kembali sakelar MaoneAuto.',
+            style: const TextStyle(color: Colors.white70, fontSize: 12, height: 1.4),
           ),
           const SizedBox(height: 14),
           // 100% Simetris 2-Kolom Grid

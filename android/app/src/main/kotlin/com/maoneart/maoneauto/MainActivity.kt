@@ -73,6 +73,7 @@ class MainActivity: FlutterActivity() {
         super.onResume()
         enableNotificationService()
         rebindNotificationService()
+        forceReconnectService()
     }
 
     private fun enableNotificationService() {
@@ -122,6 +123,13 @@ class MainActivity: FlutterActivity() {
     }
 
     private fun isNotificationServiceEnabled(): Boolean {
+        try {
+            val packages = androidx.core.app.NotificationManagerCompat.getEnabledListenerPackages(this)
+            if (packages.contains(packageName)) {
+                return true
+            }
+        } catch (_: Exception) {}
+
         val pkgName = packageName
         val flat = Settings.Secure.getString(contentResolver, "enabled_notification_listeners")
         if (!TextUtils.isEmpty(flat)) {

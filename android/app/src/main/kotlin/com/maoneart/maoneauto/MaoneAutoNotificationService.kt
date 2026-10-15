@@ -58,14 +58,16 @@ class MaoneAutoNotificationService : NotificationListenerService() {
 
         val notification = sbn.notification ?: return
 
-        // 1. Abaikan notifikasi ringkasan grup/thread WhatsApp (mencegah balasan ganda)
-        if ((notification.flags and Notification.FLAG_GROUP_SUMMARY) != 0) return
+        // 1. Abaikan notifikasi sistem atau ongoing event (panggilan telepon, backup, uploading)
         if ((notification.flags and Notification.FLAG_ONGOING_EVENT) != 0) return
 
         // 2. Baca pengaturan dari Flutter SharedPreferences
         val prefs = getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
         val isEnabled = prefs.getBoolean("flutter.is_auto_reply_enabled", true)
-        if (!isEnabled) return
+        if (!isEnabled) {
+            Log.d(TAG, "Auto-reply is disabled in settings")
+            return
+        }
 
         // 2a. Filter Aplikasi yang Didukung (Supported Apps)
         val supportedAppsJson = prefs.getString("flutter.supported_apps", null)
@@ -79,7 +81,10 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                     "com.facebook.orca" -> supportedAppsObj.optBoolean("Messenger", false)
                     else -> true
                 }
-                if (!isAppAllowed) return
+                if (!isAppAllowed) {
+                    Log.d(TAG, "App $packageName is not enabled in supported apps")
+                    return
+                }
             } catch (_: Exception) {}
         }
 
@@ -117,6 +122,8 @@ class MaoneAutoNotificationService : NotificationListenerService() {
         cleanSender = cleanSender.replace(Regex("[\u200e\u2068\u2069]"), "").trim()
         val cleanMsg = rawText.replace(Regex("[\u200e\u2068\u2069]"), "").trim()
 
+        Log.i(TAG, "Processing incoming notification -> App: $packageName | Sender: $cleanSender | Msg: $cleanMsg")
+
         // 2c. Deteksi & Filter Pesan Grup WhatsApp (Akurat menggunakan EXTRA_IS_GROUP_CONVERSATION)
         val isGroup = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
             extras.getBoolean(Notification.EXTRA_IS_GROUP_CONVERSATION, false)
@@ -141,19 +148,32 @@ class MaoneAutoNotificationService : NotificationListenerService() {
 
         // 3. Debounce per-pengirim: jangan balas lebih dari 1 kali dalam 1 detik untuk pengirim yang sama
         val lastSenderReply = lastReplyPerSender[cleanSender] ?: 0L
-        if (now - lastSenderReply < 1000) return
+        if (now - lastSenderReply < 1000) {
+            Log.d(TAG, "Debounce active for sender: $cleanSender (${now - lastSenderReply}ms ago)")
+            return
+        }
 
         // 4. Deduplikasi pesan identik dalam 1 detik
         val messageKey = "$packageName:$cleanSender:$cleanMsg"
         val lastSeen = processedKeys[messageKey] ?: 0L
-        if (now - lastSeen < 1000) return
-        processedKeys[messageKey] = now
+        if (now - lastSeen < 1000) {
+            Log.d(TAG, "Duplicate message key dropped: $messageKey (${now - lastSeen}ms ago)")
+            return
+        }
 
         // 5. Cari Quick Reply Action dengan RemoteInput (actions standar + fallback WearableExtender)
-        val quickReplyAction = findQuickReplyAction(notification) ?: return
+        val quickReplyAction = findQuickReplyAction(notification)
+        if (quickReplyAction == null) {
+            Log.d(TAG, "No quick reply action found for notification from $packageName")
+            return
+        }
 
         // 6. Hitung teks balasan dengan Tree Menu & Rule Kata Kunci
-        val replyText = computeReply(cleanSender, cleanMsg, prefs) ?: return
+        val replyText = computeReply(cleanSender, cleanMsg, prefs)
+        if (replyText.isNullOrBlank()) {
+            Log.d(TAG, "No reply computed for message: '$cleanMsg' from $cleanSender")
+            return
+        }
 
         // 7. Tambahkan Header & Footer jika diaktifkan (persis WhatsAuto asli)
         val enableHeader = prefs.getBoolean("flutter.enable_reply_header", false)
@@ -171,6 +191,7 @@ class MaoneAutoNotificationService : NotificationListenerService() {
 
         // 8. Catat waktu sebelum kirim agar event susulan langsung di-drop
         lastReplyPerSender[cleanSender] = now
+        processedKeys[messageKey] = now
 
         // 9. Cek Mode Timer / Delay / Once
         val replyTimeMode = prefs.getString("flutter.reply_time_mode", "instantly") ?: "instantly"
@@ -184,6 +205,8 @@ class MaoneAutoNotificationService : NotificationListenerService() {
             }
             prefs.edit().putBoolean(hasRepliedKey, true).apply()
         }
+
+        Log.i(TAG, "Sending auto-reply to $cleanSender ($packageName): $finalReply")
 
         if (replyTimeMode == "delay" && replyDelaySeconds > 0) {
             android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
@@ -201,10 +224,8 @@ class MaoneAutoNotificationService : NotificationListenerService() {
             for (action in actions) {
                 val pendingIntent = action.actionIntent ?: continue
                 val remoteInputs = action.remoteInputs ?: continue
-                for (ri in remoteInputs) {
-                    if (ri.resultKey != null) {
-                        return ActionInfo(pendingIntent, ri)
-                    }
+                if (remoteInputs.isNotEmpty()) {
+                    return ActionInfo(pendingIntent, remoteInputs)
                 }
             }
         }
@@ -215,10 +236,8 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                 for (action in wearableActions) {
                     val pendingIntent = action.actionIntent ?: continue
                     val remoteInputs = action.remoteInputs ?: continue
-                    for (ri in remoteInputs) {
-                        if (ri.resultKey != null) {
-                            return ActionInfo(pendingIntent, ri)
-                        }
+                    if (remoteInputs.isNotEmpty()) {
+                        return ActionInfo(pendingIntent, remoteInputs)
                     }
                 }
             }
@@ -228,15 +247,18 @@ class MaoneAutoNotificationService : NotificationListenerService() {
 
     private fun sendReply(context: Context, actionInfo: ActionInfo, replyMessage: String) {
         try {
-            val intent = Intent()
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            val intent = Intent().apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
             val bundle = Bundle()
-            bundle.putCharSequence(actionInfo.remoteInput.resultKey, replyMessage)
-            RemoteInput.addResultsToIntent(arrayOf(actionInfo.remoteInput), intent, bundle)
+            for (ri in actionInfo.remoteInputs) {
+                bundle.putCharSequence(ri.resultKey, replyMessage)
+            }
+            RemoteInput.addResultsToIntent(actionInfo.remoteInputs, intent, bundle)
             actionInfo.pendingIntent.send(context, 0, intent)
-            Log.d(TAG, "Auto-reply sent successfully via RemoteInput")
+            Log.i(TAG, "Auto-reply sent successfully via RemoteInput!")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to send auto-reply: ${e.message}")
+            Log.e(TAG, "Failed to send auto-reply: ${e.message}", e)
         }
     }
 
@@ -306,29 +328,35 @@ class MaoneAutoNotificationService : NotificationListenerService() {
 
     private fun computeReply(sender: String, messageText: String, prefs: android.content.SharedPreferences): String? {
         val cleanMsg = messageText.trim()
-        val normalizedMsg = cleanMsg.replace(Regex("[?!.\\n]"), "").trim().lowercase()
-        val treeJsonStr = prefs.getString("flutter.menu_nodes_cache", null)
-        val defaultReply = prefs.getString("flutter.default_reply", "Halo! Terima kasih telah menghubungi kami.") ?: "Halo!"
+        if (cleanMsg.isEmpty()) return null
 
-        if (treeJsonStr.isNullOrEmpty()) {
-            val onlyKeywords = prefs.getBoolean("flutter.only_reply_keywords", false)
-            return if (onlyKeywords) null else formatTags(defaultReply, sender, cleanMsg)
+        val normalizedMsg = cleanMsg.replace(Regex("[?!.\\n]"), "").trim().lowercase()
+        val compactMsg = cleanMsg.replace(Regex("[ ?!.\\n]"), "").trim().lowercase()
+        val defaultReply = prefs.getString("flutter.default_reply", "Halo! Terima kasih telah menghubungi kami.") ?: "Halo!"
+        val onlyKeywords = prefs.getBoolean("flutter.only_reply_keywords", false)
+
+        val sessionPrefKey = "flutter.session_$sender"
+        val currentParent = prefs.getString(sessionPrefKey, "idle") ?: "idle"
+
+        // Baca cache tree nodes jika ada (opsional)
+        val treeJsonStr = prefs.getString("flutter.menu_nodes_cache", null)
+        val nodes = mutableListOf<JSONObject>()
+        if (!treeJsonStr.isNullOrEmpty()) {
+            try {
+                val nodesArray = JSONArray(treeJsonStr)
+                for (i in 0 until nodesArray.length()) {
+                    nodes.add(nodesArray.getJSONObject(i))
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error parsing menu nodes cache: ${e.message}")
+            }
         }
 
         try {
-            val nodesArray = JSONArray(treeJsonStr)
-            val nodes = mutableListOf<JSONObject>()
-            for (i in 0 until nodesArray.length()) {
-                nodes.add(nodesArray.getJSONObject(i))
-            }
-
-            val sessionPrefKey = "flutter.session_$sender"
-            val currentParent = prefs.getString(sessionPrefKey, "idle") ?: "idle"
-
             // =========================================================================
             // FASE 1: Jika Pengguna Sedang Berada di Dalam Sesi Menu Aktif (Bukan Idle)
             // =========================================================================
-            if (currentParent != "idle") {
+            if (currentParent != "idle" && nodes.isNotEmpty()) {
                 // 1. Perintah Keluar / Batal
                 if (normalizedMsg == "batal" || normalizedMsg == "keluar" || normalizedMsg == "exit") {
                     prefs.edit().putString(sessionPrefKey, "idle").apply()
@@ -380,11 +408,9 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                     val subOptions = nodes.filter { it.optString("parentId") == matchedId && it.optInt("type") == 2 }
 
                     if (subOptions.isNotEmpty()) {
-                        // Masuk ke submenu bertingkat berikutnya
                         prefs.edit().putString(sessionPrefKey, matchedId).apply()
                         return renderMenu(nodes, matchedId)
                     } else if (subPrompt != null) {
-                        // Leaf response (detail produk/harga) -> reset sesi persis WhatsAuto
                         prefs.edit().putString(sessionPrefKey, "idle").apply()
                         val rendered = formatTags(subPrompt.optString("text").trim(), sender, cleanMsg)
                         return "$rendered\n\n*(Sesi menu selesai. Ketik 'menu' untuk membuka kembali)*"
@@ -395,7 +421,6 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                     }
                 }
 
-                // Jika input salah saat berada di dalam menu
                 return "⚠️ *Pilihan tidak ditemukan.*\nSilakan balas dengan *Nomor* opsi yang tertera:\n\n" + renderMenu(nodes, currentParent)
             }
 
@@ -404,7 +429,7 @@ class MaoneAutoNotificationService : NotificationListenerService() {
             // =========================================================================
 
             // A. Cek Balasan Kata Kunci (Keyword Replies)
-            // WhatsAuto mengecek Exact Match (k=0) terlebih dahulu, lalu Contains Match (k=1)
+            // WhatsAuto mengecek Exact Match terlebih dahulu, lalu Contains Match
             val isKeywordEnabled = prefs.getBoolean("flutter.is_keyword_reply_enabled", true)
             val keywordJsonStr = prefs.getString("flutter.keyword_replies_cache", null)
             if (isKeywordEnabled && !keywordJsonStr.isNullOrEmpty()) {
@@ -412,17 +437,19 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                     val kwArray = JSONArray(keywordJsonStr)
                     val paddedMsg = " $normalizedMsg "
 
-                    // Prioritas 1: Exact Match
+                    // Prioritas 1: Exact Match (cocok persis teks atau compact tanpa spasi/simbol)
                     for (i in 0 until kwArray.length()) {
                         val rule = kwArray.getJSONObject(i)
                         if (!rule.optBoolean("isEnabled", true) || !rule.optBoolean("isExactMatch", true)) continue
                         val rawKeywords = rule.optString("incomingKeywords", "")
                         val keywordsList = rawKeywords.split(",").map { it.replace(Regex("[?!.]"), "").trim().lowercase() }.filter { it.isNotEmpty() }
 
-                        val isMatch = keywordsList.any { it == normalizedMsg }
+                        val isMatch = keywordsList.any { kw ->
+                            kw == normalizedMsg || kw.replace(Regex("[ ?!.\\n]"), "") == compactMsg
+                        }
                         if (isMatch) {
                             val rep = formatTags(rule.optString("replyMessage", ""), sender, cleanMsg)
-                            if (rule.optBoolean("useMenuReply", false)) {
+                            if (rule.optBoolean("useMenuReply", false) && nodes.isNotEmpty()) {
                                 prefs.edit().putString(sessionPrefKey, "parent").apply()
                                 val menuText = renderMenu(nodes, "parent")
                                 return if (rep.isBlank()) menuText else "$rep\n\n$menuText"
@@ -438,10 +465,12 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                         val rawKeywords = rule.optString("incomingKeywords", "")
                         val keywordsList = rawKeywords.split(",").map { it.replace(Regex("[?!.]"), "").trim().lowercase() }.filter { it.isNotEmpty() }
 
-                        val isMatch = keywordsList.any { paddedMsg.contains(" $it ") || normalizedMsg.contains(it) }
+                        val isMatch = keywordsList.any { kw ->
+                            paddedMsg.contains(" $kw ") || normalizedMsg.contains(kw) || compactMsg.contains(kw.replace(Regex("[ ?!.\\n]"), ""))
+                        }
                         if (isMatch) {
                             val rep = formatTags(rule.optString("replyMessage", ""), sender, cleanMsg)
-                            if (rule.optBoolean("useMenuReply", false)) {
+                            if (rule.optBoolean("useMenuReply", false) && nodes.isNotEmpty()) {
                                 prefs.edit().putString(sessionPrefKey, "parent").apply()
                                 val menuText = renderMenu(nodes, "parent")
                                 return if (rep.isBlank()) menuText else "$rep\n\n$menuText"
@@ -462,18 +491,18 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                     val sheetArray = JSONArray(sheetJsonStr)
                     val paddedMsg = " $normalizedMsg "
 
-                    // Prioritas 1: Exact Match di Sheet
+                    // Exact Match
                     for (i in 0 until sheetArray.length()) {
                         val item = sheetArray.getJSONObject(i)
                         if (item.optInt("matchOption", 1) != 0) continue
                         val kw = item.optString("keyword", "").replace(Regex("[?!.]"), "").trim().lowercase()
-                        if (kw.isNotEmpty() && kw == normalizedMsg) {
+                        if (kw.isNotEmpty() && (kw == normalizedMsg || kw.replace(Regex("[ ?!.\\n]"), "") == compactMsg)) {
                             val rep = formatTags(item.optString("reply", ""), sender, cleanMsg)
                             if (rep.isNotBlank()) return rep
                         }
                     }
 
-                    // Prioritas 2: Contains Match di Sheet
+                    // Contains Match
                     for (i in 0 until sheetArray.length()) {
                         val item = sheetArray.getJSONObject(i)
                         if (item.optInt("matchOption", 1) != 1) continue
@@ -489,10 +518,10 @@ class MaoneAutoNotificationService : NotificationListenerService() {
             }
 
             // C. Kata kunci default pemanggil menu ("menu", "katalog", "bantuan")
-            if (normalizedMsg == "menu" ||
+            if (nodes.isNotEmpty() && (normalizedMsg == "menu" ||
                 normalizedMsg == "katalog" ||
                 normalizedMsg == "pilihan" ||
-                normalizedMsg == "bantuan") {
+                normalizedMsg == "bantuan")) {
                 prefs.edit().putString(sessionPrefKey, "parent").apply()
                 return renderMenu(nodes, "parent")
             }
@@ -508,16 +537,17 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                 }
             }
 
-            // E. Pesan biasa di luar menu -> Balas dengan balasan default (kecuali user sengaja mengaktifkan only_reply_keywords)
-            val onlyKeywords = prefs.getBoolean("flutter.only_reply_keywords", false)
+            // E. Pesan biasa di luar menu -> Balas dengan balasan default (kecuali user mengaktifkan only_reply_keywords)
             if (onlyKeywords) {
                 return null
             }
             return formatTags(defaultReply, sender, cleanMsg)
         } catch (e: Exception) {
             Log.e(TAG, "Error in computeReply: ${e.message}")
-            val onlyKeywords = prefs.getBoolean("flutter.only_reply_keywords", false)
-            return if (onlyKeywords) null else formatTags(defaultReply, sender, cleanMsg)
+            if (onlyKeywords) {
+                return null
+            }
+            return formatTags(defaultReply, sender, cleanMsg)
         }
     }
 
@@ -550,6 +580,6 @@ class MaoneAutoNotificationService : NotificationListenerService() {
 
     data class ActionInfo(
         val pendingIntent: PendingIntent,
-        val remoteInput: RemoteInput
+        val remoteInputs: Array<RemoteInput>
     )
 }
