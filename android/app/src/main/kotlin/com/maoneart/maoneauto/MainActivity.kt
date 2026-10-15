@@ -73,17 +73,19 @@ class MainActivity: FlutterActivity() {
         super.onResume()
         enableNotificationService()
         rebindNotificationService()
-        forceReconnectService()
     }
 
     private fun enableNotificationService() {
         try {
             val componentName = ComponentName(this, MaoneAutoNotificationService::class.java)
-            packageManager.setComponentEnabledSetting(
-                componentName,
-                PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
-                PackageManager.DONT_KILL_APP
-            )
+            val currentState = packageManager.getComponentEnabledSetting(componentName)
+            if (currentState != PackageManager.COMPONENT_ENABLED_STATE_ENABLED) {
+                packageManager.setComponentEnabledSetting(
+                    componentName,
+                    PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
+                    PackageManager.DONT_KILL_APP
+                )
+            }
         } catch (e: Exception) {
             Log.e("MainActivity", "Error enabling component: ${e.message}")
         }
@@ -92,8 +94,10 @@ class MainActivity: FlutterActivity() {
     private fun rebindNotificationService() {
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                val componentName = ComponentName(this, MaoneAutoNotificationService::class.java)
-                NotificationListenerService.requestRebind(componentName)
+                if (isNotificationServiceEnabled()) {
+                    val componentName = ComponentName(this, MaoneAutoNotificationService::class.java)
+                    NotificationListenerService.requestRebind(componentName)
+                }
             }
         } catch (e: Exception) {
             Log.e("MainActivity", "Error requesting rebind: ${e.message}")

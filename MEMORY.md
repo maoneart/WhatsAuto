@@ -302,6 +302,23 @@
   7. Menambahkan `forceReconnectService()` pada `MainActivity.onResume()`.
 - **Versi**: Dinaikkan ke `v1.0.16+17`.
 
+### 🛡️ Eliminasi Crash Mode Kata Kunci "Mengandung", Master Try-Catch, dan Regex Quoting (v1.0.17+18 - 15 Oktober 2026)
+- **Problem**: Saat pengguna mengganti opsi pencocokan dari "Mengandung" atau memproses notifikasi dengan mode mengandung, aplikasi MaoneAuto berhenti / force close ("pas saya ganti dari mengandung malah aplikasi maoneauti bwrhwnti").
+- **Akar Masalah Fundamental**:
+  1. **Kill Loop dari `forceReconnectService()` pada `MainActivity.onResume()`**: Di v1.0.16, `forceReconnectService()` dipasang pada `onResume()`. Setiap kali pengguna berpindah layar (seperti kembali dari layar tambah/edit kata kunci atau dialog), Android me-restart component listener yang memicu OS Android mematikan proses aplikasi (*force stop/restart*).
+  2. **Ketiadaan Master Try-Catch di `onNotificationPosted`**: Service Kotlin sebelumnya tidak membungkus method utama `onNotificationPosted` dengan `try-catch` global (tidak seperti WhatsAuto resmi yang memproteksi seluruh body). Akibatnya, exception runtime apapun langsung memicu dialog sistem Android "Aplikasi telah berhenti".
+  3. **Crash Regex Backreference pada `formatTags`**: `String.replace(Regex, replacement)` di Java/Kotlin melempar `IllegalArgumentException: Illegal group reference` jika teks pesan masuk atau nama pengirim mengandung simbol `$` atau `\`.
+  4. **Pencocokan Kata Kunci Mengandung Kosong**: Pada mode *Contains Match*, jika keyword dibersihkan menjadi string kosong `""`, pengecekan `compactMsg.contains("")` selalu bernilai `true` untuk semua pesan masuk.
+  5. **Null Assertions pada Radio Tile**: Penggunaan operator non-null assertion `v!` pada `_buildRadioTile` di Flutter rentan melempar exception null check.
+- **Solusi Komprehensif**:
+  1. Menghapus `forceReconnectService()` dari `MainActivity.onResume()`, dan membatasi `enableNotificationService()` & `rebindNotificationService()` hanya dieksekusi jika status belum aktif dan izin telah diberikan.
+  2. Membungkus seluruh alur kerja `onNotificationPosted` dalam master `try { ... } catch (t: Throwable) { ... }` persis dekompilasi resmi WhatsAuto.
+  3. Mengamankan seluruh variabel template di `formatTags` menggunakan `java.util.regex.Matcher.quoteReplacement(...)`.
+  4. Menambahkan pengecekan `cleanKw.isNotEmpty()` pada exact match dan contains match agar tidak terjadi false positive matching pada string kosong.
+  5. Menambahkan pengecekan `action == null` pada array `notification.actions` dan `WearableExtender.actions`, serta null guard pada `RemoteInput.resultKey`.
+  6. Mengganti `v!` dengan fallback aman `v ?? true` dan `v ?? false` di `add_edit_keyword_reply_screen.dart`.
+- **Versi**: Dinaikkan ke `v1.0.17+18`.
+
 ---
 
 ## 📋 Active Tasks / Next Steps
@@ -312,8 +329,10 @@
 - [x] Auto-rebind service, fix false group drop, 2-column actions, dan kartu Akses Notifikasi permanen (v1.0.14+15).
 - [x] Aset ikon launcher adaptif & round lengkap, default reply mode switch (v1.0.15+16).
 - [x] Penyelarasan total engine notifikasi WhatsAuto resmi: hapus summary drop, perbaiki evaluasi kata kunci mandiri, perbaiki RemoteInput array, deteksi live `isListenerConnected` (v1.0.16+17).
-- [x] Push commit ke GitHub repository `maoneart/WhatsAuto` dan trigger GitHub Actions build APK v1.0.16.
-- [x] Unduh APK rilis `v1.0.16` ke `/sdcard/Download/MaoneAuto.apk` dan verifikasi integritas.
+- [x] Eliminasi total crash saat ganti opsi kata kunci "mengandung": wrap service dalam master try-catch, quote regex replacement, amankan null checks dan sanitasi empty keyword (v1.0.17+18).
+- [x] Push commit ke GitHub repository `maoneart/WhatsAuto` dan trigger GitHub Actions build APK v1.0.17.
+- [x] Unduh APK rilis `v1.0.17` ke `/sdcard/Download/MaoneAuto.apk` dan verifikasi integritas.
+
 
 
 
