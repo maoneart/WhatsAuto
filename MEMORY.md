@@ -367,8 +367,8 @@
 - [x] Eliminasi total crash saat ganti opsi kata kunci "mengandung": wrap service dalam master try-catch, quote regex replacement, amankan null checks dan sanitasi empty keyword (v1.0.17+18).
 - [x] Auto-populate default keyword rules 'hay' -> 'hallo' dan 'menu' -> Menu Balas saat install/startup, fallback native service (v1.0.18+19).
 - [x] Penyelarasan total RemoteInput notification.extras & prioritas kata kunci vs menu persis WhatsAuto resmi (v1.0.19+20).
-- [ ] Push commit ke GitHub repository `maoneart/WhatsAuto` dan trigger GitHub Actions build APK v1.0.19.
-- [ ] Unduh APK rilis `v1.0.19` ke `/sdcard/Download/MaoneAuto.apk` dan verifikasi integritas.
+- [x] Push commit ke GitHub repository `maoneart/WhatsAuto` dan trigger GitHub Actions build APK v1.0.19.
+- [x] Unduh APK rilis `v1.0.19` ke `/sdcard/Download/MaoneAuto.apk` dan verifikasi integritas.
 
 
 
