@@ -333,6 +333,27 @@
      - Menambahkan fallback instan jika cache SharedPreferences belum terbaca oleh background listener: otomatis menggunakan aturan default `hay` dan `menu`.
 - **Versi**: Dinaikkan ke `v1.0.18+19`.
 
+### 🎯 Penyelarasan Total RemoteInput Extras & Prioritas Kata Kunci Persis WhatsAuto Resmi (v1.0.19+20 - 15 Oktober 2026)
+- **Problem**: 
+  1. Di WhatsApp nyata bot tetap tidak membalas pesan otomatis.
+  2. Di uji coba simulator, saat mengetik `hay` bot malah memunculkan `menu` (bukan `hallo`).
+- **Akar Masalah Fundamental (Hasil Bedah Mendalam `WhatsAutoNotificationListener.java`)**:
+  1. **Kesalahan Pengiriman RemoteInput (Bundle Kosong)**:
+     - Di `sendReply`, kode sebelumnya membuat `val bundle = Bundle()` baru yang kosong.
+     - Di WhatsAuto resmi (`WhatsAutoNotificationListener.java` method `u`), bundle yang diteruskan ke `RemoteInput.addResultsToIntent` adalah `statusBarNotification.getNotification().extras` asli milik notifikasi WhatsApp!
+     - WhatsApp memerlukan token percakapan, JID, dan metadata yang ada di `extras` notifikasi asli untuk merutekan balasan. Karena diberi Bundle kosong, WhatsApp menerima teks tapi membuangnya karena tidak tahu harus dikirim ke obrolan mana.
+  2. **Inversi Prioritas Menu vs Kata Kunci**:
+     - Baik di `AutoReplyEngine.dart` maupun di `MaoneAutoNotificationService.kt`, pengecekan Sesi Menu Aktif (FASE 1) diletakkan SEBELUM pengecekan Kata Kunci (FASE 2).
+     - Jika sebelumnya sesi menu pernah dibuka (`currentParent == "parent"`), pesan `hay` dievaluasi sebagai opsi menu pilihan 1..N, gagal cocok, dan langsung memuntahkan `renderMenu(...)`!
+- **Solusi Komprehensif**:
+  1. Mengubah `sendReply` agar menyertakan `notification.extras ?: Bundle()` asli persis method `u` di WhatsAuto resmi.
+  2. Menyempurnakan pemindaian `findQuickReplyAction` agar mengambil action yang memiliki `remoteInputs != null && remoteInputs.isNotEmpty()`.
+  3. Membalik urutan evaluasi di `AutoReplyEngine.dart` dan `MaoneAutoNotificationService.kt`: Kata Kunci (Exact Match & Contains Match) dievaluasi **TERLEBIH DAHULU**.
+     - Jika kata kunci cocok dan `!useMenuReply`, sesi di-reset ke `idle` dan mengirimkan balasan langsung (`hallo`).
+     - Jika kata kunci cocok dan `useMenuReply`, sesi diaktifkan ke `parent` dan memunculkan menu.
+  4. Menambahkan izin `POST_NOTIFICATIONS` dan `WAKE_LOCK` di `AndroidManifest.xml`.
+- **Versi**: Dinaikkan ke `v1.0.19+20`.
+
 ---
 
 ## 📋 Active Tasks / Next Steps
@@ -345,8 +366,10 @@
 - [x] Penyelarasan total engine notifikasi WhatsAuto resmi: hapus summary drop, perbaiki evaluasi kata kunci mandiri, perbaiki RemoteInput array, deteksi live `isListenerConnected` (v1.0.16+17).
 - [x] Eliminasi total crash saat ganti opsi kata kunci "mengandung": wrap service dalam master try-catch, quote regex replacement, amankan null checks dan sanitasi empty keyword (v1.0.17+18).
 - [x] Auto-populate default keyword rules 'hay' -> 'hallo' dan 'menu' -> Menu Balas saat install/startup, fallback native service (v1.0.18+19).
-- [x] Push commit ke GitHub repository `maoneart/WhatsAuto` dan trigger GitHub Actions build APK v1.0.18.
-- [x] Unduh APK rilis `v1.0.18` ke `/sdcard/Download/MaoneAuto.apk` dan verifikasi integritas.
+- [x] Penyelarasan total RemoteInput notification.extras & prioritas kata kunci vs menu persis WhatsAuto resmi (v1.0.19+20).
+- [ ] Push commit ke GitHub repository `maoneart/WhatsAuto` dan trigger GitHub Actions build APK v1.0.19.
+- [ ] Unduh APK rilis `v1.0.19` ke `/sdcard/Download/MaoneAuto.apk` dan verifikasi integritas.
+
 
 
 

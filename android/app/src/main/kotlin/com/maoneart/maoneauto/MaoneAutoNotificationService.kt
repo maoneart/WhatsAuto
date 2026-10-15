@@ -211,10 +211,10 @@ class MaoneAutoNotificationService : NotificationListenerService() {
 
             if (replyTimeMode == "delay" && replyDelaySeconds > 0) {
                 android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                    sendReply(this, quickReplyAction, finalReply)
+                    sendReply(this, notification, quickReplyAction, finalReply)
                 }, (replyDelaySeconds * 1000).toLong())
             } else {
-                sendReply(this, quickReplyAction, finalReply)
+                sendReply(this, notification, quickReplyAction, finalReply)
             }
         } catch (t: Throwable) {
             Log.e(TAG, "Unhandled error in onNotificationPosted: ${t.message}", t)
@@ -222,41 +222,48 @@ class MaoneAutoNotificationService : NotificationListenerService() {
     }
 
     private fun findQuickReplyAction(notification: Notification): ActionInfo? {
-        // 1. Scan actions standar
+        var remoteInputs: Array<RemoteInput>? = null
+        var pendingIntent: PendingIntent? = null
+
+        // 1. Scan actions standar persis WhatsAuto resmi
         val actions = notification.actions
         if (actions != null) {
             for (action in actions) {
-                if (action == null) continue
-                val pendingIntent = action.actionIntent ?: continue
-                val remoteInputs = action.remoteInputs ?: continue
-                if (remoteInputs.isNotEmpty()) {
-                    return ActionInfo(pendingIntent, remoteInputs)
+                if (action != null && action.remoteInputs != null && action.remoteInputs.isNotEmpty()) {
+                    remoteInputs = action.remoteInputs
+                    pendingIntent = action.actionIntent
                 }
             }
         }
-        // 2. Scan fallback WearableExtender persis WhatsAuto NotificationListener
-        try {
-            val wearableActions = Notification.WearableExtender(notification).actions
-            if (wearableActions != null) {
-                for (action in wearableActions) {
-                    if (action == null) continue
-                    val pendingIntent = action.actionIntent ?: continue
-                    val remoteInputs = action.remoteInputs ?: continue
-                    if (remoteInputs.isNotEmpty()) {
-                        return ActionInfo(pendingIntent, remoteInputs)
+        // 2. Scan fallback WearableExtender persis WhatsAuto resmi
+        if (pendingIntent == null || remoteInputs == null) {
+            try {
+                val wearableActions = Notification.WearableExtender(notification).actions
+                if (wearableActions != null) {
+                    for (action in wearableActions) {
+                        if (action != null && action.remoteInputs != null && action.remoteInputs.isNotEmpty()) {
+                            remoteInputs = action.remoteInputs
+                            pendingIntent = action.actionIntent
+                        }
                     }
                 }
-            }
-        } catch (_: Exception) {}
+            } catch (_: Exception) {}
+        }
+
+        if (pendingIntent != null && remoteInputs != null && remoteInputs.isNotEmpty()) {
+            return ActionInfo(pendingIntent, remoteInputs)
+        }
         return null
     }
 
-    private fun sendReply(context: Context, actionInfo: ActionInfo, replyMessage: String) {
+    private fun sendReply(context: Context, notification: Notification, actionInfo: ActionInfo, replyMessage: String) {
         try {
             val intent = Intent().apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
-            val bundle = Bundle()
+            // Persis WhatsAuto resmi (u method): gunakan notification.extras asli
+            // agar token percakapan WhatsApp tidak hilang saat dikirim via RemoteInput
+            val bundle = notification.extras ?: Bundle()
             for (ri in actionInfo.remoteInputs) {
                 if (ri != null && ri.resultKey != null) {
                     bundle.putCharSequence(ri.resultKey, replyMessage)
@@ -264,7 +271,7 @@ class MaoneAutoNotificationService : NotificationListenerService() {
             }
             RemoteInput.addResultsToIntent(actionInfo.remoteInputs, intent, bundle)
             actionInfo.pendingIntent.send(context, 0, intent)
-            Log.i(TAG, "Auto-reply sent successfully via RemoteInput!")
+            Log.i(TAG, "Auto-reply sent successfully via RemoteInput: $replyMessage")
         } catch (e: Throwable) {
             Log.e(TAG, "Failed to send auto-reply: ${e.message}", e)
         }
@@ -370,7 +377,73 @@ class MaoneAutoNotificationService : NotificationListenerService() {
 
         try {
             // =========================================================================
-            // FASE 1: Jika Pengguna Sedang Berada di Dalam Sesi Menu Aktif (Bukan Idle)
+            // FASE 1: Cek Balasan Kata Kunci (Keyword Replies) TERLEBIH DAHULU
+            // Persis WhatsAuto resmi: kata kunci selalu memiliki prioritas lebih tinggi daripada menu
+            // =========================================================================
+            val isKeywordEnabled = prefs.getBoolean("flutter.is_keyword_reply_enabled", true)
+            var keywordJsonStr = prefs.getString("flutter.keyword_replies_cache", null)
+            if (keywordJsonStr == null) {
+                keywordJsonStr = """[{"id":"default_hay","incomingKeywords":"hay","replyMessage":"hallo","isExactMatch":true,"isEnabled":true,"useMenuReply":false},{"id":"default_menu","incomingKeywords":"menu","replyMessage":"Silakan pilih menu layanan kami di bawah ini:","isExactMatch":true,"isEnabled":true,"useMenuReply":true}]"""
+            }
+            if (isKeywordEnabled && !keywordJsonStr.isNullOrEmpty()) {
+                try {
+                    val kwArray = JSONArray(keywordJsonStr)
+                    val paddedMsg = " $normalizedMsg "
+
+                    // Prioritas 1: Exact Match (cocok persis teks atau compact tanpa spasi/simbol)
+                    for (i in 0 until kwArray.length()) {
+                        val rule = kwArray.getJSONObject(i)
+                        if (!rule.optBoolean("isEnabled", true) || !rule.optBoolean("isExactMatch", true)) continue
+                        val rawKeywords = rule.optString("incomingKeywords", "")
+                        val keywordsList = rawKeywords.split(",").map { it.replace(Regex("[?!.]"), "").trim().lowercase() }.filter { it.isNotEmpty() }
+
+                        val isMatch = keywordsList.any { kw ->
+                            val cleanKw = kw.replace(Regex("[ ?!.\\n]"), "")
+                            kw == normalizedMsg || (cleanKw.isNotEmpty() && cleanKw == compactMsg)
+                        }
+                        if (isMatch) {
+                            val rep = formatTags(rule.optString("replyMessage", ""), sender, cleanMsg)
+                            if (rule.optBoolean("useMenuReply", false) && nodes.isNotEmpty()) {
+                                prefs.edit().putString(sessionPrefKey, "parent").apply()
+                                val menuText = renderMenu(nodes, "parent")
+                                return if (rep.isBlank()) menuText else "$rep\n\n$menuText"
+                            }
+                            // Jika kata kunci biasa (tidak pakai menu), reset sesi menu menjadi idle
+                            prefs.edit().putString(sessionPrefKey, "idle").apply()
+                            if (rep.isNotBlank()) return rep
+                        }
+                    }
+
+                    // Prioritas 2: Contains Match
+                    for (i in 0 until kwArray.length()) {
+                        val rule = kwArray.getJSONObject(i)
+                        if (!rule.optBoolean("isEnabled", true) || rule.optBoolean("isExactMatch", true)) continue
+                        val rawKeywords = rule.optString("incomingKeywords", "")
+                        val keywordsList = rawKeywords.split(",").map { it.replace(Regex("[?!.]"), "").trim().lowercase() }.filter { it.isNotEmpty() }
+
+                        val isMatch = keywordsList.any { kw ->
+                            val cleanKw = kw.replace(Regex("[ ?!.\\n]"), "")
+                            cleanKw.isNotEmpty() && (paddedMsg.contains(" $kw ") || normalizedMsg.contains(kw) || compactMsg.contains(cleanKw))
+                        }
+                        if (isMatch) {
+                            val rep = formatTags(rule.optString("replyMessage", ""), sender, cleanMsg)
+                            if (rule.optBoolean("useMenuReply", false) && nodes.isNotEmpty()) {
+                                prefs.edit().putString(sessionPrefKey, "parent").apply()
+                                val menuText = renderMenu(nodes, "parent")
+                                return if (rep.isBlank()) menuText else "$rep\n\n$menuText"
+                            }
+                            // Jika kata kunci biasa (tidak pakai menu), reset sesi menu menjadi idle
+                            prefs.edit().putString(sessionPrefKey, "idle").apply()
+                            if (rep.isNotBlank()) return rep
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error checking keyword replies: ${e.message}")
+                }
+            }
+
+            // =========================================================================
+            // FASE 2: Sesi Menu Aktif (Hanya jika TIDAK ADA kata kunci yang cocok)
             // =========================================================================
             if (currentParent != "idle" && nodes.isNotEmpty()) {
                 // 1. Perintah Keluar / Batal
@@ -438,70 +511,6 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                 }
 
                 return "⚠️ *Pilihan tidak ditemukan.*\nSilakan balas dengan *Nomor* opsi yang tertera:\n\n" + renderMenu(nodes, currentParent)
-            }
-
-            // =========================================================================
-            // FASE 2: Sesi Idle (Pesan biasa / Pemicu Kata Kunci Baru)
-            // =========================================================================
-
-            // A. Cek Balasan Kata Kunci (Keyword Replies)
-            // WhatsAuto mengecek Exact Match terlebih dahulu, lalu Contains Match
-            val isKeywordEnabled = prefs.getBoolean("flutter.is_keyword_reply_enabled", true)
-            var keywordJsonStr = prefs.getString("flutter.keyword_replies_cache", null)
-            if (keywordJsonStr == null) {
-                keywordJsonStr = """[{"id":"default_hay","incomingKeywords":"hay","replyMessage":"hallo","isExactMatch":true,"isEnabled":true,"useMenuReply":false},{"id":"default_menu","incomingKeywords":"menu","replyMessage":"Silakan pilih menu layanan kami di bawah ini:","isExactMatch":true,"isEnabled":true,"useMenuReply":true}]"""
-            }
-            if (isKeywordEnabled && !keywordJsonStr.isNullOrEmpty()) {
-                try {
-                    val kwArray = JSONArray(keywordJsonStr)
-                    val paddedMsg = " $normalizedMsg "
-
-                    // Prioritas 1: Exact Match (cocok persis teks atau compact tanpa spasi/simbol)
-                    for (i in 0 until kwArray.length()) {
-                        val rule = kwArray.getJSONObject(i)
-                        if (!rule.optBoolean("isEnabled", true) || !rule.optBoolean("isExactMatch", true)) continue
-                        val rawKeywords = rule.optString("incomingKeywords", "")
-                        val keywordsList = rawKeywords.split(",").map { it.replace(Regex("[?!.]"), "").trim().lowercase() }.filter { it.isNotEmpty() }
-
-                        val isMatch = keywordsList.any { kw ->
-                            val cleanKw = kw.replace(Regex("[ ?!.\\n]"), "")
-                            kw == normalizedMsg || (cleanKw.isNotEmpty() && cleanKw == compactMsg)
-                        }
-                        if (isMatch) {
-                            val rep = formatTags(rule.optString("replyMessage", ""), sender, cleanMsg)
-                            if (rule.optBoolean("useMenuReply", false) && nodes.isNotEmpty()) {
-                                prefs.edit().putString(sessionPrefKey, "parent").apply()
-                                val menuText = renderMenu(nodes, "parent")
-                                return if (rep.isBlank()) menuText else "$rep\n\n$menuText"
-                            }
-                            if (rep.isNotBlank()) return rep
-                        }
-                    }
-
-                    // Prioritas 2: Contains Match
-                    for (i in 0 until kwArray.length()) {
-                        val rule = kwArray.getJSONObject(i)
-                        if (!rule.optBoolean("isEnabled", true) || rule.optBoolean("isExactMatch", true)) continue
-                        val rawKeywords = rule.optString("incomingKeywords", "")
-                        val keywordsList = rawKeywords.split(",").map { it.replace(Regex("[?!.]"), "").trim().lowercase() }.filter { it.isNotEmpty() }
-
-                        val isMatch = keywordsList.any { kw ->
-                            val cleanKw = kw.replace(Regex("[ ?!.\\n]"), "")
-                            cleanKw.isNotEmpty() && (paddedMsg.contains(" $kw ") || normalizedMsg.contains(kw) || compactMsg.contains(cleanKw))
-                        }
-                        if (isMatch) {
-                            val rep = formatTags(rule.optString("replyMessage", ""), sender, cleanMsg)
-                            if (rule.optBoolean("useMenuReply", false) && nodes.isNotEmpty()) {
-                                prefs.edit().putString(sessionPrefKey, "parent").apply()
-                                val menuText = renderMenu(nodes, "parent")
-                                return if (rep.isBlank()) menuText else "$rep\n\n$menuText"
-                            }
-                            if (rep.isNotBlank()) return rep
-                        }
-                    }
-                } catch (e: Exception) {
-                    Log.e(TAG, "Error checking keyword replies: ${e.message}")
-                }
             }
 
             // B. Cek Balasan Google Spreadsheet (Katalog Lembar Kerja)

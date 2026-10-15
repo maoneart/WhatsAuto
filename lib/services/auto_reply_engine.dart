@@ -147,9 +147,69 @@ class AutoReplyEngine {
     final normalizedMsg = cleanMsg.replaceAll(RegExp(r'[?!.\n]'), '').trim().toLowerCase();
     final currentParent = _sessions[senderId] ?? 'idle';
 
-    // -------------------------------------------------------------------------
-    // FASE 1: Jika Pengguna Sedang Berada di Dalam Sesi Menu Aktif (Bukan Idle)
-    // -------------------------------------------------------------------------
+    // =========================================================================
+    // FASE 1: Cek Balasan Kata Kunci (Keyword Replies) TERLEBIH DAHULU
+    // Persis WhatsAuto resmi: kata kunci selalu memiliki prioritas lebih tinggi daripada menu
+    // =========================================================================
+    if (settings.isKeywordReplyEnabled && keywordReplies.isNotEmpty) {
+      final paddedMsg = " $normalizedMsg ";
+
+      // 1. Prioritas 1: Exact Match (Cocokan Tepat)
+      for (final rule in keywordReplies) {
+        if (!rule.isEnabled || !rule.isExactMatch) continue;
+        final keywords = rule.incomingKeywords.split(',');
+        final isMatch = keywords.any((k) {
+          final cleanKw = k.replaceAll(RegExp(r'[?!.]'), '').trim().toLowerCase();
+          return cleanKw.isNotEmpty && cleanKw == normalizedMsg;
+        });
+
+        if (isMatch) {
+          var reply = applyTags(rule.replyMessage, senderId: senderId, incomingMessage: cleanMsg);
+
+          if (rule.useMenuReply) {
+            _sessions[senderId] = 'parent';
+            final menuText = renderMenu('parent');
+            return reply.trim().isEmpty ? menuText : '$reply\n\n$menuText';
+          }
+          // Jika kata kunci biasa (tidak pakai menu), reset sesi menu menjadi idle
+          _sessions[senderId] = 'idle';
+          if (reply.trim().isNotEmpty) {
+            return reply;
+          }
+        }
+      }
+
+      // 2. Prioritas 2: Contains Match (Mengandung)
+      for (final rule in keywordReplies) {
+        if (!rule.isEnabled || rule.isExactMatch) continue;
+        final keywords = rule.incomingKeywords.split(',');
+        final isMatch = keywords.any((k) {
+          final cleanKw = k.replaceAll(RegExp(r'[?!.]'), '').trim().toLowerCase();
+          if (cleanKw.isEmpty) return false;
+          // Word boundary check persis WhatsAuto: cek dengan spasi atau substring
+          return paddedMsg.contains(" $cleanKw ") || normalizedMsg.contains(cleanKw);
+        });
+
+        if (isMatch) {
+          var reply = applyTags(rule.replyMessage, senderId: senderId, incomingMessage: cleanMsg);
+
+          if (rule.useMenuReply) {
+            _sessions[senderId] = 'parent';
+            final menuText = renderMenu('parent');
+            return reply.trim().isEmpty ? menuText : '$reply\n\n$menuText';
+          }
+          // Jika kata kunci biasa (tidak pakai menu), reset sesi menu menjadi idle
+          _sessions[senderId] = 'idle';
+          if (reply.trim().isNotEmpty) {
+            return reply;
+          }
+        }
+      }
+    }
+
+    // =========================================================================
+    // FASE 2: Sesi Menu Aktif (Hanya jika TIDAK ADA kata kunci yang cocok)
+    // =========================================================================
     if (currentParent != 'idle') {
       // 1. Perintah Keluar / Batal
       if (normalizedMsg == 'batal' || normalizedMsg == 'keluar' || normalizedMsg == 'exit') {
@@ -230,64 +290,6 @@ class AutoReplyEngine {
 
       // Jika input salah saat berada di dalam menu aktif
       return '⚠️ *Pilihan tidak ditemukan.*\nSilakan balas dengan *Nomor* opsi yang tertera:\n\n${renderMenu(currentParent)}';
-    }
-
-    // -------------------------------------------------------------------------
-    // FASE 2: Sesi Idle (Pesan biasa / Pemicu Kata Kunci Baru)
-    // -------------------------------------------------------------------------
-
-    // A. Cek Balasan Kata Kunci (Keyword Replies)
-    // WhatsAuto memeriksa Exact Match terlebih dahulu, lalu Contains Match
-    if (settings.isKeywordReplyEnabled && keywordReplies.isNotEmpty) {
-      final paddedMsg = " $normalizedMsg ";
-
-      // 1. Prioritas 1: Exact Match (Cocokan Tepat)
-      for (final rule in keywordReplies) {
-        if (!rule.isEnabled || !rule.isExactMatch) continue;
-        final keywords = rule.incomingKeywords.split(',');
-        final isMatch = keywords.any((k) {
-          final cleanKw = k.replaceAll(RegExp(r'[?!.]'), '').trim().toLowerCase();
-          return cleanKw.isNotEmpty && cleanKw == normalizedMsg;
-        });
-
-        if (isMatch) {
-          var reply = applyTags(rule.replyMessage, senderId: senderId, incomingMessage: cleanMsg);
-
-          if (rule.useMenuReply) {
-            _sessions[senderId] = 'parent';
-            final menuText = renderMenu('parent');
-            return reply.trim().isEmpty ? menuText : '$reply\n\n$menuText';
-          }
-          if (reply.trim().isNotEmpty) {
-            return reply;
-          }
-        }
-      }
-
-      // 2. Prioritas 2: Contains Match (Mengandung)
-      for (final rule in keywordReplies) {
-        if (!rule.isEnabled || rule.isExactMatch) continue;
-        final keywords = rule.incomingKeywords.split(',');
-        final isMatch = keywords.any((k) {
-          final cleanKw = k.replaceAll(RegExp(r'[?!.]'), '').trim().toLowerCase();
-          if (cleanKw.isEmpty) return false;
-          // Word boundary check persis WhatsAuto: cek dengan spasi atau substring
-          return paddedMsg.contains(" $cleanKw ") || normalizedMsg.contains(cleanKw);
-        });
-
-        if (isMatch) {
-          var reply = applyTags(rule.replyMessage, senderId: senderId, incomingMessage: cleanMsg);
-
-          if (rule.useMenuReply) {
-            _sessions[senderId] = 'parent';
-            final menuText = renderMenu('parent');
-            return reply.trim().isEmpty ? menuText : '$reply\n\n$menuText';
-          }
-          if (reply.trim().isNotEmpty) {
-            return reply;
-          }
-        }
-      }
     }
 
     // B. Cek Balasan Google Spreadsheet (Katalog Harga / FAQ dari Lembar Kerja)
