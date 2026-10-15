@@ -499,6 +499,51 @@ class MaoneAutoNotificationService : NotificationListenerService() {
         }
     }
 
+    private fun queryWebhook(webhookUrl: String, sender: String, message: String): String? {
+        val trimmed = webhookUrl.trim()
+        if (trimmed.isEmpty()) return null
+        return try {
+            val url = java.net.URL(trimmed)
+            val conn = url.openConnection() as java.net.HttpURLConnection
+            conn.requestMethod = "POST"
+            conn.connectTimeout = 4000
+            conn.readTimeout = 4000
+            conn.doOutput = true
+            conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8")
+            conn.setRequestProperty("Accept", "application/json, text/plain, */*")
+
+            val payload = JSONObject().apply {
+                put("sender", sender)
+                put("message", message)
+                put("app", "WhatsApp")
+                put("timestamp", SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()).format(java.util.Date()))
+            }
+
+            conn.outputStream.use { os ->
+                os.write(payload.toString().toByteArray(Charsets.UTF_8))
+            }
+
+            val responseCode = conn.responseCode
+            if (responseCode in 200..299) {
+                val responseBody = conn.inputStream.bufferedReader().use { it.readText() }.trim()
+                if (responseBody.isNotEmpty()) {
+                    try {
+                        val json = JSONObject(responseBody)
+                        if (json.has("reply")) {
+                            return json.optString("reply").trim()
+                        }
+                    } catch (_: Exception) {
+                        return responseBody
+                    }
+                }
+            }
+            null
+        } catch (e: Exception) {
+            Log.e(TAG, "Error querying webhook: ${e.message}")
+            null
+        }
+    }
+
     private fun computeReply(sender: String, messageText: String, prefs: android.content.SharedPreferences): String? {
         val cleanMsg = messageText.trim()
         if (cleanMsg.isEmpty()) return null
@@ -540,7 +585,7 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                     val kwArray = JSONArray(keywordJsonStr)
                     val paddedMsg = " $normalizedMsg "
 
-                    // Prioritas 1: Exact Match (cocok persis teks atau compact tanpa spasi/simbol)
+                    // Prioritas 1: Exact Match untuk kata kunci spesifik (bukan '*')
                     for (i in 0 until kwArray.length()) {
                         val rule = kwArray.getJSONObject(i)
                         if (!rule.optBoolean("isEnabled", true) || !rule.optBoolean("isExactMatch", true)) continue
@@ -549,14 +594,22 @@ class MaoneAutoNotificationService : NotificationListenerService() {
 
                         val isMatch = keywordsList.any { kw ->
                             val cleanKw = kw.replace(Regex("[ ?!.\\n]"), "")
-                            kw == normalizedMsg || (cleanKw.isNotEmpty() && cleanKw == compactMsg)
+                            kw != "*" && (kw == normalizedMsg || (cleanKw.isNotEmpty() && cleanKw == compactMsg))
                         }
                         if (isMatch) {
-                            val rep = formatTags(rule.optString("replyMessage", ""), sender, cleanMsg)
+                            var rep = formatTags(rule.optString("replyMessage", ""), sender, cleanMsg)
                             if (rule.optBoolean("useMenuReply", false) && nodes.isNotEmpty()) {
                                 prefs.edit().putString(sessionPrefKey, "parent").apply()
                                 val menuText = renderMenu(nodes, "parent")
                                 return if (rep.isBlank()) menuText else "$rep\n\n$menuText"
+                            }
+                            if (rule.optBoolean("useWebhook", false)) {
+                                val webhookUrl = prefs.getString("flutter.server_webhook_url", "") ?: ""
+                                val hookRep = queryWebhook(webhookUrl, sender, cleanMsg)
+                                if (!hookRep.isNullOrBlank()) {
+                                    prefs.edit().putString(sessionPrefKey, "idle").apply()
+                                    return formatTags(hookRep, sender, cleanMsg)
+                                }
                             }
                             // Jika kata kunci biasa (tidak pakai menu), reset sesi menu menjadi idle
                             prefs.edit().putString(sessionPrefKey, "idle").apply()
@@ -564,7 +617,7 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                         }
                     }
 
-                    // Prioritas 2: Contains Match
+                    // Prioritas 2: Contains Match untuk kata kunci spesifik (bukan '*')
                     for (i in 0 until kwArray.length()) {
                         val rule = kwArray.getJSONObject(i)
                         if (!rule.optBoolean("isEnabled", true) || rule.optBoolean("isExactMatch", true)) continue
@@ -573,14 +626,22 @@ class MaoneAutoNotificationService : NotificationListenerService() {
 
                         val isMatch = keywordsList.any { kw ->
                             val cleanKw = kw.replace(Regex("[ ?!.\\n]"), "")
-                            cleanKw.isNotEmpty() && (paddedMsg.contains(" $kw ") || normalizedMsg.contains(kw) || compactMsg.contains(cleanKw))
+                            kw != "*" && cleanKw.isNotEmpty() && (paddedMsg.contains(" $kw ") || normalizedMsg.contains(kw) || compactMsg.contains(cleanKw))
                         }
                         if (isMatch) {
-                            val rep = formatTags(rule.optString("replyMessage", ""), sender, cleanMsg)
+                            var rep = formatTags(rule.optString("replyMessage", ""), sender, cleanMsg)
                             if (rule.optBoolean("useMenuReply", false) && nodes.isNotEmpty()) {
                                 prefs.edit().putString(sessionPrefKey, "parent").apply()
                                 val menuText = renderMenu(nodes, "parent")
                                 return if (rep.isBlank()) menuText else "$rep\n\n$menuText"
+                            }
+                            if (rule.optBoolean("useWebhook", false)) {
+                                val webhookUrl = prefs.getString("flutter.server_webhook_url", "") ?: ""
+                                val hookRep = queryWebhook(webhookUrl, sender, cleanMsg)
+                                if (!hookRep.isNullOrBlank()) {
+                                    prefs.edit().putString(sessionPrefKey, "idle").apply()
+                                    return formatTags(hookRep, sender, cleanMsg)
+                                }
                             }
                             // Jika kata kunci biasa (tidak pakai menu), reset sesi menu menjadi idle
                             prefs.edit().putString(sessionPrefKey, "idle").apply()
@@ -723,7 +784,40 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                 }
             }
 
-            // C. Kata kunci default pemanggil menu ("menu", "katalog", "bantuan")
+            // C. Wildcard Catch-All (*) dari Balasan Kata Kunci (Membalas SEMUA pesan masuk)
+            if (isKeywordEnabled && !keywordJsonStr.isNullOrEmpty()) {
+                try {
+                    val kwArray = JSONArray(keywordJsonStr)
+                    for (i in 0 until kwArray.length()) {
+                        val rule = kwArray.getJSONObject(i)
+                        if (!rule.optBoolean("isEnabled", true)) continue
+                        val rawKeywords = rule.optString("incomingKeywords", "")
+                        val hasWildcard = rawKeywords.split(",").any { it.trim() == "*" }
+                        if (hasWildcard) {
+                            var rep = formatTags(rule.optString("replyMessage", ""), sender, cleanMsg)
+                            if (rule.optBoolean("useMenuReply", false) && nodes.isNotEmpty()) {
+                                prefs.edit().putString(sessionPrefKey, "parent").apply()
+                                val menuText = renderMenu(nodes, "parent")
+                                return if (rep.isBlank()) menuText else "$rep\n\n$menuText"
+                            }
+                            if (rule.optBoolean("useWebhook", false)) {
+                                val webhookUrl = prefs.getString("flutter.server_webhook_url", "") ?: ""
+                                val hookRep = queryWebhook(webhookUrl, sender, cleanMsg)
+                                if (!hookRep.isNullOrBlank()) {
+                                    prefs.edit().putString(sessionPrefKey, "idle").apply()
+                                    return formatTags(hookRep, sender, cleanMsg)
+                                }
+                            }
+                            prefs.edit().putString(sessionPrefKey, "idle").apply()
+                            if (rep.isNotBlank()) return rep
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error checking wildcard keyword reply: ${e.message}")
+                }
+            }
+
+            // D. Kata kunci default pemanggil menu ("menu", "katalog", "bantuan")
             if (nodes.isNotEmpty() && (normalizedMsg == "menu" ||
                 normalizedMsg == "katalog" ||
                 normalizedMsg == "pilihan" ||

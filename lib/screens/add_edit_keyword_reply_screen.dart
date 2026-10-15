@@ -19,7 +19,7 @@ class _AddEditKeywordReplyScreenState extends State<AddEditKeywordReplyScreen> {
   bool _isExactMatch = true;
   bool _useMenuReply = false;
   bool _useAiReply = false;
-  bool _useGoogleSheets = false;
+  bool _useWebhook = false;
   bool _sendEmail = false;
 
   @override
@@ -32,7 +32,7 @@ class _AddEditKeywordReplyScreenState extends State<AddEditKeywordReplyScreen> {
       _isExactMatch = r.isExactMatch;
       _useMenuReply = r.useMenuReply;
       _useAiReply = r.useAiReply;
-      _useGoogleSheets = r.useGoogleSheets;
+      _useWebhook = r.useWebhook;
       _sendEmail = r.sendEmailNotification;
     }
   }
@@ -71,8 +71,8 @@ class _AddEditKeywordReplyScreenState extends State<AddEditKeywordReplyScreen> {
       if (_useAiReply) {
         return '🤖 [Balasan AI Aktif]\n(Dijawab otomatis oleh AI)';
       }
-      if (_useGoogleSheets) {
-        return '📊 [Google Sheets Aktif]\n(Data spreadsheet terkirim)';
+      if (_useWebhook) {
+        return '🌐 [Web Server Aktif]\n(Dijawab otomatis oleh Server Webhook)';
       }
       return 'Ketik pesan balasan Anda';
     }
@@ -87,8 +87,8 @@ class _AddEditKeywordReplyScreenState extends State<AddEditKeywordReplyScreen> {
       rendered = '$rendered\n\n📋 [+ Menu Balas terlampir]';
     } else if (_useAiReply) {
       rendered = '$rendered\n\n🤖 [+ Jawaban AI terlampir]';
-    } else if (_useGoogleSheets) {
-      rendered = '$rendered\n\n📊 [+ Data Sheets terlampir]';
+    } else if (_useWebhook) {
+      rendered = '$rendered\n\n🌐 [+ Balasan Web Server terlampir]';
     }
 
     return rendered;
@@ -108,11 +108,11 @@ class _AddEditKeywordReplyScreenState extends State<AddEditKeywordReplyScreen> {
       return;
     }
 
-    final hasDynamicSource = _useMenuReply || _useAiReply || _useGoogleSheets;
+    final hasDynamicSource = _useMenuReply || _useAiReply || _useWebhook;
     if (reply.isEmpty && !hasDynamicSource) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Tulis pesan balasan, atau centang salah satu Opsi Balasan (Menu Balas / AI / Google Sheets)!'),
+          content: Text('Tulis pesan balasan, atau centang salah satu Opsi Balasan (Menu Balas / AI / Web Server)!'),
           backgroundColor: Colors.redAccent,
         ),
       );
@@ -127,7 +127,7 @@ class _AddEditKeywordReplyScreenState extends State<AddEditKeywordReplyScreen> {
       isEnabled: widget.existingRule?.isEnabled ?? true,
       useMenuReply: _useMenuReply,
       useAiReply: _useAiReply,
-      useGoogleSheets: _useGoogleSheets,
+      useWebhook: _useWebhook,
       sendEmailNotification: _sendEmail,
     );
 
@@ -253,12 +253,80 @@ class _AddEditKeywordReplyScreenState extends State<AddEditKeywordReplyScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Field 1: Keyword Masuk
+                  // Field 1: Keyword Masuk dengan Tombol Cepat "Semua (*)" di atasnya
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Keyword Masuk',
+                        style: TextStyle(
+                          color: Color(0xFF00A884),
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      InkWell(
+                        onTap: () {
+                          setState(() {
+                            if (_keywordController.text.trim() == '*') {
+                              _keywordController.clear();
+                            } else {
+                              _keywordController.text = '*';
+                            }
+                          });
+                        },
+                        borderRadius: BorderRadius.circular(8),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: _keywordController.text.trim() == '*'
+                                ? const Color(0xFF00A884)
+                                : const Color(0xFF00A884).withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: const Color(0xFF00A884),
+                              width: 1.2,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.all_inclusive_rounded,
+                                size: 14,
+                                color: _keywordController.text.trim() == '*'
+                                    ? Colors.white
+                                    : const Color(0xFF00A884),
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Semua (*)',
+                                style: TextStyle(
+                                  color: _keywordController.text.trim() == '*'
+                                      ? Colors.white
+                                      : const Color(0xFF00A884),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
                   Container(
                     decoration: BoxDecoration(
                       color: const Color(0xFF1F2C34),
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: Colors.white.withOpacity(0.08)),
+                      border: Border.all(
+                        color: _keywordController.text.trim() == '*'
+                            ? const Color(0xFF00A884).withOpacity(0.6)
+                            : Colors.white.withOpacity(0.08),
+                        width: _keywordController.text.trim() == '*' ? 1.5 : 1.0,
+                      ),
                     ),
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
                     child: TextField(
@@ -266,18 +334,25 @@ class _AddEditKeywordReplyScreenState extends State<AddEditKeywordReplyScreen> {
                       style: const TextStyle(color: Colors.white, fontSize: 15),
                       onChanged: (_) => setState(() {}),
                       decoration: const InputDecoration(
-                        hintText: 'Keyword Masuk',
-                        hintStyle: TextStyle(color: Colors.white54, fontSize: 15),
+                        hintText: 'Keyword Masuk (atau klik "Semua (*)")',
+                        hintStyle: TextStyle(color: Colors.white54, fontSize: 14),
                         border: InputBorder.none,
                       ),
                     ),
                   ),
                   const SizedBox(height: 6),
-                  const Padding(
-                    padding: EdgeInsets.only(left: 4),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 4),
                     child: Text(
-                      'Contoh: harga, biaya, berapa',
-                      style: TextStyle(color: Colors.white38, fontSize: 12),
+                      _keywordController.text.trim() == '*'
+                          ? '⭐ Mode Balas Semua: Menangkap APAPUN pesan masuk (Wildcard).'
+                          : 'Contoh: harga, biaya, berapa (atau klik tombol "Semua (*)" di atas)',
+                      style: TextStyle(
+                        color: _keywordController.text.trim() == '*'
+                            ? const Color(0xFF00A884)
+                            : Colors.white38,
+                        fontSize: 12,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 18),
@@ -398,9 +473,9 @@ class _AddEditKeywordReplyScreenState extends State<AddEditKeywordReplyScreen> {
                       ),
                       const SizedBox(width: 14),
                       _buildCheckboxTile(
-                        label: 'Google Sheets',
-                        value: _useGoogleSheets,
-                        onChanged: (v) => setState(() => _useGoogleSheets = v ?? false),
+                        label: 'Web Server',
+                        value: _useWebhook,
+                        onChanged: (v) => setState(() => _useWebhook = v ?? false),
                       ),
                     ],
                   ),

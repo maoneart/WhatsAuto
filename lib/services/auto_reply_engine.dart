@@ -154,13 +154,13 @@ class AutoReplyEngine {
     if (settings.isKeywordReplyEnabled && keywordReplies.isNotEmpty) {
       final paddedMsg = " $normalizedMsg ";
 
-      // 1. Prioritas 1: Exact Match (Cocokan Tepat)
+      // 1. Prioritas 1: Exact Match (Cocokan Tepat) untuk kata kunci spesifik (bukan '*')
       for (final rule in keywordReplies) {
         if (!rule.isEnabled || !rule.isExactMatch) continue;
         final keywords = rule.incomingKeywords.split(',');
         final isMatch = keywords.any((k) {
           final cleanKw = k.replaceAll(RegExp(r'[?!.]'), '').trim().toLowerCase();
-          return cleanKw.isNotEmpty && cleanKw == normalizedMsg;
+          return cleanKw.isNotEmpty && cleanKw != '*' && cleanKw == normalizedMsg;
         });
 
         if (isMatch) {
@@ -171,7 +171,13 @@ class AutoReplyEngine {
             final menuText = renderMenu('parent');
             return reply.trim().isEmpty ? menuText : '$reply\n\n$menuText';
           }
-          // Jika kata kunci biasa (tidak pakai menu), reset sesi menu menjadi idle
+          if (rule.useWebhook && reply.trim().isEmpty) {
+            reply = '🌐 [Pesan diproses via Web Server]';
+          }
+          if (rule.useAiReply && reply.trim().isEmpty) {
+            reply = '🤖 [Balasan otomatis oleh AI]';
+          }
+          // Reset sesi menu menjadi idle
           _sessions[senderId] = 'idle';
           if (reply.trim().isNotEmpty) {
             return reply;
@@ -179,13 +185,13 @@ class AutoReplyEngine {
         }
       }
 
-      // 2. Prioritas 2: Contains Match (Mengandung)
+      // 2. Prioritas 2: Contains Match (Mengandung) untuk kata kunci spesifik (bukan '*')
       for (final rule in keywordReplies) {
         if (!rule.isEnabled || rule.isExactMatch) continue;
         final keywords = rule.incomingKeywords.split(',');
         final isMatch = keywords.any((k) {
           final cleanKw = k.replaceAll(RegExp(r'[?!.]'), '').trim().toLowerCase();
-          if (cleanKw.isEmpty) return false;
+          if (cleanKw.isEmpty || cleanKw == '*') return false;
           // Word boundary check persis WhatsAuto: cek dengan spasi atau substring
           return paddedMsg.contains(" $cleanKw ") || normalizedMsg.contains(cleanKw);
         });
@@ -198,7 +204,13 @@ class AutoReplyEngine {
             final menuText = renderMenu('parent');
             return reply.trim().isEmpty ? menuText : '$reply\n\n$menuText';
           }
-          // Jika kata kunci biasa (tidak pakai menu), reset sesi menu menjadi idle
+          if (rule.useWebhook && reply.trim().isEmpty) {
+            reply = '🌐 [Pesan diproses via Web Server]';
+          }
+          if (rule.useAiReply && reply.trim().isEmpty) {
+            reply = '🤖 [Balasan otomatis oleh AI]';
+          }
+          // Reset sesi menu menjadi idle
           _sessions[senderId] = 'idle';
           if (reply.trim().isNotEmpty) {
             return reply;
@@ -336,7 +348,34 @@ class AutoReplyEngine {
       }
     }
 
-    // C. Kata kunci umum pemanggil menu utama
+    // C. Wildcard Catch-All (*) dari Balasan Kata Kunci (Membalas SEMUA pesan yang masuk)
+    if (settings.isKeywordReplyEnabled && keywordReplies.isNotEmpty) {
+      final wildcardRule = keywordReplies.firstWhere(
+        (r) => r.isEnabled && r.incomingKeywords.split(',').any((k) => k.trim() == '*'),
+        orElse: () => KeywordReply(id: '', incomingKeywords: '', replyMessage: ''),
+      );
+
+      if (wildcardRule.id.isNotEmpty) {
+        var reply = applyTags(wildcardRule.replyMessage, senderId: senderId, incomingMessage: cleanMsg);
+        if (wildcardRule.useMenuReply) {
+          _sessions[senderId] = 'parent';
+          final menuText = renderMenu('parent');
+          return reply.trim().isEmpty ? menuText : '$reply\n\n$menuText';
+        }
+        if (wildcardRule.useWebhook && reply.trim().isEmpty) {
+          reply = '🌐 [Pesan diproses via Web Server]';
+        }
+        if (wildcardRule.useAiReply && reply.trim().isEmpty) {
+          reply = '🤖 [Balasan otomatis oleh AI]';
+        }
+        _sessions[senderId] = 'idle';
+        if (reply.trim().isNotEmpty) {
+          return reply;
+        }
+      }
+    }
+
+    // D. Kata kunci umum pemanggil menu utama
     if (normalizedMsg == 'menu' || normalizedMsg == 'katalog' || normalizedMsg == 'pilihan' || normalizedMsg == 'bantuan') {
       _sessions[senderId] = 'parent';
       return renderMenu('parent');

@@ -489,7 +489,7 @@ class _KeywordReplyListScreenState extends State<KeywordReplyListScreen> {
                             border: Border.all(color: const Color(0xFF00A884).withOpacity(0.3)),
                           ),
                           child: Text(
-                            kw,
+                            kw == '*' ? '⭐ Semua (*)' : kw,
                             style: const TextStyle(
                               color: Color(0xFF00A884),
                               fontSize: 12,
@@ -514,7 +514,11 @@ class _KeywordReplyListScreenState extends State<KeywordReplyListScreen> {
 
               // Teks Balasan
               Text(
-                rule.replyMessage,
+                rule.replyMessage.trim().isEmpty && (rule.useMenuReply || rule.useAiReply || rule.useWebhook)
+                    ? (rule.useMenuReply
+                        ? '📋 [Menampilkan Menu Balas Otomatis]'
+                        : (rule.useAiReply ? '🤖 [Dibalas Otomatis oleh AI]' : '🌐 [Dibalas Otomatis via Web Server]'))
+                    : rule.replyMessage,
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
@@ -538,7 +542,9 @@ class _KeywordReplyListScreenState extends State<KeywordReplyListScreen> {
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
-                          rule.isExactMatch ? 'Cocokan Tepat' : 'Mengandung',
+                          rule.incomingKeywords.split(',').any((k) => k.trim() == '*')
+                              ? 'Balas Semua'
+                              : (rule.isExactMatch ? 'Cocokan Tepat' : 'Mengandung'),
                           style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 11),
                         ),
                       ),
@@ -567,6 +573,20 @@ class _KeywordReplyListScreenState extends State<KeywordReplyListScreen> {
                           child: const Text(
                             'AI',
                             style: TextStyle(color: Colors.purpleAccent, fontSize: 11),
+                          ),
+                        ),
+                      ],
+                      if (rule.useWebhook) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: Colors.cyanAccent.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Text(
+                            'Web Server',
+                            style: TextStyle(color: Colors.cyanAccent, fontSize: 11),
                           ),
                         ),
                       ],
