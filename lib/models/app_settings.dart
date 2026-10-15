@@ -13,6 +13,12 @@ class AppSettings {
   Map<String, bool> supportedApps;
   bool isKeywordReplyEnabled;
   bool onlyReplyKeywords;
+  bool enableReplyHeader;
+  String replyHeaderText;
+  bool enableReplyFooter;
+  String replyFooterText;
+  int replyDelaySeconds;
+  String replyTimeMode; // 'instantly', 'once', 'delay', 'pause'
 
   AppSettings({
     this.isAutoReplyEnabled = true,
@@ -28,6 +34,12 @@ class AppSettings {
     this.serverWebhookUrl = '',
     this.isKeywordReplyEnabled = true,
     this.onlyReplyKeywords = true,
+    this.enableReplyHeader = false,
+    this.replyHeaderText = '*[Balasan Otomatis]*',
+    this.enableReplyFooter = false,
+    this.replyFooterText = '_Terkirim via MaoneAuto_',
+    this.replyDelaySeconds = 0,
+    this.replyTimeMode = 'instantly',
     Map<String, bool>? supportedApps,
   }) : supportedApps = supportedApps ?? {
           'WhatsApp': true,
@@ -50,6 +62,12 @@ class AppSettings {
     'serverWebhookUrl': serverWebhookUrl,
     'isKeywordReplyEnabled': isKeywordReplyEnabled,
     'onlyReplyKeywords': onlyReplyKeywords,
+    'enableReplyHeader': enableReplyHeader,
+    'replyHeaderText': replyHeaderText,
+    'enableReplyFooter': enableReplyFooter,
+    'replyFooterText': replyFooterText,
+    'replyDelaySeconds': replyDelaySeconds,
+    'replyTimeMode': replyTimeMode,
     'supportedApps': supportedApps,
   };
 
@@ -67,6 +85,12 @@ class AppSettings {
     serverWebhookUrl: json['serverWebhookUrl'] ?? '',
     isKeywordReplyEnabled: json['isKeywordReplyEnabled'] ?? true,
     onlyReplyKeywords: json['onlyReplyKeywords'] ?? true,
+    enableReplyHeader: json['enableReplyHeader'] ?? false,
+    replyHeaderText: json['replyHeaderText'] ?? '*[Balasan Otomatis]*',
+    enableReplyFooter: json['enableReplyFooter'] ?? false,
+    replyFooterText: json['replyFooterText'] ?? '_Terkirim via MaoneAuto_',
+    replyDelaySeconds: json['replyDelaySeconds'] ?? 0,
+    replyTimeMode: json['replyTimeMode'] ?? 'instantly',
     supportedApps: (json['supportedApps'] as Map<String, dynamic>?)?.map((k, v) => MapEntry(k, v as bool)) ?? {
       'WhatsApp': true,
       'WhatsApp Business': true,

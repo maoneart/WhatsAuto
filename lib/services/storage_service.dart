@@ -39,6 +39,15 @@ class StorageService {
     await prefs.setString(_keyNativeDefaultReply, settings.defaultReply);
     await prefs.setBool(_keyNativeKeywordEnabled, settings.isKeywordReplyEnabled);
     await prefs.setBool('only_reply_keywords', settings.onlyReplyKeywords);
+    await prefs.setString('reply_to', settings.replyTo);
+    await prefs.setBool('enable_groups', settings.enableGroups);
+    await prefs.setBool('enable_reply_header', settings.enableReplyHeader);
+    await prefs.setString('reply_header_text', settings.replyHeaderText);
+    await prefs.setBool('enable_reply_footer', settings.enableReplyFooter);
+    await prefs.setString('reply_footer_text', settings.replyFooterText);
+    await prefs.setInt('reply_delay_seconds', settings.replyDelaySeconds);
+    await prefs.setString('reply_time_mode', settings.replyTimeMode);
+    await prefs.setString('supported_apps', json.encode(settings.supportedApps));
   }
 
   static Future<List<KeywordReply>> loadKeywordReplies() async {

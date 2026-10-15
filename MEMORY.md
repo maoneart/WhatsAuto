@@ -146,13 +146,31 @@
   3. `lib/screens/add_edit_keyword_reply_screen.dart`: Tambah chip `pesan` ke slider tag horizontal.
 - **Versi**: Dinaikkan ke `v1.0.9+10`.
 
+### 🛡️ Full Architectural Absorption dari com.guibais.whatsauto.apk (v1.0.10+11 - 15 Oktober 2026)
+- **Problem**: Pengguna menyediakan APK resmi WhatsAuto (`com.guibais.whatsauto.apk`) di `/sdcard/Download/` dan meminta seluruh logikanya dibedah tuntas, diserap, dan dituangkan ke dalam MaoneAuto.
+- **Hasil Bedah & Penyerapan Logika Utama WhatsAuto**:
+  1. **Pencegahan Balasan ke Pesan Sendiri (`android.selfDisplayName`)**:
+     - Notifikasi diperiksa terhadap field `android.selfDisplayName`. Jika pengirim sama dengan nama profil pemilik akun (atau nama pengguna di dalam grup), pesan langsung diabaikan seketika. Mencegah bot membalas pesannya sendiri yang dikirim dari WhatsApp Web / desktop.
+  2. **Deteksi RemoteInput Ganda (Actions + WearableExtender Fallback)**:
+     - WhatsAuto memindai `notification.actions` standar, lalu jika belum ditemukan, memeriksa `Notification.WearableExtender(notification).actions`. Diadopsi 100% pada `findQuickReplyAction` di `MaoneAutoNotificationService.kt` untuk kompatibilitas penuh di seluruh versi Android.
+  3. **Filter Aplikasi yang Didukung (Supported Apps)**:
+     - Service memeriksa bundle konfigurasi `supported_apps` sehingga hanya memproses notifikasi dari aplikasi yang dicentang oleh pengguna (WhatsApp, WA Business, Telegram, Messenger).
+  4. **Filter Pesan Grup & Kontak**:
+     - Deteksi grup cerdas (tanda `:` atau `@` non-telepon). Jika `enable_groups == false`, notifikasi grup di-drop.
+     - Mode `except_phone`: Hanya membalas nomor tak dikenal (bukan kontak tersimpan di buku telepon) dengan regex validasi nomor.
+  5. **Sistem Header & Footer Balasan**:
+     - Ditambahkan fitur pembungkus header (`*[Balasan Otomatis]*`) dan footer (`_Terkirim via MaoneAuto_`) di `AutoReplyEngine.dart`, `MaoneAutoNotificationService.kt`, serta switch toggle di UI `ContactsTab`.
+  6. **Mode Pengatur Waktu (Reply Time Mode)**:
+     - Mendukung mode Instan, Balas Sekali (`reply_time_once`), dan Tunda Balasan (`reply_time_delay`) dengan `Handler.postDelayed`.
+- **Versi**: Dinaikkan ke `v1.0.10+11`.
+
 ---
 
 ## 📋 Active Tasks / Next Steps
-- [x] Bedah APK WhatsAuto official v4.65 via JADX decompiler.
-- [x] Terapkan algoritma pencocokan kata kunci, navigasi pohon menu (Menu Sebelumnya & Utama), pembersihan unicode/tanda baca, dan tag lengkap.
-- [x] Rilis MaoneAuto v1.0.9+10 ke GitHub dan download APK ke `/sdcard/Download/MaoneAuto.apk`.
-- [ ] Pengujian langsung di perangkat WhatsApp nyata.
+- [x] Bedah APK WhatsAuto official (`com.guibais.whatsauto.apk`) via JADX decompiler.
+- [x] Serap logika self-message prevention (`android.selfDisplayName`), WearableExtender RemoteInput, filter aplikasi, group/contact filtering, serta header/footer & delay timer.
+- [x] Tuangkan seluruh arsitektur ke `MaoneAutoNotificationService.kt`, `AutoReplyEngine.dart`, `StorageService.dart`, `AppSettings.dart`, dan `ContactsTab`.
+- [x] Naikkan versi ke v1.0.10+11 dan build APK rilis melalui GitHub Actions.
 
 
 

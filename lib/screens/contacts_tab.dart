@@ -136,10 +136,96 @@ class _ContactsTabState extends State<ContactsTab> {
             ),
             const SizedBox(height: 16),
 
+            // Card: Header & Footer Pesan Balasan (Persis WhatsAuto)
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFF111B21),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.white.withOpacity(0.08)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Header & Footer Balasan',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF00A884),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Header Switch
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('Header Balasan', style: TextStyle(color: Colors.white, fontSize: 14)),
+                            Text(
+                              widget.settings.replyHeaderText,
+                              style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 12),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                      Switch(
+                        value: widget.settings.enableReplyHeader,
+                        onChanged: (val) async {
+                          setState(() => widget.settings.enableReplyHeader = val);
+                          await StorageService.saveSettings(widget.settings);
+                          widget.onSettingsChanged();
+                        },
+                        activeColor: const Color(0xFF00A884),
+                      ),
+                    ],
+                  ),
+                  Divider(color: Colors.white.withOpacity(0.08)),
+
+                  // Footer Switch
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('Footer Balasan', style: TextStyle(color: Colors.white, fontSize: 14)),
+                            Text(
+                              widget.settings.replyFooterText,
+                              style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 12),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                      Switch(
+                        value: widget.settings.enableReplyFooter,
+                        onChanged: (val) async {
+                          setState(() => widget.settings.enableReplyFooter = val);
+                          await StorageService.saveSettings(widget.settings);
+                          widget.onSettingsChanged();
+                        },
+                        activeColor: const Color(0xFF00A884),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+
             // Card: Daftar Kontak
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
+              padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 20),
               decoration: BoxDecoration(
                 color: const Color(0xFF111B21),
                 borderRadius: BorderRadius.circular(12),
@@ -153,15 +239,18 @@ class _ContactsTabState extends State<ContactsTab> {
                       color: const Color(0xFF00A884).withOpacity(0.12),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.people, color: Color(0xFF00A884), size: 40),
+                    child: const Icon(Icons.people, color: Color(0xFF00A884), size: 36),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 14),
                   Text(
                     replyTo == 'all'
-                        ? 'Balas otomatis kepada Semua.'
-                        : 'Balas otomatis sesuai konfigurasi kontak.',
+                        ? 'Balas otomatis aktif kepada Semua Orang.'
+                        : replyTo == 'except_phone'
+                            ? 'Balas otomatis hanya untuk Nomor Tak Dikenal (bukan kontak).'
+                            : 'Balas otomatis sesuai konfigurasi kontak.',
+                    textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontSize: 14,
+                      fontSize: 13,
                       color: Colors.white.withOpacity(0.8),
                     ),
                   ),

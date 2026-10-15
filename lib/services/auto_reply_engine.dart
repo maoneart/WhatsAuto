@@ -110,7 +110,28 @@ class AutoReplyEngine {
     _sessions[senderId] = 'idle';
   }
 
+  String wrapHeaderFooter(String reply) {
+    if (reply.trim().isEmpty) return reply;
+    var res = reply;
+    if (settings.enableReplyHeader && settings.replyHeaderText.trim().isNotEmpty) {
+      res = '${settings.replyHeaderText.trim()}\n$res';
+    }
+    if (settings.enableReplyFooter && settings.replyFooterText.trim().isNotEmpty) {
+      res = '$res\n${settings.replyFooterText.trim()}';
+    }
+    return res;
+  }
+
   String processMessage({
+    required String senderId,
+    required String incomingMessage,
+  }) {
+    final rawReply = _computeRawReply(senderId: senderId, incomingMessage: incomingMessage);
+    if (rawReply.trim().isEmpty) return '';
+    return wrapHeaderFooter(rawReply);
+  }
+
+  String _computeRawReply({
     required String senderId,
     required String incomingMessage,
   }) {

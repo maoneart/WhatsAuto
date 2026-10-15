@@ -46,6 +46,22 @@ class MaoneAutoNotificationService : NotificationListenerService() {
         val isEnabled = prefs.getBoolean("flutter.is_auto_reply_enabled", false)
         if (!isEnabled) return
 
+        // 2a. Filter Aplikasi yang Didukung (Supported Apps)
+        val supportedAppsJson = prefs.getString("flutter.supported_apps", null)
+        if (!supportedAppsJson.isNullOrEmpty()) {
+            try {
+                val supportedAppsObj = JSONObject(supportedAppsJson)
+                val isAppAllowed = when (packageName) {
+                    "com.whatsapp" -> supportedAppsObj.optBoolean("WhatsApp", true)
+                    "com.whatsapp.w4b" -> supportedAppsObj.optBoolean("WhatsApp Business", true)
+                    "org.telegram.messenger" -> supportedAppsObj.optBoolean("Telegram", false)
+                    "com.facebook.orca" -> supportedAppsObj.optBoolean("Messenger", false)
+                    else -> true
+                }
+                if (!isAppAllowed) return
+            } catch (_: Exception) {}
+        }
+
         val extras = notification.extras ?: return
 
         val rawTitle = extras.getString(Notification.EXTRA_TITLE) ?: ""
@@ -65,53 +81,127 @@ class MaoneAutoNotificationService : NotificationListenerService() {
         cleanSender = cleanSender.replace(Regex("[\u200e\u2068\u2069]"), "").trim()
         val cleanMsg = rawText.replace(Regex("[\u200e\u2068\u2069]"), "").trim()
 
+        // 2b. Deteksi & Abaikan Pesan Sendiri (Self-Message Prevention)
+        val selfDisplayName = extras.getString("android.selfDisplayName") ?: ""
+        if (selfDisplayName.isNotEmpty() && (cleanSender.equals(selfDisplayName, ignoreCase = true) || rawTitle.contains(selfDisplayName, ignoreCase = true))) {
+            Log.d(TAG, "Abaikan pesan sendiri dari: $cleanSender (selfDisplayName=$selfDisplayName)")
+            return
+        }
+
+        // 2c. Deteksi & Filter Pesan Grup WhatsApp
+        val isGroup = rawTitle.contains(":") || (rawTitle.contains("@") && !rawTitle.startsWith("+"))
+        val enableGroups = prefs.getBoolean("flutter.enable_groups", false)
+        if (isGroup && !enableGroups) {
+            Log.d(TAG, "Abaikan pesan grup karena grup dinonaktifkan: $rawTitle")
+            return
+        }
+
+        // 2d. Filter Kontak (Kecuali Kontak Telepon / Unknown Number Only)
+        val replyTo = prefs.getString("flutter.reply_to", "all") ?: "all"
+        val isPhoneNumber = cleanSender.replace(Regex("[+0-9\\s\\-()]"), "").isEmpty()
+        if (replyTo == "except_phone" && !isPhoneNumber) {
+            Log.d(TAG, "Abaikan kontak tersimpan karena hanya membalas nomor baru: $cleanSender")
+            return
+        }
+
         val now = System.currentTimeMillis()
 
         // 3. Debounce per-pengirim: jangan balas lebih dari 1 kali dalam 2.5 detik untuk pengirim yang sama
         val lastSenderReply = lastReplyPerSender[cleanSender] ?: 0L
         if (now - lastSenderReply < 2500) return
 
-        // 4. Deduplikasi pesan identik
+        // 4. Deduplikasi pesan identik dalam 3 detik
         val messageKey = "$packageName:$cleanSender:$cleanMsg"
         val lastSeen = processedKeys[messageKey] ?: 0L
         if (now - lastSeen < 3000) return
         processedKeys[messageKey] = now
 
-        // 5. Cari Quick Reply Action dengan RemoteInput
+        // 5. Cari Quick Reply Action dengan RemoteInput (actions standar + fallback WearableExtender)
         val quickReplyAction = findQuickReplyAction(notification) ?: return
 
-        // 6. Hitung teks balasan dengan Tree Menu & Rule
+        // 6. Hitung teks balasan dengan Tree Menu & Rule Kata Kunci
         val replyText = computeReply(cleanSender, cleanMsg, prefs) ?: return
 
-        // 7. Catat waktu sebelum kirim agar event susulan langsung di-drop
+        // 7. Tambahkan Header & Footer jika diaktifkan (persis WhatsAuto asli)
+        val enableHeader = prefs.getBoolean("flutter.enable_reply_header", false)
+        val headerText = prefs.getString("flutter.reply_header_text", "*[Balasan Otomatis]*\n") ?: "*[Balasan Otomatis]*\n"
+        val enableFooter = prefs.getBoolean("flutter.enable_reply_footer", false)
+        val footerText = prefs.getString("flutter.reply_footer_text", "\n_Terkirim via MaoneAuto_") ?: "\n_Terkirim via MaoneAuto_"
+
+        var finalReply = replyText
+        if (enableHeader && headerText.isNotBlank()) {
+            finalReply = headerText.trimEnd() + "\n" + finalReply
+        }
+        if (enableFooter && footerText.isNotBlank()) {
+            finalReply = finalReply + "\n" + footerText.trimStart()
+        }
+
+        // 8. Catat waktu sebelum kirim agar event susulan langsung di-drop
         lastReplyPerSender[cleanSender] = now
 
-        // 8. Kirim Balasan Otomatis
-        sendReply(this, quickReplyAction, replyText)
+        // 9. Cek Mode Timer / Delay / Once
+        val replyTimeMode = prefs.getString("flutter.reply_time_mode", "instantly") ?: "instantly"
+        val replyDelaySeconds = prefs.getInt("flutter.reply_delay_seconds", 0)
+
+        if (replyTimeMode == "once") {
+            val hasRepliedKey = "flutter.has_replied_$cleanSender"
+            if (prefs.getBoolean(hasRepliedKey, false)) {
+                Log.d(TAG, "Abaikan pengirim $cleanSender: sudah pernah dibalas sekali")
+                return
+            }
+            prefs.edit().putBoolean(hasRepliedKey, true).apply()
+        }
+
+        if (replyTimeMode == "delay" && replyDelaySeconds > 0) {
+            android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                sendReply(this, quickReplyAction, finalReply)
+            }, (replyDelaySeconds * 1000).toLong())
+        } else {
+            sendReply(this, quickReplyAction, finalReply)
+        }
     }
 
     private fun findQuickReplyAction(notification: Notification): ActionInfo? {
-        val actions = notification.actions ?: return null
-        for (action in actions) {
-            val pendingIntent = action.actionIntent ?: continue
-            val remoteInputs = action.remoteInputs ?: continue
-            for (ri in remoteInputs) {
-                if (ri.resultKey != null) {
-                    return ActionInfo(pendingIntent, ri)
+        // 1. Scan actions standar
+        val actions = notification.actions
+        if (actions != null) {
+            for (action in actions) {
+                val pendingIntent = action.actionIntent ?: continue
+                val remoteInputs = action.remoteInputs ?: continue
+                for (ri in remoteInputs) {
+                    if (ri.resultKey != null) {
+                        return ActionInfo(pendingIntent, ri)
+                    }
                 }
             }
         }
+        // 2. Scan fallback WearableExtender persis WhatsAuto NotificationListener
+        try {
+            val wearableActions = Notification.WearableExtender(notification).actions
+            if (wearableActions != null) {
+                for (action in wearableActions) {
+                    val pendingIntent = action.actionIntent ?: continue
+                    val remoteInputs = action.remoteInputs ?: continue
+                    for (ri in remoteInputs) {
+                        if (ri.resultKey != null) {
+                            return ActionInfo(pendingIntent, ri)
+                        }
+                    }
+                }
+            }
+        } catch (_: Exception) {}
         return null
     }
 
     private fun sendReply(context: Context, actionInfo: ActionInfo, replyMessage: String) {
         try {
             val intent = Intent()
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             val bundle = Bundle()
             bundle.putCharSequence(actionInfo.remoteInput.resultKey, replyMessage)
             RemoteInput.addResultsToIntent(arrayOf(actionInfo.remoteInput), intent, bundle)
             actionInfo.pendingIntent.send(context, 0, intent)
-            Log.d(TAG, "Auto-reply sent successfully to notification")
+            Log.d(TAG, "Auto-reply sent successfully via RemoteInput")
         } catch (e: Exception) {
             Log.e(TAG, "Failed to send auto-reply: ${e.message}")
         }
