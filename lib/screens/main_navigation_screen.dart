@@ -109,15 +109,18 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           elevation: 0,
           items: const [
             BottomNavigationBarItem(
-              icon: Icon(Icons.home),
+              icon: Icon(Icons.home_outlined),
+              activeIcon: Icon(Icons.home),
               label: 'Beranda',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.people),
+              icon: Icon(Icons.people_outline),
+              activeIcon: Icon(Icons.people),
               label: 'Kontak',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.work),
+              icon: Icon(Icons.widgets_outlined),
+              activeIcon: Icon(Icons.widgets),
               label: 'Alat',
             ),
           ],

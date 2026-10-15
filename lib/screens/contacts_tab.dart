@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/app_settings.dart';
 import '../services/storage_service.dart';
+import '../widgets/glassmorphism_modal.dart';
 
 class ContactsTab extends StatefulWidget {
   final AppSettings settings;
@@ -25,12 +26,50 @@ class _ContactsTabState extends State<ContactsTab> {
     widget.onSettingsChanged();
   }
 
-  void _toggleGroups(bool? val) async {
+  void _toggleGroups(bool val) async {
     setState(() {
-      widget.settings.enableGroups = val ?? false;
+      widget.settings.enableGroups = val;
     });
     await StorageService.saveSettings(widget.settings);
     widget.onSettingsChanged();
+  }
+
+  void _editHeader() async {
+    final result = await GlassmorphismModal.showInputModal(
+      context: context,
+      title: 'Ubah Header Balasan',
+      subtitle: 'Teks ini akan diletakkan di baris paling atas setiap pesan balasan.',
+      initialValue: widget.settings.replyHeaderText,
+      hintText: 'Contoh: *[Balasan Otomatis]*',
+      maxLines: 2,
+      icon: Icons.title,
+    );
+    if (result != null) {
+      setState(() {
+        widget.settings.replyHeaderText = result;
+      });
+      await StorageService.saveSettings(widget.settings);
+      widget.onSettingsChanged();
+    }
+  }
+
+  void _editFooter() async {
+    final result = await GlassmorphismModal.showInputModal(
+      context: context,
+      title: 'Ubah Footer Balasan',
+      subtitle: 'Teks ini akan diletakkan di baris paling bawah setiap pesan balasan.',
+      initialValue: widget.settings.replyFooterText,
+      hintText: 'Contoh: _Terkirim via MaoneAuto_',
+      maxLines: 2,
+      icon: Icons.subtitles_outlined,
+    );
+    if (result != null) {
+      setState(() {
+        widget.settings.replyFooterText = result;
+      });
+      await StorageService.saveSettings(widget.settings);
+      widget.onSettingsChanged();
+    }
   }
 
   @override
@@ -44,35 +83,21 @@ class _ContactsTabState extends State<ContactsTab> {
         backgroundColor: const Color(0xFF111B21),
         elevation: 0,
         title: const Text(
-          'MaoneAuto',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: Colors.white),
+          'Target & Kontak',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.white),
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.chat_bubble_outline, color: Colors.white70),
-            onPressed: () {},
-          ),
-          IconButton(
-            icon: const Icon(Icons.send_outlined, color: Colors.white70),
-            onPressed: () {},
-          ),
-          IconButton(
-            icon: const Icon(Icons.more_vert, color: Colors.white70),
-            onPressed: () {},
-          ),
-        ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Card: Balas otomatis ke
+            // 1. Card: Target Balas Otomatis
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: const Color(0xFF111B21),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: Colors.white.withOpacity(0.08)),
               ),
               child: Column(
@@ -81,99 +106,193 @@ class _ContactsTabState extends State<ContactsTab> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
-                        'Balas otomatis ke',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF00A884),
-                        ),
-                      ),
-                      Icon(Icons.info_outline, color: Colors.white.withOpacity(0.4), size: 20),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-
-                  _buildRadioItem('Semua orang', 'all', replyTo),
-                  _buildRadioItem('Daftar kontak saya...', 'contacts', replyTo),
-                  _buildRadioItem('Kecuali daftar kontak saya...', 'except_contacts', replyTo),
-                  _buildRadioItem('Kecuali kontak telepon saya', 'except_phone', replyTo),
-
-                  const SizedBox(height: 6),
-                  Divider(color: Colors.white.withOpacity(0.08)),
-                  const SizedBox(height: 6),
-
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
+                      const Row(
                         children: [
-                          Checkbox(
-                            value: enableGroups,
-                            onChanged: _toggleGroups,
-                            activeColor: const Color(0xFF00A884),
-                            checkColor: Colors.white,
-                            side: BorderSide(color: Colors.white.withOpacity(0.4)),
-                          ),
-                          const Text(
-                            'Aktifkan Grup',
+                          Icon(Icons.tune, color: Color(0xFF00A884), size: 18),
+                          SizedBox(width: 8),
+                          Text(
+                            'Balas Otomatis Ke',
                             style: TextStyle(
                               fontSize: 15,
-                              color: Colors.white,
-                              fontWeight: FontWeight.w500,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF00A884),
                             ),
                           ),
                         ],
                       ),
-                      IconButton(
-                        icon: const Icon(Icons.settings, color: Colors.white54, size: 20),
-                        onPressed: () {},
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF00A884).withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          _getRecipientSummary(replyTo),
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF00A884),
+                          ),
+                        ),
                       ),
                     ],
+                  ),
+                  const SizedBox(height: 14),
+
+                  _buildSelectionTile(
+                    title: 'Semua Orang',
+                    subtitle: 'Balas ke setiap pesan masuk tanpa membedakan kontak',
+                    icon: Icons.public,
+                    value: 'all',
+                    groupValue: replyTo,
+                  ),
+                  const SizedBox(height: 8),
+                  _buildSelectionTile(
+                    title: 'Daftar Kontak Saya',
+                    subtitle: 'Hanya balas nomor yang tersimpan di buku kontak',
+                    icon: Icons.contact_phone_outlined,
+                    value: 'contacts',
+                    groupValue: replyTo,
+                  ),
+                  const SizedBox(height: 8),
+                  _buildSelectionTile(
+                    title: 'Kecuali Kontak Saya',
+                    subtitle: 'Balas nomor baru dan kecualikan kontak pribadi',
+                    icon: Icons.person_off_outlined,
+                    value: 'except_contacts',
+                    groupValue: replyTo,
+                  ),
+                  const SizedBox(height: 8),
+                  _buildSelectionTile(
+                    title: 'Nomor Tak Dikenal Saja',
+                    subtitle: 'Hanya balas pesan dari nomor baru yang belum disimpan',
+                    icon: Icons.contact_emergency_outlined,
+                    value: 'except_phone',
+                    groupValue: replyTo,
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 16),
 
-            // Card: Header & Footer Pesan Balasan (Persis WhatsAuto)
+            // 2. Card: Pengaturan Grup WhatsApp
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: const Color(0xFF111B21),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: enableGroups
+                      ? const Color(0xFF00A884).withOpacity(0.3)
+                      : Colors.white.withOpacity(0.08),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: enableGroups
+                          ? const Color(0xFF00A884).withOpacity(0.15)
+                          : Colors.white.withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      Icons.groups_outlined,
+                      color: enableGroups ? const Color(0xFF00A884) : Colors.white38,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Aktifkan Grup WhatsApp',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          enableGroups
+                              ? 'Bot akan merespons pesan yang masuk di grup'
+                              : 'Pesan obrolan grup diabaikan untuk mencegah spam',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.white.withOpacity(0.65),
+                            height: 1.25,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Switch(
+                    value: enableGroups,
+                    onChanged: _toggleGroups,
+                    activeColor: const Color(0xFF00A884),
+                    activeTrackColor: const Color(0xFF00A884).withOpacity(0.4),
+                    inactiveThumbColor: Colors.white60,
+                    inactiveTrackColor: Colors.white12,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // 3. Card: Header & Footer Balasan
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFF111B21),
+                borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: Colors.white.withOpacity(0.08)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Header & Footer Balasan',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF00A884),
-                    ),
+                  const Row(
+                    children: [
+                      Icon(Icons.format_quote, color: Color(0xFF00A884), size: 18),
+                      SizedBox(width: 8),
+                      Text(
+                        'Header & Footer Balasan',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF00A884),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 12),
 
-                  // Header Switch
+                  // Header Switch & Edit
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('Header Balasan', style: TextStyle(color: Colors.white, fontSize: 14)),
+                            const Text(
+                              'Gunakan Header',
+                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
+                            ),
+                            const SizedBox(height: 2),
                             Text(
                               widget.settings.replyHeaderText,
-                              style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 12),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.6)),
                             ),
                           ],
                         ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.edit, size: 18, color: Color(0xFF00A884)),
+                        onPressed: _editHeader,
+                        tooltip: 'Ubah Header',
                       ),
                       Switch(
                         value: widget.settings.enableReplyHeader,
@@ -188,23 +307,29 @@ class _ContactsTabState extends State<ContactsTab> {
                   ),
                   Divider(color: Colors.white.withOpacity(0.08)),
 
-                  // Footer Switch
+                  // Footer Switch & Edit
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('Footer Balasan', style: TextStyle(color: Colors.white, fontSize: 14)),
+                            const Text(
+                              'Gunakan Footer',
+                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
+                            ),
+                            const SizedBox(height: 2),
                             Text(
                               widget.settings.replyFooterText,
-                              style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 12),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.6)),
                             ),
                           ],
                         ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.edit, size: 18, color: Color(0xFF00A884)),
+                        onPressed: _editFooter,
+                        tooltip: 'Ubah Footer',
                       ),
                       Switch(
                         value: widget.settings.enableReplyFooter,
@@ -217,43 +342,43 @@ class _ContactsTabState extends State<ContactsTab> {
                       ),
                     ],
                   ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
 
-            // Card: Daftar Kontak
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 20),
-              decoration: BoxDecoration(
-                color: const Color(0xFF111B21),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.white.withOpacity(0.08)),
-              ),
-              child: Column(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF00A884).withOpacity(0.12),
-                      shape: BoxShape.circle,
+                  // Live Preview Bubble
+                  if (widget.settings.enableReplyHeader || widget.settings.enableReplyFooter) ...[
+                    const SizedBox(height: 14),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1F2C34),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.white.withOpacity(0.04)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (widget.settings.enableReplyHeader && widget.settings.replyHeaderText.isNotEmpty) ...[
+                            Text(
+                              widget.settings.replyHeaderText,
+                              style: const TextStyle(fontSize: 12, color: Color(0xFF00A884), fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 4),
+                          ],
+                          const Text(
+                            'Halo Kak! Ada yang bisa kami bantu hari ini?',
+                            style: TextStyle(fontSize: 13, color: Colors.white),
+                          ),
+                          if (widget.settings.enableReplyFooter && widget.settings.replyFooterText.isNotEmpty) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              widget.settings.replyFooterText,
+                              style: TextStyle(fontSize: 11, fontStyle: FontStyle.italic, color: Colors.white.withOpacity(0.55)),
+                            ),
+                          ],
+                        ],
+                      ),
                     ),
-                    child: const Icon(Icons.people, color: Color(0xFF00A884), size: 36),
-                  ),
-                  const SizedBox(height: 14),
-                  Text(
-                    replyTo == 'all'
-                        ? 'Balas otomatis aktif kepada Semua Orang.'
-                        : replyTo == 'except_phone'
-                            ? 'Balas otomatis hanya untuk Nomor Tak Dikenal (bukan kontak).'
-                            : 'Balas otomatis sesuai konfigurasi kontak.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.white.withOpacity(0.8),
-                    ),
-                  ),
+                  ],
                 ],
               ),
             ),
@@ -263,29 +388,97 @@ class _ContactsTabState extends State<ContactsTab> {
     );
   }
 
-  Widget _buildRadioItem(String title, String value, String groupValue) {
+  String _getRecipientSummary(String replyTo) {
+    switch (replyTo) {
+      case 'all':
+        return 'Semua Orang';
+      case 'contacts':
+        return 'Buku Kontak';
+      case 'except_contacts':
+        return 'Kecuali Kontak';
+      case 'except_phone':
+        return 'Nomor Baru';
+      default:
+        return 'Aktif';
+    }
+  }
+
+  Widget _buildSelectionTile({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required String value,
+    required String groupValue,
+  }) {
     final isSelected = value == groupValue;
+
     return InkWell(
       onTap: () => _setReplyTo(value),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF00A884).withOpacity(0.1) : const Color(0xFF0B141B),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? const Color(0xFF00A884).withOpacity(0.4) : Colors.white.withOpacity(0.05),
+            width: isSelected ? 1.4 : 1.0,
+          ),
+        ),
         child: Row(
           children: [
             Container(
-              width: 22,
-              height: 22,
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: isSelected ? const Color(0xFF00A884).withOpacity(0.2) : Colors.white.withOpacity(0.04),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                icon,
+                color: isSelected ? const Color(0xFF00A884) : Colors.white54,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: isSelected ? Colors.white : Colors.white.withOpacity(0.85),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      color: Colors.white.withOpacity(0.55),
+                      height: 1.25,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              width: 20,
+              height: 20,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: isSelected ? const Color(0xFF00A884) : Colors.white.withOpacity(0.4),
+                  color: isSelected ? const Color(0xFF00A884) : Colors.white38,
                   width: 2,
                 ),
               ),
               child: isSelected
                   ? Center(
                       child: Container(
-                        width: 12,
-                        height: 12,
+                        width: 10,
+                        height: 10,
                         decoration: const BoxDecoration(
                           color: Color(0xFF00A884),
                           shape: BoxShape.circle,
@@ -293,15 +486,6 @@ class _ContactsTabState extends State<ContactsTab> {
                       ),
                     )
                   : null,
-            ),
-            const SizedBox(width: 14),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 15,
-                color: Colors.white,
-                fontWeight: FontWeight.w500,
-              ),
             ),
           ],
         ),
