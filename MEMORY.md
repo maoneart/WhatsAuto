@@ -456,7 +456,22 @@
        * Jika aturan `*` (atau aturan spesifik) mencentang `useWebhook`, sistem memanggil endpoint `server_webhook_url` via HTTP POST (`queryWebhook`) dan mengembalikan jawaban dinamis dari web server backend!
   4. **Pembaruan List Card**:
      - Di `KeywordReplyListScreen`, chip keyword `*` dirender elegan sebagai `⭐ Semua (*)` dan badge status `Balas Semua` serta badge `Web Server`.
-- **Versi**: Dinaikkan ke `v1.0.25+26`.
+### 🔘 Opsi Balasan Single Choice (Pilih Salah 1) & Full Sheets Integration (v1.0.26+27 - 15 Oktober 2026)
+- **Konteks & Kebutuhan Pengguna**:
+  - Pengguna meminta agar pada "Opsi Balasan" (Menu Balas, ChatGPT/AI, Web Server, Google Sheets) **hanya bisa diceklis salah satu saja** (mutually exclusive / single selection): `"sama opsi balasan yang bisa di ceklis hanya 1 lah... jadi ga bisa di centang semuanya dong kan pilih salah 1"`.
+- **Penyelarasan & Implementasi**:
+  1. **Mutually Exclusive Selection di `AddEditKeywordReplyScreen`**:
+     - Dibuatkan handler `_selectReplyOption(option)`:
+       * Mengaktifkan salah satu opsi akan otomatis mematikan 3 opsi lainnya (`Menu Balas`, `ChatGPT / AI`, `Web Server`, `Google Sheets`).
+       * Mengetuk opsi yang sedang aktif akan mematikan centang (uncheck), sehingga pengguna juga bisa memilih balasan teks biasa murni tanpa sumber dinamis.
+     - Ditambahkan badge panduan visual: `"Pilih salah 1"` di sebelah judul "Opsi balasan".
+     - Slider horizontal mulus menampung keempat opsi pilihan dengan rapi.
+  2. **Dukungan Penuh `useGoogleSheets` di Rule Kata Kunci**:
+     - Ditambahkan helper `_matchSheetItem` di `AutoReplyEngine.dart` dan `matchSheetItem` di `MaoneAutoNotificationService.kt`.
+     - Ketika pengguna membuat aturan kata kunci (misal `*` atau kata kunci tertentu) dan mencentang `Google Sheets`, sistem langsung mencocokkan pesan masuk ke data cache spreadsheet dan membalasnya secara dinamis!
+  3. **Pembaruan List Card**:
+     - Menampilkan badge `Sheets` berwarna teal accent pada aturan yang memilih Google Sheets di `KeywordReplyListScreen`.
+- **Versi**: Dinaikkan ke `v1.0.26+27`.
 
 ---
 
@@ -476,9 +491,10 @@
 - [x] Ekstraksi person.name dari MessagingStyle, multi-layer NotificationCompat action scanner, dan penanganan graceful ringkasan WhatsApp (v1.0.22+23).
 - [x] Eliminasi total balasan ganda via 4-Layer Echo Shield (isSelf check, recentSentReplies cache, 3s debounce, summary text filter) (v1.0.23+24).
 - [x] Dukungan multi-keyword koma dan wildcard (*) di Google Spreadsheet (v1.0.24+25).
-- [x] Tombol cepat "Semua (*)" di atas keyword, wildcard catch-all engine, penggantian opsi Google Sheets ke Web Server di Balasan Kata Kunci (v1.0.25+26).
-- [x] Push commit ke GitHub repository `maoneart/WhatsAuto` dan trigger GitHub Actions build APK v1.0.25.
-- [ ] Unduh APK rilis `v1.0.25` ke `/sdcard/Download/MaoneAuto.apk` dan verifikasi integritas.
+- [x] Tombol cepat "Semua (*)" di atas keyword, wildcard catch-all engine (v1.0.25+26).
+- [x] Opsi balasan single choice (pilih salah 1) & integrasi penuh Google Sheets di rule kata kunci (v1.0.26+27).
+- [x] Push commit ke GitHub repository `maoneart/WhatsAuto` dan trigger GitHub Actions build APK v1.0.26.
+- [ ] Unduh APK rilis `v1.0.26` ke `/sdcard/Download/MaoneAuto.apk` dan verifikasi integritas.
 
 
 
