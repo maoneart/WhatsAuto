@@ -14,6 +14,7 @@ class HomeTab extends StatefulWidget {
   final VoidCallback onSettingsChanged;
   final bool isNotificationPermissionGranted;
   final VoidCallback? onRequestPermission;
+  final VoidCallback? onOpenAppDetails;
 
   const HomeTab({
     super.key,
@@ -21,6 +22,7 @@ class HomeTab extends StatefulWidget {
     required this.onSettingsChanged,
     this.isNotificationPermissionGranted = true,
     this.onRequestPermission,
+    this.onOpenAppDetails,
   });
 
   @override
@@ -99,16 +101,22 @@ class _HomeTabState extends State<HomeTab> {
                       width: 6,
                       height: 6,
                       decoration: BoxDecoration(
-                        color: isEnabled ? const Color(0xFF00A884) : Colors.white38,
+                        color: !widget.isNotificationPermissionGranted
+                            ? const Color(0xFFF59E0B)
+                            : (isEnabled ? const Color(0xFF00A884) : Colors.white38),
                         shape: BoxShape.circle,
                       ),
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      isEnabled ? 'Service Aktif' : 'Service Dijeda',
+                      !widget.isNotificationPermissionGranted
+                          ? 'Izin Belum Aktif'
+                          : (isEnabled ? 'Service Aktif' : 'Service Dijeda'),
                       style: TextStyle(
                         fontSize: 11,
-                        color: isEnabled ? const Color(0xFF00A884) : Colors.white54,
+                        color: !widget.isNotificationPermissionGranted
+                            ? const Color(0xFFF59E0B)
+                            : (isEnabled ? const Color(0xFF00A884) : Colors.white54),
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -644,33 +652,64 @@ class _HomeTabState extends State<HomeTab> {
           ),
           const SizedBox(height: 8),
           const Text(
-            'MaoneAuto memerlukan izin "Akses Notifikasi" di pengaturan HP agar dapat mendeteksi chat WhatsApp masuk dan membalas otomatis.',
-            style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.35),
+            'MaoneAuto memerlukan izin "Akses Notifikasi" agar dapat mendeteksi chat WhatsApp dan membalas otomatis.\n\n⚠️ Khusus Android 13/14/15: Bila sakelar di pengaturan abu-abu, buka "Info Aplikasi" -> tekan titik 3 (⋮) di pojok kanan atas -> pilih "Izinkan setelan yang dibatasi".',
+            style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.4),
           ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            height: 40,
-            child: ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFF59E0B),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                elevation: 2,
+          const SizedBox(height: 14),
+          // 100% Simetris 2-Kolom Grid
+          Row(
+            children: [
+              Expanded(
+                child: SizedBox(
+                  height: 42,
+                  child: OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: const Color(0xFFF59E0B).withOpacity(0.4)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    icon: const Icon(Icons.info_outline, color: Color(0xFFF59E0B), size: 16),
+                    label: const Text(
+                      'Info Aplikasi',
+                      style: TextStyle(color: Color(0xFFF59E0B), fontSize: 12, fontWeight: FontWeight.bold),
+                    ),
+                    onPressed: () {
+                      if (widget.onOpenAppDetails != null) {
+                        widget.onOpenAppDetails!();
+                      } else {
+                        MethodChannel('com.maoneart.maoneauto/service')
+                            .invokeMethod('openAppDetailsSettings');
+                      }
+                    },
+                  ),
+                ),
               ),
-              icon: const Icon(Icons.settings_outlined, color: Colors.black, size: 18),
-              label: const Text(
-                'AKTIFKAN SEKARANG DI PENGATURAN',
-                style: TextStyle(color: Colors.black, fontSize: 12, fontWeight: FontWeight.bold),
+              const SizedBox(width: 10),
+              Expanded(
+                child: SizedBox(
+                  height: 42,
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFF59E0B),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      elevation: 2,
+                    ),
+                    icon: const Icon(Icons.settings_outlined, color: Colors.black, size: 16),
+                    label: const Text(
+                      'Pengaturan',
+                      style: TextStyle(color: Colors.black, fontSize: 12, fontWeight: FontWeight.bold),
+                    ),
+                    onPressed: () {
+                      if (widget.onRequestPermission != null) {
+                        widget.onRequestPermission!();
+                      } else {
+                        MethodChannel('com.maoneart.maoneauto/service')
+                            .invokeMethod('openNotificationSettings');
+                      }
+                    },
+                  ),
+                ),
               ),
-              onPressed: () {
-                if (widget.onRequestPermission != null) {
-                  widget.onRequestPermission!();
-                } else {
-                  MethodChannel('com.maoneart.maoneauto/service')
-                      .invokeMethod('openNotificationSettings');
-                }
-              },
-            ),
+            ],
           ),
         ],
       ),

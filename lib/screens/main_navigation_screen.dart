@@ -54,8 +54,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> with Widget
       _isLoading = false;
     });
 
-    // Periksa izin notifikasi Android
-    _checkNotificationPermission(showDialogIfNeeded: true);
+    // Periksa izin notifikasi Android setelah render pertama selesai
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkNotificationPermission(showDialogIfNeeded: true);
+    });
   }
 
   Future<void> _checkNotificationPermission({bool showDialogIfNeeded = false}) async {
@@ -72,7 +74,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> with Widget
             context: context,
             title: 'Izin Akses Notifikasi Dibutuhkan',
             message:
-                'MaoneAuto memerlukan izin "Akses Notifikasi" agar bot dapat membaca pesan masuk dan mengirim balasan otomatis ke WhatsApp.\n\nSilakan aktifkan toggle "MaoneAuto" pada halaman pengaturan yang terbuka.',
+                'MaoneAuto memerlukan izin "Akses Notifikasi" agar bot dapat membaca pesan masuk dan mengirim balasan otomatis ke WhatsApp.\n\n⚠️ Khusus Android 13/14/15:\nJika tombol toggle abu-abu, buka "Info Aplikasi" -> tekan titik 3 (⋮) di pojok kanan atas -> pilih "Izinkan setelan yang dibatasi".',
             confirmText: 'Buka Pengaturan',
             cancelText: 'Nanti Saja',
             confirmColor: const Color(0xFF00A884),
@@ -89,6 +91,14 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> with Widget
 
   void _openSettings() {
     _platformChannel.invokeMethod('openNotificationSettings');
+  }
+
+  void _openAppDetails() {
+    _platformChannel.invokeMethod('openAppDetailsSettings');
+  }
+
+  void _rebindService() {
+    _platformChannel.invokeMethod('rebindService');
   }
 
   void _onSettingsChanged() {
@@ -112,9 +122,17 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> with Widget
         onSettingsChanged: _onSettingsChanged,
         isNotificationPermissionGranted: _isNotificationPermissionGranted,
         onRequestPermission: _openSettings,
+        onOpenAppDetails: _openAppDetails,
       ),
       ContactsTab(settings: _settings, onSettingsChanged: _onSettingsChanged),
-      ToolsTab(settings: _settings, onSettingsChanged: _onSettingsChanged),
+      ToolsTab(
+        settings: _settings,
+        onSettingsChanged: _onSettingsChanged,
+        isNotificationPermissionGranted: _isNotificationPermissionGranted,
+        onRequestPermission: _openSettings,
+        onOpenAppDetails: _openAppDetails,
+        onRebindService: _rebindService,
+      ),
     ];
 
     return Scaffold(

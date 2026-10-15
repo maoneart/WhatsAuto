@@ -15,11 +15,19 @@ import 'quick_notes_screen.dart';
 class ToolsTab extends StatefulWidget {
   final AppSettings settings;
   final VoidCallback onSettingsChanged;
+  final bool isNotificationPermissionGranted;
+  final VoidCallback? onRequestPermission;
+  final VoidCallback? onOpenAppDetails;
+  final VoidCallback? onRebindService;
 
   const ToolsTab({
     super.key,
     required this.settings,
     required this.onSettingsChanged,
+    this.isNotificationPermissionGranted = true,
+    this.onRequestPermission,
+    this.onOpenAppDetails,
+    this.onRebindService,
   });
 
   @override
@@ -367,9 +375,10 @@ class _ToolsTabState extends State<ToolsTab> {
                   IconButton(
                     icon: const Icon(Icons.refresh, color: Colors.white70),
                     onPressed: () {
+                      widget.onRebindService?.call();
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                          content: Text('Layanan lokal termux disinkronkan.'),
+                          content: Text('Layanan notifikasi disinkronkan & dihubungkan ulang.'),
                           duration: Duration(seconds: 2),
                         ),
                       );
@@ -379,6 +388,10 @@ class _ToolsTabState extends State<ToolsTab> {
                 ],
               ),
             ),
+            const SizedBox(height: 14),
+
+            // Card Status Akses Notifikasi HP (Permanen & Interaktif)
+            _buildNotificationAccessCard(),
             const SizedBox(height: 18),
 
             // Grid Menu 9 Alat Cerdas (Elevated Bento-Style)
@@ -566,6 +579,236 @@ class _ToolsTabState extends State<ToolsTab> {
               ],
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNotificationAccessCard() {
+    final isGranted = widget.isNotificationPermissionGranted;
+    final color = isGranted ? const Color(0xFF00A884) : const Color(0xFFF59E0B);
+
+    return InkWell(
+      onTap: () => _showNotificationAccessModal(context),
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: const Color(0xFF111B21),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: color.withOpacity(0.35),
+            width: 1.2,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: color.withOpacity(0.08),
+              blurRadius: 12,
+              spreadRadius: 1,
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.15),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                isGranted ? Icons.notifications_active : Icons.notification_important,
+                color: color,
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Text(
+                        'Akses Notifikasi HP',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        width: 7,
+                        height: 7,
+                        decoration: BoxDecoration(
+                          color: color,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    isGranted
+                        ? 'Layanan aktif & siap membalas pesan'
+                        : 'Belum aktif • Ketuk untuk izinkan',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: isGranted ? const Color(0xFF00A884) : const Color(0xFFF59E0B),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right, color: Colors.white.withOpacity(0.4), size: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showNotificationAccessModal(BuildContext context) {
+    final isGranted = widget.isNotificationPermissionGranted;
+
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) => BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+        child: Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 22, vertical: 24),
+          child: Container(
+            padding: const EdgeInsets.all(22),
+            decoration: BoxDecoration(
+              color: const Color(0xFF111B21).withOpacity(0.95),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.12),
+                width: 1.2,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.5),
+                  blurRadius: 25,
+                  spreadRadius: 2,
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: isGranted
+                        ? const Color(0xFF00A884).withOpacity(0.15)
+                        : const Color(0xFFF59E0B).withOpacity(0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    isGranted ? Icons.notifications_active : Icons.notification_important,
+                    color: isGranted ? const Color(0xFF00A884) : const Color(0xFFF59E0B),
+                    size: 32,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  isGranted ? 'Akses Notifikasi Aktif' : 'Izin Akses Notifikasi Diperlukan',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  isGranted
+                      ? 'MaoneAuto telah memiliki izin untuk membaca notifikasi dan membalas WhatsApp di latar belakang.\n\nJika balasan sempat tidak merespons, Anda dapat menghubungkan ulang layanan di bawah.'
+                      : 'MaoneAuto wajib diberi izin "Akses Notifikasi" agar dapat mendeteksi chat WhatsApp masuk dan mengirim balasan.\n\n⚠️ Khusus Android 13/14/15:\nJika sakelar di pengaturan abu-abu, buka "Info Aplikasi" lalu tekan titik 3 (⋮) di pojok kanan atas dan pilih "Izinkan setelan yang dibatasi".',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.white.withOpacity(0.75),
+                    height: 1.45,
+                  ),
+                ),
+                const SizedBox(height: 22),
+                // 100% Simetris 2-Kolom Grid
+                Row(
+                  children: [
+                    Expanded(
+                      child: SizedBox(
+                        height: 46,
+                        child: OutlinedButton.icon(
+                          onPressed: () {
+                            Navigator.of(ctx).pop();
+                            widget.onOpenAppDetails?.call();
+                          },
+                          icon: const Icon(Icons.info_outline, size: 16, color: Colors.white70),
+                          label: const Text(
+                            'Info Aplikasi',
+                            style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(color: Colors.white.withOpacity(0.2)),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: SizedBox(
+                        height: 46,
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            Navigator.of(ctx).pop();
+                            widget.onRequestPermission?.call();
+                          },
+                          icon: const Icon(Icons.settings, size: 16),
+                          label: const Text(
+                            'Pengaturan',
+                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF00A884),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  height: 42,
+                  child: TextButton.icon(
+                    onPressed: () {
+                      Navigator.of(ctx).pop();
+                      widget.onRebindService?.call();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Layanan notifikasi dihubungkan ulang.'),
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.sync, size: 16, color: Color(0xFF38BDF8)),
+                    label: const Text(
+                      'Hubungkan Ulang Layanan (Force Reconnect)',
+                      style: TextStyle(color: Color(0xFF38BDF8), fontSize: 12, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

@@ -17,9 +17,30 @@ import org.json.JSONObject
 
 class MaoneAutoNotificationService : NotificationListenerService() {
 
+    companion object {
+        var isServiceConnected: Boolean = false
+    }
+
     private val TAG = "MaoneAutoService"
     private val processedKeys = mutableMapOf<String, Long>()
     private val lastReplyPerSender = mutableMapOf<String, Long>()
+
+    override fun onListenerConnected() {
+        super.onListenerConnected()
+        isServiceConnected = true
+        Log.i(TAG, "MaoneAutoNotificationService listener connected successfully!")
+    }
+
+    override fun onListenerDisconnected() {
+        super.onListenerDisconnected()
+        isServiceConnected = false
+        Log.w(TAG, "MaoneAutoNotificationService listener disconnected!")
+        try {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+                requestRebind(android.content.ComponentName(this, MaoneAutoNotificationService::class.java))
+            }
+        } catch (_: Exception) {}
+    }
 
     override fun onNotificationPosted(sbn: StatusBarNotification?) {
         super.onNotificationPosted(sbn)
@@ -87,18 +108,22 @@ class MaoneAutoNotificationService : NotificationListenerService() {
         cleanSender = cleanSender.replace(Regex("[\u200e\u2068\u2069]"), "").trim()
         val cleanMsg = rawText.replace(Regex("[\u200e\u2068\u2069]"), "").trim()
 
-        // 2b. Deteksi & Abaikan Pesan Sendiri (Hanya jika sender persis sama dengan selfDisplayName)
+        // 2b. Deteksi & Abaikan Pesan Sendiri (Hanya jika sender persis sama dengan selfDisplayName dan bukan nomor telepon)
         val selfDisplayName = extras.getCharSequence("android.selfDisplayName")?.toString() ?: ""
-        if (selfDisplayName.isNotEmpty() && cleanSender.equals(selfDisplayName, ignoreCase = true)) {
+        if (selfDisplayName.isNotEmpty() && cleanSender.equals(selfDisplayName, ignoreCase = true) && !cleanSender.startsWith("+")) {
             Log.d(TAG, "Abaikan pesan sendiri dari: $cleanSender (selfDisplayName=$selfDisplayName)")
             return
         }
 
-        // 2c. Deteksi & Filter Pesan Grup WhatsApp
-        val isGroup = rawTitle.contains(":") || (rawTitle.contains("@") && !rawTitle.startsWith("+"))
+        // 2c. Deteksi & Filter Pesan Grup WhatsApp (Akurat menggunakan EXTRA_IS_GROUP_CONVERSATION)
+        val isGroup = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+            extras.getBoolean(Notification.EXTRA_IS_GROUP_CONVERSATION, false)
+        } else {
+            cleanSender.contains(" @ ")
+        }
         val enableGroups = prefs.getBoolean("flutter.enable_groups", false)
         if (isGroup && !enableGroups) {
-            Log.d(TAG, "Abaikan pesan grup karena grup dinonaktifkan: $rawTitle")
+            Log.d(TAG, "Abaikan pesan grup karena grup dinonaktifkan: $cleanSender (rawTitle=$rawTitle)")
             return
         }
 

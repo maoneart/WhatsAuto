@@ -235,6 +235,28 @@
      - Menambahkan *Glowing Amber Warning Banner* di bagian paling atas Beranda jika izin akses notifikasi belum aktif, lengkap dengan tombol langsung ke Pengaturan Android.
 - **Versi**: Dinaikkan ke `v1.0.13+14`.
 
+### ⚡ Service Rebind, Anti-Group Drop & Card Akses Notifikasi Permanen (v1.0.14+15 - 15 Oktober 2026)
+- **Problem**: Pengguna menanyakan mengapa notifikasi pengaturan izin tidak muncul saat update dan bot tetap tidak merespons di WhatsApp asli ("apk pertama pas awal itu ada notif klik pengaturan terus aktifkan apa gitu sekarang ko ga ada ya? soalnya tetep ga mau respon apa notif di hapus kali").
+- **Akar Masalah**:
+  1. **NotificationListener Unbound**: Android OS (terutama Android 10-15) secara otomatis memutuskan koneksi (*unbind*) listener service saat APK diupdate/diinstal ulang, meskipun nama paket masih tersimpan di `Settings.Secure.enabled_notification_listeners`.
+  2. **False Group Detection**: Pengecekan grup menggunakan `rawTitle.contains(":")` keliru menganggap semua pesan yang memiliki titik dua (seperti prefix `"WA Business:"`, `"WhatsApp:"`, jam pesan, emoticon, clone app) sebagai grup WhatsApp, sehingga langsung di-drop karena filter grup mati secara default.
+  3. **Android 13/14 Restricted Settings**: APK sideload diblokir oleh Android di menu Akses Notifikasi sehingga sakelar toggle abu-abu, membutuhkan akses ke "Info Aplikasi" -> "Izinkan setelan yang dibatasi".
+- **Solusi Komprehensif**:
+  1. `MainActivity.kt`:
+     - Menambahkan handler `openAppDetailsSettings` (langsung membuka Info Aplikasi untuk membuka kunci setelan dibatasi).
+     - Menambahkan handler `rebindService` & `forceReconnectService` (toggle component dan memanggil `NotificationListenerService.requestRebind`).
+     - Memanggil `rebindNotificationService()` otomatis di `onCreate` & `onResume`.
+  2. `MaoneAutoNotificationService.kt`:
+     - Implementasi `onListenerConnected()` & `onListenerDisconnected()` dengan auto-rebind.
+     - Memperbaiki deteksi grup dengan `Notification.EXTRA_IS_GROUP_CONVERSATION` (Android 9+) dan menghapus `rawTitle.contains(":")`.
+     - Memperbaiki filter `selfDisplayName` agar tidak memblokir uji coba 2 WA pada perangkat yang sama.
+  3. `ToolsTab.dart`:
+     - Menambahkan kartu permanen **Akses Notifikasi HP** dengan indikator status live (🟢 Aktif / 🔴 Belum Aktif) dan modal MaoneArt Glassmorphism interaktif (Akses Notifikasi, Info Aplikasi, dan Hubungkan Ulang).
+  4. `HomeTab.dart` & `MainNavigationScreen.dart`:
+     - Mengubah warning banner ke format 2-kolom simetris (Info Aplikasi & Pengaturan).
+     - Menjamin modal perizinan muncul di startup dengan `addPostFrameCallback`.
+- **Versi**: Dinaikkan ke `v1.0.14+15`.
+
 ---
 
 ## 📋 Active Tasks / Next Steps
@@ -242,8 +264,9 @@
 - [x] Redesign UI menyeluruh: Hero Master Card, WhatsApp Preview Bubble, Bento Grid Fitur Pintar, Custom Target Selectors, Live Header/Footer Preview, MaoneArt VIP Card, dan Glassmorphic Modals (v1.0.11+12).
 - [x] Implementasi 5 menu fitur lengkap: Google Spreadsheet Sync, AI 9Router Gateway, Pesan Sambutan, Webhook Server, dan Catatan Cepat (v1.0.12+13).
 - [x] Perbaikan tuntas Akses Notifikasi Android: enabled manifest, CharSequence parsing, startup save, dan sticky permission banner (v1.0.13+14).
-- [x] Push commit ke GitHub repository `maoneart/WhatsAuto` dan trigger GitHub Actions build APK v1.0.13.
-- [x] Unduh APK hasil build rilis ke `/sdcard/Download/MaoneAuto.apk` dan verifikasi integritas.
+- [x] Auto-rebind service, fix false group drop, 2-column actions, dan kartu Akses Notifikasi permanen (v1.0.14+15).
+- [ ] Push commit ke GitHub repository `maoneart/WhatsAuto` dan trigger GitHub Actions build APK v1.0.14.
+- [ ] Unduh APK hasil build rilis ke `/sdcard/Download/MaoneAuto.apk` dan verifikasi integritas.
 
 
 
