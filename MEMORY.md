@@ -27,6 +27,20 @@
 ---
 
 ## 🚀 Recent Milestones
+### 🤖 Integrasi Penuh & Penguatan Balasan AI (9Router & Google Gemini) (v1.0.40+41 - 16 Oktober 2026)
+- **Problem**: 
+  - Pada pengujian balasan otomatis, fitur AI belum terhubung secara menyeluruh ke pesan umum ketika master switch "Balasan AI" diaktifkan (hanya terbatas pada kata kunci spesifik).
+  - Pada simulator chat (`TestReplySimulatorScreen`), balasan AI sebelumnya hanya menampilkan mock text `🤖 [Balasan otomatis oleh AI]`.
+  - Kredensial default 9Router lokal belum disesuaikan dengan konfigurasi runtime perangkat Termux (`ag/gemini-3.6-flash-low` dan token default `sk-4b367e54ce7fe396-pncx8h-438a2784`).
+- **Solusi & Implementasi**:
+  1. **Audit & Penyelarasan Background Service Kotlin (`MaoneAutoNotificationService.kt`)**:
+     - Menambahkan fallback AI cerdas untuk pesan umum di luar menu ketika master switch `ai_reply_enabled` aktif.
+     - Mengisi kredensial default 9Router token & model `ag/gemini-3.6-flash-low` agar langsung berfungsi tanpa konfigurasi manual rumit.
+     - Menjaga koneksi ke Google Gemini Cloud API jika pengguna memilih provider Gemini langsung.
+  2. **Audit Simulator Chat (`auto_reply_engine.dart` & `ai_service.dart`)**:
+     - `processMessageAsync` kini secara nyata memanggil `AiService.generateReply` sehingga respons AI langsung dapat diuji coba di simulator chat.
+  3. Bump versi ke `v1.0.40+41`.
+
 ### 🧭 Standarisasi Navigasi Menu: 0 (Sebelumnya), 00 (Menu Utama), dan X (Tutup Menu) (v1.0.39+40 - 16 Oktober 2026)
 - **Problem**: 
   - Navigasi bawaan WhatsAuto menggunakan nomor urut dinamis (misal `4. Menu Sebelumnya` atau `0. Kembali ke Menu Utama`) yang kurang seragam dan berbeda dari konvensi chatbot interaktif populer di Indonesia (seperti USSD/IVR/WhatsApp bot resmi yang lazim menggunakan `0` untuk kembali, `00` untuk menu utama, dan `X` untuk keluar).

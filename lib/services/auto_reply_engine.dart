@@ -3,6 +3,7 @@ import '../models/app_settings.dart';
 import '../models/keyword_reply.dart';
 import '../models/spreadsheet_model.dart';
 import 'webhook_service.dart';
+import 'ai_service.dart';
 
 class AutoReplyEngine {
   final List<MenuNode> nodes;
@@ -167,6 +168,30 @@ class AutoReplyEngine {
       } else {
         rawReply = '⚠️ URL Webhook belum diatur di menu Webhook Server.';
       }
+    } else if (rawReply == '🤖 [Balasan otomatis oleh AI]') {
+      final cleanMsg = incomingMessage.replaceAll(RegExp(r'[\u200e\u2068\u2069]'), '').trim();
+      try {
+        final aiReply = await AiService.generateReply(
+          incomingMessage: cleanMsg,
+          settings: settings,
+          senderName: senderId,
+        );
+        rawReply = aiReply.isNotEmpty ? aiReply : '⚠️ AI Gateway tidak merespon.';
+      } catch (e) {
+        rawReply = '❌ Gagal memanggil AI: $e';
+      }
+    } else if (settings.aiReplyEnabled && rawReply.isEmpty && !settings.onlyReplyKeywords && (_sessions[senderId] == null || _sessions[senderId] == 'idle')) {
+      final cleanMsg = incomingMessage.replaceAll(RegExp(r'[\u200e\u2068\u2069]'), '').trim();
+      try {
+        final aiReply = await AiService.generateReply(
+          incomingMessage: cleanMsg,
+          settings: settings,
+          senderName: senderId,
+        );
+        if (aiReply.isNotEmpty) {
+          rawReply = aiReply;
+        }
+      } catch (_) {}
     }
     if (rawReply.trim().isEmpty) return '';
     return wrapHeaderFooter(rawReply);

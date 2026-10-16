@@ -638,12 +638,11 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                 conn.readTimeout = 8000
                 conn.doOutput = true
                 conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8")
-                if (apiKey.isNotBlank()) {
-                    conn.setRequestProperty("Authorization", "Bearer $apiKey")
-                }
+                val token = if (apiKey.isNotBlank()) apiKey else "sk-4b367e54ce7fe396-pncx8h-438a2784"
+                conn.setRequestProperty("Authorization", "Bearer $token")
 
                 val payload = JSONObject().apply {
-                    put("model", "gemini-2.5-flash")
+                    put("model", "ag/gemini-3.6-flash-low")
                     val messages = JSONArray().apply {
                         put(JSONObject().apply {
                             put("role", "system")
@@ -1145,7 +1144,16 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                 }
             }
 
-            // E. Pesan biasa di luar menu -> Balas dengan balasan default (kecuali user mengaktifkan only_reply_keywords)
+            // E. Balasan AI untuk pesan biasa di luar menu (jika Master Switch Balasan AI diaktifkan)
+            val isAiReplyEnabled = prefs.getBoolean("flutter.ai_reply_enabled", false)
+            if (isAiReplyEnabled && !onlyKeywords) {
+                val aiRep = queryAi(sender, cleanMsg, prefs)
+                if (!aiRep.isNullOrBlank()) {
+                    return formatTags(aiRep, sender, cleanMsg)
+                }
+            }
+
+            // F. Pesan biasa di luar menu -> Balas dengan balasan default (kecuali user mengaktifkan only_reply_keywords)
             if (onlyKeywords) {
                 return null
             }

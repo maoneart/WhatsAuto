@@ -50,14 +50,16 @@ class AiService {
         throw Exception('Gemini API error (Status ${response.statusCode}): ${response.body}');
       } else {
         // 9Router Local Gateway (OpenAI Compatible)
-        final uri = Uri.parse(default9RouterUrl);
+        final token = settings.aiApiKey.isNotEmpty
+            ? settings.aiApiKey
+            : 'sk-4b367e54ce7fe396-pncx8h-438a2784';
         final headers = {
           'Content-Type': 'application/json',
-          if (settings.aiApiKey.isNotEmpty) 'Authorization': 'Bearer ${settings.aiApiKey}',
+          'Authorization': 'Bearer $token',
         };
 
         final body = json.encode({
-          'model': 'gemini-2.5-flash',
+          'model': 'ag/gemini-3.6-flash-low',
           'messages': [
             {'role': 'system', 'content': systemPrompt},
             {'role': 'user', 'content': incomingMessage},
