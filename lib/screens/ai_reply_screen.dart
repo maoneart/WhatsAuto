@@ -57,6 +57,7 @@ class _AiReplyScreenState extends State<AiReplyScreen> {
 
   Future<void> _runTest() async {
     final testMsg = _testMessageController.text.trim();
+    await _saveSettings();
     setState(() {
       _isTesting = true;
       _testResponse = '';

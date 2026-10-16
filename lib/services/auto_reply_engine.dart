@@ -136,8 +136,13 @@ class AutoReplyEngine {
   String processMessage({
     required String senderId,
     required String incomingMessage,
+    bool isGroup = false,
   }) {
-    final rawReply = _computeRawReply(senderId: senderId, incomingMessage: incomingMessage);
+    final rawReply = _computeRawReply(
+      senderId: senderId,
+      incomingMessage: incomingMessage,
+      isGroup: isGroup,
+    );
     if (rawReply.trim().isEmpty) return '';
     return wrapHeaderFooter(rawReply);
   }
@@ -150,7 +155,11 @@ class AutoReplyEngine {
     final effectiveIsGroup = isGroup || senderId.contains('@') || (senderId.contains(':') && !senderId.startsWith('+'));
     final canAiReply = settings.aiReplyEnabled && (effectiveIsGroup ? settings.aiReplyGroup : settings.aiReplyPersonal);
 
-    var rawReply = _computeRawReply(senderId: senderId, incomingMessage: incomingMessage);
+    var rawReply = _computeRawReply(
+      senderId: senderId,
+      incomingMessage: incomingMessage,
+      isGroup: effectiveIsGroup,
+    );
     if (rawReply == '🌐 [Pesan diproses via Web Server]') {
       final cleanMsg = incomingMessage.replaceAll(RegExp(r'[\u200e\u2068\u2069]'), '').trim();
       final webhookUrl = settings.serverWebhookUrl.trim();
@@ -182,24 +191,17 @@ class AutoReplyEngine {
             incomingMessage: cleanMsg,
             settings: settings,
             senderName: senderId,
+            throwOnError: true,
           );
-          rawReply = aiReply.isNotEmpty ? aiReply : '⚠️ AI Gateway tidak merespon.';
+          if (aiReply.isNotEmpty) {
+            rawReply = aiReply;
+          } else {
+            rawReply = '⚠️ Respon AI kosong. Silakan periksa koneksi atau API Key Anda.';
+          }
         } catch (e) {
-          rawReply = '❌ Gagal memanggil AI: $e';
+          rawReply = '❌ [Error AI]: ${e.toString().replaceFirst("Exception: ", "")}';
         }
       }
-    } else if (canAiReply && rawReply.isEmpty && !settings.onlyReplyKeywords && (_sessions[senderId] == null || _sessions[senderId] == 'idle')) {
-      final cleanMsg = incomingMessage.replaceAll(RegExp(r'[\u200e\u2068\u2069]'), '').trim();
-      try {
-        final aiReply = await AiService.generateReply(
-          incomingMessage: cleanMsg,
-          settings: settings,
-          senderName: senderId,
-        );
-        if (aiReply.isNotEmpty) {
-          rawReply = aiReply;
-        }
-      } catch (_) {}
     }
     if (rawReply.trim().isEmpty) return '';
     return wrapHeaderFooter(rawReply);
@@ -240,6 +242,7 @@ class AutoReplyEngine {
   String _computeRawReply({
     required String senderId,
     required String incomingMessage,
+    bool isGroup = false,
   }) {
     // Bersihkan karakter Unicode tersembunyi WhatsApp (\u200e, \u2068, \u2069)
     final cleanMsg = incomingMessage.replaceAll(RegExp(r'[\u200e\u2068\u2069]'), '').trim();
@@ -512,7 +515,14 @@ class AutoReplyEngine {
       return renderMenu('parent');
     }
 
-    // C. Pesan santai / umum di luar menu
+    // E. Fallback AI Pintar: Jika Balasan AI aktif untuk konteks ini (Japri/Grup), alihkan otomatis ke AI!
+    final effectiveIsGroup = isGroup || senderId.contains('@') || (senderId.contains(':') && !senderId.startsWith('+'));
+    final canAiReply = settings.aiReplyEnabled && (effectiveIsGroup ? settings.aiReplyGroup : settings.aiReplyPersonal);
+    if (canAiReply) {
+      return '🤖 [Balasan otomatis oleh AI]';
+    }
+
+    // F. Pesan santai / umum di luar menu (Non-AI)
     if (settings.onlyReplyKeywords) {
       // Diam / jangan balas apapun jika bukan kata kunci terdaftar!
       return '';

@@ -630,6 +630,9 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                     val parts = cand?.optJSONObject("content")?.optJSONArray("parts")
                     val text = parts?.optJSONObject(0)?.optString("text")?.trim()
                     if (!text.isNullOrBlank()) return text
+                } else {
+                    val err = conn.errorStream?.bufferedReader()?.use { it.readText() } ?: ""
+                    Log.e(TAG, "Gemini API Error ${conn.responseCode}: $err")
                 }
             } else {
                 // Default: 9Router AI Gateway (Local port 20128)
@@ -669,6 +672,9 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                     val msg = choices?.optJSONObject(0)?.optJSONObject("message")
                     val content = msg?.optString("content")?.trim()
                     if (!content.isNullOrBlank()) return content
+                } else {
+                    val err = conn.errorStream?.bufferedReader()?.use { it.readText() } ?: ""
+                    Log.e(TAG, "9Router API Error ${conn.responseCode}: $err")
                 }
             }
             null
@@ -1163,7 +1169,7 @@ class MaoneAutoNotificationService : NotificationListenerService() {
             }
 
             // E. Balasan AI untuk pesan biasa di luar menu (jika Master Switch Balasan AI diaktifkan & sesuai cakupan Japri/Grup)
-            if (canAiReply && !onlyKeywords) {
+            if (canAiReply) {
                 val aiRep = queryAi(sender, cleanMsg, prefs)
                 if (!aiRep.isNullOrBlank()) {
                     return formatTags(aiRep, sender, cleanMsg)

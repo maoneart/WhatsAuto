@@ -127,12 +127,35 @@ class _TestReplySimulatorScreenState extends State<TestReplySimulatorScreen> {
     });
   }
 
+  String _getAiStatusSubtitle() {
+    if (_engine == null) return 'memuat...';
+    final s = _engine!.settings;
+    if (!s.aiReplyEnabled) {
+      return 'online • AI Nonaktif';
+    }
+    final activeForMode = _isSimulatingGroup ? s.aiReplyGroup : s.aiReplyPersonal;
+    if (!activeForMode) {
+      return 'online • AI Off (${_isSimulatingGroup ? "Grup" : "Japri"})';
+    }
+    final provName = s.aiProvider == 'gemini' ? 'Gemini' : '9Router';
+    return 'online • AI Aktif ($provName)';
+  }
+
+  bool _isAiActiveForCurrentMode() {
+    if (_engine == null) return false;
+    final s = _engine!.settings;
+    return s.aiReplyEnabled && (_isSimulatingGroup ? s.aiReplyGroup : s.aiReplyPersonal);
+  }
+
   void _resetChat() {
+    _engine?.resetSession('Budi Santoso');
+    _engine?.resetSession('Budi Santoso @ Grup Diskusi');
     _engine?.resetSession('simulator_user');
     setState(() {
       _messages.clear();
+      _isLoading = true;
     });
-    _simulateInitialGreeting();
+    _initEngine();
   }
 
   @override
@@ -149,22 +172,25 @@ class _TestReplySimulatorScreenState extends State<TestReplySimulatorScreen> {
         ),
         title: Row(
           children: [
-            CircleAvatar(
+            const CircleAvatar(
               radius: 18,
-              backgroundColor: const Color(0xFF00A884),
-              child: const Icon(Icons.smart_toy, color: Colors.white, size: 20),
+              backgroundColor: Color(0xFF00A884),
+              child: Icon(Icons.smart_toy, color: Colors.white, size: 20),
             ),
             const SizedBox(width: 10),
-            const Column(
+            Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                const Text(
                   'Tanggapan Uji (Bot Kaido)',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
                 ),
                 Text(
-                  'online • simulasi WhatsApp',
-                  style: TextStyle(fontSize: 12, color: Color(0xFF00A884)),
+                  _getAiStatusSubtitle(),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: _isAiActiveForCurrentMode() ? const Color(0xFF00A884) : const Color(0xFF94A3B8),
+                  ),
                 ),
               ],
             ),

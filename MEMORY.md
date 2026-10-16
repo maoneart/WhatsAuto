@@ -27,6 +27,17 @@
 ---
 
 ## 🚀 Recent Milestones
+### 🤖 Integrasi Balasan AI Penuh Tanpa Terblokir Sakelar Kata Kunci (v1.0.45+46 - 16 Oktober 2026)
+- **Problem**:
+  - Di WhatsApp nyata, AI tidak merespons pesan masuk saat pengguna mengaktifkan toggle "Hanya balas kata kunci", karena guard di Android Notification Service (`canAiReply && !onlyKeywords`) memblokir AI.
+  - Di menu simulator (`TestReplySimulatorScreen`), pesan di luar menu dan kata kunci terdaftar menampilkan `🔇 *(Pesan diabaikan: Tidak cocok dengan kata kunci terdaftar)*` dan AI tidak pernah dipanggil karena `_computeRawReply` di engine mengembalikan string kosong atau balasan teks kaku default.
+- **Solusi & Implementasi**:
+  1. **Engine Routing Cerdas (`auto_reply_engine.dart`)**: Mengarahkan seluruh pesan umum/santai di luar menu ke AI saat `canAiReply` aktif (`effectiveIsGroup ? aiReplyGroup : aiReplyPersonal`), mendahului pengecekan `onlyReplyKeywords`.
+  2. **Kotlin Background Service (`MaoneAutoNotificationService.kt`)**: Menghapus kondisi `&& !onlyKeywords` pada blok `canAiReply` agar AI tetap membalas otomatis di WhatsApp nyata, serta menambahkan logging detail error stream pada respon Gemini dan 9Router.
+  3. **Simulator Chat Cerdas (`test_reply_simulator_screen.dart`)**: Subtitle AppBar kini dinamis menampilkan status AI aktif (`online • AI Aktif (Gemini / 9Router)` atau `online • AI Nonaktif`) sesuai konteks Japri/Grup, serta fungsi reset chat otomatis memuat ulang (*reload*) konfigurasi terbaru.
+  4. **Penyimpanan Instan (`ai_reply_screen.dart`)**: Menambahkan pemanggilan `_saveSettings()` sebelum pengujian koneksi AI dijalankan agar konfigurasi selalu persisten.
+  5. Bump versi ke `v1.0.45+46`.
+
 ### 🧹 Pembersihan Opsi Balasan: Penghapusan 'ChatGPT / AI' dari Form Kata Kunci (v1.0.44+45 - 16 Oktober 2026)
 - **Problem**: 
   - Pada form tambah/edit *Balasan Kata Kunci* (`add_edit_keyword_reply_screen.dart`), opsi 'ChatGPT / AI' sebelumnya tersedia sebagai opsi balasan dinamis.
