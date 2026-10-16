@@ -32,6 +32,17 @@ jobs:
       - name: Install Dependencies
         run: flutter pub get
 
+      - name: Select Pre-installed Android NDK
+        run: |
+          INSTALLED_NDK=$(ls -1 /usr/local/lib/android/sdk/ndk 2>/dev/null | sort -V | tail -n 1)
+          if [ -n "$INSTALLED_NDK" ]; then
+            echo "Menggunakan NDK pre-installed di runner: $INSTALLED_NDK"
+            sed -i "s/ndkVersion = .*/ndkVersion = \"$INSTALLED_NDK\"/g" android/app/build.gradle
+          else
+            echo "Tidak ada NDK pre-installed, menggunakan flutter.ndkVersion"
+          fi
+          grep -n "ndkVersion" android/app/build.gradle || true
+
       - name: Build Universal Release APK
         run: flutter build apk --release --android-skip-build-dependency-validation
 
