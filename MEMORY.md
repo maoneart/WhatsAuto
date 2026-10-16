@@ -572,6 +572,7 @@
 - [x] Template webhook lengkap (Google Apps Script, PHP, Node.js, Python, README) (v1.0.29+30).
 - [x] Modal template webhook full-screen slide mentok ke atas layar (v1.0.30+31).
 - [x] Dukungan HTTP 302 Redirect Google Apps Script Webhook (v1.0.31+32).
-- [ ] Push commit ke GitHub repository `maoneart/WhatsAuto` dan trigger GitHub Actions build APK v1.0.31.
-- [ ] Unduh APK rilis `v1.0.31` ke `/sdcard/Download/MaoneAuto.apk` dan verifikasi integritas.
+- [x] Push commit ke GitHub repository `maoneart/WhatsAuto` dan trigger GitHub Actions build APK v1.0.31.
+- [x] Unduh APK rilis `v1.0.31` ke `/sdcard/Download/MaoneAuto.apk` dan verifikasi integritas.
+
 
