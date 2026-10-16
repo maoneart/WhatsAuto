@@ -508,9 +508,27 @@
 - [x] Eliminasi total balasan ganda via 4-Layer Echo Shield (isSelf check, recentSentReplies cache, 3s debounce, summary text filter) (v1.0.23+24).
 - [x] Dukungan multi-keyword koma dan wildcard (*) di Google Spreadsheet (v1.0.24+25).
 - [x] Tombol cepat "Semua (*)" di atas keyword, wildcard catch-all engine (v1.0.25+26).
+### 🔒 Auto-Fill & Field Lock pada Opsi Balasan (v1.0.28+29 - 16 Oktober 2026)
+- **Konteks & Kebutuhan Pengguna**:
+  - Saat opsi balasan dicentang (`Menu Balas`, `ChatGPT / AI`, atau `Web Server`), kolom input "Balas pesan" harus terisi otomatis dengan nama opsi yang dipilih dan **terkunci / tidak bisa diketik** (`readOnly: true`).
+- **Penyelarasan & Implementasi**:
+  1. `AddEditKeywordReplyScreen`:
+     - Mengetuk salah satu opsi balasan langsung mengisi controller `_replyController.text` dengan `'Menu Balas'`, `'ChatGPT / AI'`, atau `'Web Server'`.
+     - Kolom `Balas pesan` berubah menjadi read-only, menampilkan badge `🔒 Terkunci (Nama Opsi)`, border emerald beraksen neon, dan hint penjelasan terkunci.
+     - Tapping chip Tag Variabel dinonaktifkan dengan notifikasi bahwa kolom sedang terkunci otomatis.
+     - Menghapus centang (uncheck) otomatis membersihkan teks dan membuka kembali input untuk diketik manual.
+  2. `AutoReplyEngine.dart` & `MaoneAutoNotificationService.kt`:
+     - Menangani nilai teks `'Menu Balas'` agar langsung merender menu pohon secara bersih tanpa menduplikasi teks "Menu Balas".
+     - Menambahkan native helper `queryAi` di Kotlin service untuk memproses balasan ChatGPT / 9Router AI secara langsung di background.
+- **Versi**: Dinaikkan ke `v1.0.28+29`.
+
+---
+
+## 📋 Active Tasks / Next Steps
 - [x] Opsi balasan single choice (pilih salah 1): Menu Balas, ChatGPT/AI, Web Server (v1.0.27+28).
-- [x] Push commit ke GitHub repository `maoneart/WhatsAuto` dan trigger GitHub Actions build APK v1.0.27 (Run ID `38828604529` sukses).
-- [x] Unduh APK rilis `v1.0.27` ke `/sdcard/Download/MaoneAuto.apk` (56.7 MB) dan verifikasi integritas.
+- [x] Auto-fill & lock field balasan saat opsi balasan aktif (v1.0.28+29).
+- [ ] Push commit ke GitHub repository `maoneart/WhatsAuto` dan trigger GitHub Actions build APK v1.0.28.
+- [ ] Unduh APK rilis `v1.0.28` ke `/sdcard/Download/MaoneAuto.apk` dan verifikasi integritas.
 
 
 

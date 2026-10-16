@@ -22,18 +22,35 @@ class _AddEditKeywordReplyScreenState extends State<AddEditKeywordReplyScreen> {
   bool _useWebhook = false;
   bool _sendEmail = false;
 
+  bool get _isOptionLocked => _useMenuReply || _useAiReply || _useWebhook;
+
+  String get _lockedOptionName {
+    if (_useMenuReply) return 'Menu Balas';
+    if (_useAiReply) return 'ChatGPT / AI';
+    if (_useWebhook) return 'Web Server';
+    return '';
+  }
+
   @override
   void initState() {
     super.initState();
     if (widget.existingRule != null) {
       final r = widget.existingRule!;
       _keywordController.text = r.incomingKeywords;
-      _replyController.text = r.replyMessage;
       _isExactMatch = r.isExactMatch;
       _useMenuReply = r.useMenuReply;
       _useAiReply = r.useAiReply;
       _useWebhook = r.useWebhook;
       _sendEmail = r.sendEmailNotification;
+      if (_useMenuReply) {
+        _replyController.text = 'Menu Balas';
+      } else if (_useAiReply) {
+        _replyController.text = 'ChatGPT / AI';
+      } else if (_useWebhook) {
+        _replyController.text = 'Web Server';
+      } else {
+        _replyController.text = r.replyMessage;
+      }
     }
   }
 
@@ -45,6 +62,11 @@ class _AddEditKeywordReplyScreenState extends State<AddEditKeywordReplyScreen> {
           if (_useMenuReply) {
             _useAiReply = false;
             _useWebhook = false;
+            _replyController.text = 'Menu Balas';
+          } else {
+            if (_replyController.text == 'Menu Balas') {
+              _replyController.clear();
+            }
           }
           break;
         case 'ai':
@@ -52,6 +74,11 @@ class _AddEditKeywordReplyScreenState extends State<AddEditKeywordReplyScreen> {
           if (_useAiReply) {
             _useMenuReply = false;
             _useWebhook = false;
+            _replyController.text = 'ChatGPT / AI';
+          } else {
+            if (_replyController.text == 'ChatGPT / AI') {
+              _replyController.clear();
+            }
           }
           break;
         case 'webhook':
@@ -59,6 +86,11 @@ class _AddEditKeywordReplyScreenState extends State<AddEditKeywordReplyScreen> {
           if (_useWebhook) {
             _useMenuReply = false;
             _useAiReply = false;
+            _replyController.text = 'Web Server';
+          } else {
+            if (_replyController.text == 'Web Server') {
+              _replyController.clear();
+            }
           }
           break;
       }
@@ -73,6 +105,17 @@ class _AddEditKeywordReplyScreenState extends State<AddEditKeywordReplyScreen> {
   }
 
   void _insertTag(String tag) {
+    if (_isOptionLocked) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Kolom balasan sedang terkunci otomatis ($_lockedOptionName).'),
+          backgroundColor: const Color(0xFF1F2C34),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
     final text = _replyController.text;
     final selection = _replyController.selection;
     final insertText = '{{$tag}}';
@@ -91,35 +134,26 @@ class _AddEditKeywordReplyScreenState extends State<AddEditKeywordReplyScreen> {
   }
 
   String _formatPreviewText() {
+    if (_useMenuReply) {
+      return '📋 [Menu Balas Aktif]\n(Pohon menu otomatis terkirim)';
+    }
+    if (_useAiReply) {
+      return '🤖 [Balasan AI Aktif]\n(Dijawab otomatis oleh AI)';
+    }
+    if (_useWebhook) {
+      return '🌐 [Web Server Aktif]\n(Dijawab otomatis oleh Server Webhook)';
+    }
+
     final rawText = _replyController.text.trim();
     if (rawText.isEmpty) {
-      if (_useMenuReply) {
-        return '📋 [Menu Balas Aktif]\n(Pohon menu otomatis terkirim)';
-      }
-      if (_useAiReply) {
-        return '🤖 [Balasan AI Aktif]\n(Dijawab otomatis oleh AI)';
-      }
-      if (_useWebhook) {
-        return '🌐 [Web Server Aktif]\n(Dijawab otomatis oleh Server Webhook)';
-      }
       return 'Ketik pesan balasan Anda';
     }
 
     // Resolusi tag dinamis (nama contoh, jam saat ini, tanggal hari ini, hari ini)
-    var rendered = AutoReplyEngine.applyTags(
+    return AutoReplyEngine.applyTags(
       rawText,
       senderId: 'Budi Santoso',
     );
-
-    if (_useMenuReply) {
-      rendered = '$rendered\n\n📋 [+ Menu Balas terlampir]';
-    } else if (_useAiReply) {
-      rendered = '$rendered\n\n🤖 [+ Jawaban AI terlampir]';
-    } else if (_useWebhook) {
-      rendered = '$rendered\n\n🌐 [+ Balasan Web Server terlampir]';
-    }
-
-    return rendered;
   }
 
   void _saveRule() {
@@ -150,7 +184,7 @@ class _AddEditKeywordReplyScreenState extends State<AddEditKeywordReplyScreen> {
     final result = KeywordReply(
       id: widget.existingRule?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
       incomingKeywords: keywords,
-      replyMessage: reply,
+      replyMessage: _isOptionLocked ? _lockedOptionName : reply,
       isExactMatch: _isExactMatch,
       isEnabled: widget.existingRule?.isEnabled ?? true,
       useMenuReply: _useMenuReply,
@@ -386,31 +420,81 @@ class _AddEditKeywordReplyScreenState extends State<AddEditKeywordReplyScreen> {
                   const SizedBox(height: 18),
 
                   // Field 2: Balas pesan
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Balas pesan',
+                        style: TextStyle(
+                          color: Color(0xFF00A884),
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      if (_isOptionLocked)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF00A884).withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: const Color(0xFF00A884).withOpacity(0.4)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.lock_rounded, size: 12, color: Color(0xFF00A884)),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Terkunci ($_lockedOptionName)',
+                                style: const TextStyle(color: Color(0xFF00A884), fontSize: 11, fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
                   Container(
                     decoration: BoxDecoration(
-                      color: const Color(0xFF1F2C34),
+                      color: _isOptionLocked ? const Color(0xFF141D22) : const Color(0xFF1F2C34),
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: Colors.white.withOpacity(0.08)),
+                      border: Border.all(
+                        color: _isOptionLocked ? const Color(0xFF00A884).withOpacity(0.4) : Colors.white.withOpacity(0.08),
+                        width: _isOptionLocked ? 1.5 : 1.0,
+                      ),
                     ),
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
                     child: TextField(
                       controller: _replyController,
-                      style: const TextStyle(color: Colors.white, fontSize: 15),
-                      maxLines: 4,
+                      readOnly: _isOptionLocked,
+                      style: TextStyle(
+                        color: _isOptionLocked ? const Color(0xFF00A884) : Colors.white,
+                        fontSize: 15,
+                        fontWeight: _isOptionLocked ? FontWeight.bold : FontWeight.normal,
+                      ),
+                      maxLines: _isOptionLocked ? 1 : 4,
                       onChanged: (_) => setState(() {}),
-                      decoration: const InputDecoration(
-                        hintText: 'Balas pesan (opsional jika memilih opsi di bawah)',
-                        hintStyle: TextStyle(color: Colors.white54, fontSize: 15),
+                      decoration: InputDecoration(
+                        hintText: _isOptionLocked ? _lockedOptionName : 'Balas pesan (opsional jika memilih opsi di bawah)',
+                        hintStyle: TextStyle(
+                          color: _isOptionLocked ? const Color(0xFF00A884).withOpacity(0.7) : Colors.white54,
+                          fontSize: 15,
+                        ),
                         border: InputBorder.none,
                       ),
                     ),
                   ),
                   const SizedBox(height: 6),
-                  const Padding(
-                    padding: EdgeInsets.only(left: 4),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 4),
                     child: Text(
-                      'Contoh: Harga kami mulai dari 100. (Boleh kosong jika Menu Balas / AI dicentang)',
-                      style: TextStyle(color: Colors.white38, fontSize: 12),
+                      _isOptionLocked
+                          ? '🔒 Terisi otomatis dan dikunci karena opsi "$_lockedOptionName" aktif.'
+                          : 'Contoh: Harga kami mulai dari 100. (Atau pilih opsi di bawah)',
+                      style: TextStyle(
+                        color: _isOptionLocked ? const Color(0xFF00A884) : Colors.white38,
+                        fontSize: 12,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 22),

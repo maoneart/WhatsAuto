@@ -169,12 +169,12 @@ class AutoReplyEngine {
           if (rule.useMenuReply) {
             _sessions[senderId] = 'parent';
             final menuText = renderMenu('parent');
-            return reply.trim().isEmpty ? menuText : '$reply\n\n$menuText';
+            return (reply.trim().isEmpty || reply.trim() == 'Menu Balas') ? menuText : '$reply\n\n$menuText';
           }
-          if (rule.useWebhook && reply.trim().isEmpty) {
+          if (rule.useWebhook) {
             reply = '🌐 [Pesan diproses via Web Server]';
           }
-          if (rule.useAiReply && reply.trim().isEmpty) {
+          if (rule.useAiReply) {
             reply = '🤖 [Balasan otomatis oleh AI]';
           }
           // Reset sesi menu menjadi idle
@@ -202,12 +202,12 @@ class AutoReplyEngine {
           if (rule.useMenuReply) {
             _sessions[senderId] = 'parent';
             final menuText = renderMenu('parent');
-            return reply.trim().isEmpty ? menuText : '$reply\n\n$menuText';
+            return (reply.trim().isEmpty || reply.trim() == 'Menu Balas') ? menuText : '$reply\n\n$menuText';
           }
-          if (rule.useWebhook && reply.trim().isEmpty) {
+          if (rule.useWebhook) {
             reply = '🌐 [Pesan diproses via Web Server]';
           }
-          if (rule.useAiReply && reply.trim().isEmpty) {
+          if (rule.useAiReply) {
             reply = '🤖 [Balasan otomatis oleh AI]';
           }
           // Reset sesi menu menjadi idle
@@ -359,12 +359,12 @@ class AutoReplyEngine {
         if (wildcardRule.useMenuReply) {
           _sessions[senderId] = 'parent';
           final menuText = renderMenu('parent');
-          return reply.trim().isEmpty ? menuText : '$reply\n\n$menuText';
+          return (reply.trim().isEmpty || reply.trim() == 'Menu Balas') ? menuText : '$reply\n\n$menuText';
         }
-        if (wildcardRule.useWebhook && reply.trim().isEmpty) {
+        if (wildcardRule.useWebhook) {
           reply = '🌐 [Pesan diproses via Web Server]';
         }
-        if (wildcardRule.useAiReply && reply.trim().isEmpty) {
+        if (wildcardRule.useAiReply) {
           reply = '🤖 [Balasan otomatis oleh AI]';
         }
         _sessions[senderId] = 'idle';

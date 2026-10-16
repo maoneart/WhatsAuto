@@ -544,6 +544,94 @@ class MaoneAutoNotificationService : NotificationListenerService() {
         }
     }
 
+    private fun queryAi(sender: String, message: String, prefs: android.content.SharedPreferences): String? {
+        val provider = prefs.getString("flutter.ai_provider", "9router") ?: "9router"
+        val apiKey = prefs.getString("flutter.ai_api_key", "") ?: ""
+        val customPrompt = prefs.getString("flutter.ai_custom_prompt", "") ?: ""
+        val systemPrompt = if (customPrompt.isNotBlank()) customPrompt else "Anda adalah asisten WhatsApp cerdas MaoneAuto. Jawab pertanyaan pengguna dengan ramah, informatif, ringkas, dan jelas dalam bahasa Indonesia."
+
+        return try {
+            if (provider == "gemini") {
+                if (apiKey.isBlank()) return null
+                val endpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$apiKey"
+                val url = java.net.URL(endpoint)
+                val conn = url.openConnection() as java.net.HttpURLConnection
+                conn.requestMethod = "POST"
+                conn.connectTimeout = 8000
+                conn.readTimeout = 8000
+                conn.doOutput = true
+                conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8")
+
+                val payload = JSONObject().apply {
+                    val contents = JSONArray().apply {
+                        val obj = JSONObject().apply {
+                            val parts = JSONArray().apply {
+                                put(JSONObject().put("text", "System: $systemPrompt\nPesan dari $sender: $message"))
+                            }
+                            put("parts", parts)
+                        }
+                        put(obj)
+                    }
+                    put("contents", contents)
+                }
+
+                conn.outputStream.use { it.write(payload.toString().toByteArray(Charsets.UTF_8)) }
+                if (conn.responseCode in 200..299) {
+                    val resp = conn.inputStream.bufferedReader().use { it.readText() }
+                    val json = JSONObject(resp)
+                    val cand = json.optJSONArray("candidates")?.optJSONObject(0)
+                    val parts = cand?.optJSONObject("content")?.optJSONArray("parts")
+                    val text = parts?.optJSONObject(0)?.optString("text")?.trim()
+                    if (!text.isNullOrBlank()) return text
+                }
+            } else {
+                // Default: 9Router AI Gateway (Local port 20128)
+                val endpoint = "http://127.0.0.1:20128/v1/chat/completions"
+                val url = java.net.URL(endpoint)
+                val conn = url.openConnection() as java.net.HttpURLConnection
+                conn.requestMethod = "POST"
+                conn.connectTimeout = 8000
+                conn.readTimeout = 8000
+                conn.doOutput = true
+                conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8")
+                if (apiKey.isNotBlank()) {
+                    conn.setRequestProperty("Authorization", "Bearer $apiKey")
+                }
+
+                val payload = JSONObject().apply {
+                    put("model", "gemini-2.5-flash")
+                    val messages = JSONArray().apply {
+                        put(JSONObject().apply {
+                            put("role", "system")
+                            put("content", systemPrompt)
+                        })
+                        put(JSONObject().apply {
+                            put("role", "user")
+                            put("content", message)
+                        })
+                    }
+                    put("messages", messages)
+                    put("temperature", 0.7)
+                    put("max_tokens", 400)
+                }
+
+                conn.outputStream.use { it.write(payload.toString().toByteArray(Charsets.UTF_8)) }
+                if (conn.responseCode in 200..299) {
+                    val resp = conn.inputStream.bufferedReader().use { it.readText() }
+                    val json = JSONObject(resp)
+                    val choices = json.optJSONArray("choices")
+                    val msg = choices?.optJSONObject(0)?.optJSONObject("message")
+                    val content = msg?.optString("content")?.trim()
+                    if (!content.isNullOrBlank()) return content
+                }
+            }
+            null
+        } catch (e: Exception) {
+            Log.e(TAG, "Error querying AI: ${e.message}")
+            null
+        }
+    }
+
     private fun computeReply(sender: String, messageText: String, prefs: android.content.SharedPreferences): String? {
         val cleanMsg = messageText.trim()
         if (cleanMsg.isEmpty()) return null
@@ -601,7 +689,7 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                             if (rule.optBoolean("useMenuReply", false) && nodes.isNotEmpty()) {
                                 prefs.edit().putString(sessionPrefKey, "parent").apply()
                                 val menuText = renderMenu(nodes, "parent")
-                                return if (rep.isBlank()) menuText else "$rep\n\n$menuText"
+                                return if (rep.isBlank() || rep.equals("Menu Balas", ignoreCase = true)) menuText else "$rep\n\n$menuText"
                             }
                             if (rule.optBoolean("useWebhook", false)) {
                                 val webhookUrl = prefs.getString("flutter.server_webhook_url", "") ?: ""
@@ -610,6 +698,15 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                                     prefs.edit().putString(sessionPrefKey, "idle").apply()
                                     return formatTags(hookRep, sender, cleanMsg)
                                 }
+                                return null
+                            }
+                            if (rule.optBoolean("useAiReply", false)) {
+                                val aiRep = queryAi(sender, cleanMsg, prefs)
+                                if (!aiRep.isNullOrBlank()) {
+                                    prefs.edit().putString(sessionPrefKey, "idle").apply()
+                                    return formatTags(aiRep, sender, cleanMsg)
+                                }
+                                return null
                             }
                             // Jika kata kunci biasa (tidak pakai menu), reset sesi menu menjadi idle
                             prefs.edit().putString(sessionPrefKey, "idle").apply()
@@ -633,7 +730,7 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                             if (rule.optBoolean("useMenuReply", false) && nodes.isNotEmpty()) {
                                 prefs.edit().putString(sessionPrefKey, "parent").apply()
                                 val menuText = renderMenu(nodes, "parent")
-                                return if (rep.isBlank()) menuText else "$rep\n\n$menuText"
+                                return if (rep.isBlank() || rep.equals("Menu Balas", ignoreCase = true)) menuText else "$rep\n\n$menuText"
                             }
                             if (rule.optBoolean("useWebhook", false)) {
                                 val webhookUrl = prefs.getString("flutter.server_webhook_url", "") ?: ""
@@ -642,6 +739,15 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                                     prefs.edit().putString(sessionPrefKey, "idle").apply()
                                     return formatTags(hookRep, sender, cleanMsg)
                                 }
+                                return null
+                            }
+                            if (rule.optBoolean("useAiReply", false)) {
+                                val aiRep = queryAi(sender, cleanMsg, prefs)
+                                if (!aiRep.isNullOrBlank()) {
+                                    prefs.edit().putString(sessionPrefKey, "idle").apply()
+                                    return formatTags(aiRep, sender, cleanMsg)
+                                }
+                                return null
                             }
                             // Jika kata kunci biasa (tidak pakai menu), reset sesi menu menjadi idle
                             prefs.edit().putString(sessionPrefKey, "idle").apply()
@@ -797,7 +903,7 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                             if (rule.optBoolean("useMenuReply", false) && nodes.isNotEmpty()) {
                                 prefs.edit().putString(sessionPrefKey, "parent").apply()
                                 val menuText = renderMenu(nodes, "parent")
-                                return if (rep.isBlank()) menuText else "$rep\n\n$menuText"
+                                return if (rep.isBlank() || rep.equals("Menu Balas", ignoreCase = true)) menuText else "$rep\n\n$menuText"
                             }
                             if (rule.optBoolean("useWebhook", false)) {
                                 val webhookUrl = prefs.getString("flutter.server_webhook_url", "") ?: ""
@@ -806,6 +912,15 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                                     prefs.edit().putString(sessionPrefKey, "idle").apply()
                                     return formatTags(hookRep, sender, cleanMsg)
                                 }
+                                return null
+                            }
+                            if (rule.optBoolean("useAiReply", false)) {
+                                val aiRep = queryAi(sender, cleanMsg, prefs)
+                                if (!aiRep.isNullOrBlank()) {
+                                    prefs.edit().putString(sessionPrefKey, "idle").apply()
+                                    return formatTags(aiRep, sender, cleanMsg)
+                                }
+                                return null
                             }
                             prefs.edit().putString(sessionPrefKey, "idle").apply()
                             if (rep.isNotBlank()) return rep
