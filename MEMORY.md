@@ -547,5 +547,6 @@
 - [x] Opsi balasan single choice (pilih salah 1): Menu Balas, ChatGPT/AI, Web Server (v1.0.27+28).
 - [x] Auto-fill & lock field balasan saat opsi balasan aktif (v1.0.28+29).
 - [x] Template webhook lengkap (Google Apps Script, PHP, Node.js, Python, README) & Modal 1-klik salin di Webhook Screen (v1.0.29+30).
-- [ ] Push commit ke GitHub repository `maoneart/WhatsAuto` dan trigger GitHub Actions build APK v1.0.29.
-- [ ] Unduh APK rilis `v1.0.29` ke `/sdcard/Download/MaoneAuto.apk` dan verifikasi integritas.
+- [x] Push commit ke GitHub repository `maoneart/WhatsAuto` dan trigger GitHub Actions build APK v1.0.29.
+- [x] Unduh APK rilis `v1.0.29` ke `/sdcard/Download/MaoneAuto.apk` dan verifikasi integritas.
+
