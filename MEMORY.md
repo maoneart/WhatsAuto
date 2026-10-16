@@ -27,6 +27,24 @@
 ---
 
 ## 🚀 Recent Milestones
+### 🧭 Standarisasi Navigasi Menu: 0 (Sebelumnya), 00 (Menu Utama), dan X (Tutup Menu) (v1.0.39+40 - 16 Oktober 2026)
+- **Problem**: 
+  - Navigasi bawaan WhatsAuto menggunakan nomor urut dinamis (misal `4. Menu Sebelumnya` atau `0. Kembali ke Menu Utama`) yang kurang seragam dan berbeda dari konvensi chatbot interaktif populer di Indonesia (seperti USSD/IVR/WhatsApp bot resmi yang lazim menggunakan `0` untuk kembali, `00` untuk menu utama, dan `X` untuk keluar).
+- **Solusi & Implementasi**:
+  1. **Tampilan Menu (`renderMenu`)**:
+     - Di Sub-menu: Disajikan secara terstandar di bagian bawah:
+       * `0. ↩️ Menu Sebelumnya`
+       * `00. 🏠 Kembali ke Menu Utama`
+       * `X. ❌ Tutup Menu`
+     - Di Root Menu (Level Teratas):
+       * `0. ❌ Tutup Menu`
+  2. **Logika Eksekusi di Dart & Kotlin (`auto_reply_engine.dart` & `MaoneAutoNotificationService.kt`)**:
+     - Mengetik `0`: Jika di sub-menu, otomatis mundur 1 level ke induknya (`grandParent`). Jika di root menu, menutup sesi menu interaktif.
+     - Mengetik `00`: Langsung melompat kembali ke Menu Utama (`parent`) dari proyek aktif.
+     - Mengetik `X` (atau `batal`, `keluar`, `exit`): Menutup sesi menu seketika.
+     - Tetap mendukung input teks `kembali` / `back` secara cerdas.
+  3. Bump versi ke `v1.0.39+40`.
+
 ### 🧹 Eliminasi Teks Footer Hardcoded 'Sesi menu selesai' & Pembersihan Pesan Keluar (v1.0.38+39 - 16 Oktober 2026)
 - **Problem**: 
   - Pada setiap respons daun/akhir (leaf node) dari menu interaktif, sistem sebelumnya selalu menambahkan teks footer kaku: `\n\n*(Sesi menu selesai. Ketik "menu" untuk membuka kembali)*`.

@@ -302,15 +302,15 @@ class AutoReplyEngine {
       final currentProjectId = _sessionProjects[senderId] ?? 'default_main';
       final activeNodes = projectNodes[currentProjectId] ?? nodes;
 
-      // 1. Perintah Keluar / Batal
-      if (normalizedMsg == 'batal' || normalizedMsg == 'keluar' || normalizedMsg == 'exit') {
+      // 1. Perintah Keluar / Batal (x / batal / keluar / exit)
+      if (normalizedMsg == 'x' || normalizedMsg == 'batal' || normalizedMsg == 'keluar' || normalizedMsg == 'exit') {
         _sessions[senderId] = 'idle';
         _sessionProjects.remove(senderId);
         return 'Anda telah keluar dari menu interaktif.';
       }
 
-      // 2. Tombol 0 (Kembali ke Menu Utama atau Keluar)
-      if (normalizedMsg == '0') {
+      // 2. Tombol 00 (Kembali ke Menu Utama)
+      if (normalizedMsg == '00') {
         if (currentParent != 'parent') {
           _sessions[senderId] = 'parent';
           return renderMenu('parent', customNodes: activeNodes);
@@ -321,15 +321,29 @@ class AutoReplyEngine {
         }
       }
 
-      // 3. Ambil opsi di bawah parent saat ini
-      final options = activeNodes.where((n) => n.parentId == currentParent && n.type == 2).toList();
-      final previousMenuNum = options.length + 1; // Nomor untuk 'Menu Sebelumnya' persis WhatsAuto
-
-      // Cek apakah user memilih tombol 'Menu Sebelumnya' (angka options.length + 1 atau teks 'kembali')
-      final int? numChoice = int.tryParse(normalizedMsg);
-      if (numChoice == previousMenuNum || normalizedMsg == 'kembali' || normalizedMsg == 'back') {
+      // 3. Tombol 0 (Kembali ke Menu Sebelumnya jika di sub-menu, atau Tutup jika di Menu Utama)
+      if (normalizedMsg == '0') {
         if (currentParent != 'parent') {
-          // Cari parent dari currentParent
+          final currentNode = activeNodes.firstWhere(
+            (n) => n.id == currentParent,
+            orElse: () => MenuNode(id: '', text: '', parentId: 'parent', type: 0),
+          );
+          final grandParent = currentNode.parentId.isEmpty ? 'parent' : currentNode.parentId;
+          _sessions[senderId] = grandParent;
+          return renderMenu(grandParent, customNodes: activeNodes);
+        } else {
+          _sessions[senderId] = 'idle';
+          _sessionProjects.remove(senderId);
+          return 'Anda telah keluar dari menu interaktif.';
+        }
+      }
+
+      // 4. Ambil opsi di bawah parent saat ini
+      final options = activeNodes.where((n) => n.parentId == currentParent && n.type == 2).toList();
+
+      // Cek apakah user mengetik teks 'kembali' atau 'back'
+      if (normalizedMsg == 'kembali' || normalizedMsg == 'back') {
+        if (currentParent != 'parent') {
           final currentNode = activeNodes.firstWhere(
             (n) => n.id == currentParent,
             orElse: () => MenuNode(id: '', text: '', parentId: 'parent', type: 0),
@@ -499,9 +513,9 @@ class AutoReplyEngine {
 
     buffer.writeln();
     if (parentId != 'parent') {
-      // Persis WhatsAuto: opsi N untuk Previous Menu, dan 0 untuk Main Menu
-      buffer.writeln('${options.length + 1}. ↩️ Menu Sebelumnya');
-      buffer.writeln('0. 🏠 Kembali ke Menu Utama');
+      buffer.writeln('0. ↩️ Menu Sebelumnya');
+      buffer.writeln('00. 🏠 Kembali ke Menu Utama');
+      buffer.writeln('X. ❌ Tutup Menu');
     } else {
       buffer.writeln('0. ❌ Tutup Menu');
     }

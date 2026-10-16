@@ -907,7 +907,8 @@ class MaoneAutoNotificationService : NotificationListenerService() {
             val sessionNodes = getProjectNodes(currentSessionProject)
             if (currentParent != "idle" && sessionNodes.isNotEmpty()) {
                 // 1. Perintah Keluar / Batal
-                if (normalizedMsg == "batal" || normalizedMsg == "keluar" || normalizedMsg == "exit") {
+                // 1. Perintah Keluar / Batal (x / batal / keluar / exit)
+                if (normalizedMsg == "x" || normalizedMsg == "batal" || normalizedMsg == "keluar" || normalizedMsg == "exit") {
                     prefs.edit()
                         .putString(sessionPrefKey, "idle")
                         .remove(sessionProjectPrefKey)
@@ -915,8 +916,8 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                     return "Anda telah keluar dari menu interaktif."
                 }
 
-                // 2. Tombol 0 (Kembali ke Menu Utama atau Keluar)
-                if (normalizedMsg == "0") {
+                // 2. Tombol 00 (Kembali ke Menu Utama)
+                if (normalizedMsg == "00") {
                     if (currentParent != "parent") {
                         prefs.edit().putString(sessionPrefKey, "parent").apply()
                         return renderMenu(sessionNodes, "parent")
@@ -929,13 +930,8 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                     }
                 }
 
-                // 3. Cocokkan pilihan dengan opsi di bawah currentParent
-                val options = sessionNodes.filter { it.optString("parentId") == currentParent && it.optInt("type") == 2 }
-                val previousMenuNum = options.size + 1
-
-                val numChoice = normalizedMsg.toIntOrNull()
-                // Cek tombol 'Menu Sebelumnya' persis WhatsAuto
-                if (numChoice == previousMenuNum || normalizedMsg == "kembali" || normalizedMsg == "back") {
+                // 3. Tombol 0 (Kembali ke Menu Sebelumnya jika di sub-menu, atau Tutup jika di Menu Utama)
+                if (normalizedMsg == "0") {
                     if (currentParent != "parent") {
                         val currentNode = sessionNodes.firstOrNull { it.optString("id") == currentParent }
                         val grandParent = currentNode?.optString("parentId")?.ifEmpty { "parent" } ?: "parent"
@@ -949,6 +945,25 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                         return "Anda telah keluar dari menu interaktif."
                     }
                 }
+
+                // Cek teks 'kembali' atau 'back'
+                if (normalizedMsg == "kembali" || normalizedMsg == "back") {
+                    if (currentParent != "parent") {
+                        val currentNode = sessionNodes.firstOrNull { it.optString("id") == currentParent }
+                        val grandParent = currentNode?.optString("parentId")?.ifEmpty { "parent" } ?: "parent"
+                        prefs.edit().putString(sessionPrefKey, grandParent).apply()
+                        return renderMenu(sessionNodes, grandParent)
+                    } else {
+                        prefs.edit()
+                            .putString(sessionPrefKey, "idle")
+                            .remove(sessionProjectPrefKey)
+                            .apply()
+                        return "Anda telah keluar dari menu interaktif."
+                    }
+                }
+
+                // 4. Cocokkan pilihan dengan opsi di bawah currentParent
+                val options = sessionNodes.filter { it.optString("parentId") == currentParent && it.optInt("type") == 2 }
 
                 var matchedOption: JSONObject? = null
                 if (numChoice != null && numChoice in 1..options.size) {
@@ -1161,9 +1176,9 @@ class MaoneAutoNotificationService : NotificationListenerService() {
         }
 
         if (parentId != "parent") {
-            // Persis WhatsAuto asli: opsi N untuk Menu Sebelumnya, dan 0 untuk Menu Utama
-            sb.append("\n${options.size + 1}. ↩️ Menu Sebelumnya\n")
-            sb.append("0. 🏠 Kembali ke Menu Utama")
+            sb.append("\n0. ↩️ Menu Sebelumnya\n")
+            sb.append("00. 🏠 Kembali ke Menu Utama\n")
+            sb.append("X. ❌ Tutup Menu")
         } else {
             sb.append("\n0. ❌ Tutup Menu")
         }
