@@ -306,7 +306,7 @@ class AutoReplyEngine {
       if (normalizedMsg == 'batal' || normalizedMsg == 'keluar' || normalizedMsg == 'exit') {
         _sessions[senderId] = 'idle';
         _sessionProjects.remove(senderId);
-        return 'Anda telah keluar dari menu interaktif. Ketik *menu* kapan saja untuk membukanya kembali.';
+        return 'Anda telah keluar dari menu interaktif.';
       }
 
       // 2. Tombol 0 (Kembali ke Menu Utama atau Keluar)
@@ -317,7 +317,7 @@ class AutoReplyEngine {
         } else {
           _sessions[senderId] = 'idle';
           _sessionProjects.remove(senderId);
-          return 'Anda telah keluar dari menu interaktif. Ketik *menu* kapan saja untuk membukanya kembali.';
+          return 'Anda telah keluar dari menu interaktif.';
         }
       }
 
@@ -340,7 +340,7 @@ class AutoReplyEngine {
         } else {
           _sessions[senderId] = 'idle';
           _sessionProjects.remove(senderId);
-          return 'Anda telah keluar dari menu interaktif. Ketik *menu* kapan saja untuk membukanya kembali.';
+          return 'Anda telah keluar dari menu interaktif.';
         }
       }
 
@@ -375,12 +375,12 @@ class AutoReplyEngine {
           _sessions[senderId] = 'idle';
           _sessionProjects.remove(senderId);
           final renderedLeaf = applyTags(subPrompt.text.trim(), senderId: senderId, incomingMessage: cleanMsg);
-          return '$renderedLeaf\n\n*(Sesi menu selesai. Ketik "menu" untuk membuka kembali)*';
+          return renderedLeaf;
         } else {
           _sessions[senderId] = 'idle';
           _sessionProjects.remove(senderId);
           final renderedLeaf = applyTags(matchedOption.text.trim(), senderId: senderId, incomingMessage: cleanMsg);
-          return '$renderedLeaf\n\n*(Sesi menu selesai. Ketik "menu" untuk membuka kembali)*';
+          return renderedLeaf;
         }
       }
 

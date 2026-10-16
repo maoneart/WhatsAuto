@@ -912,7 +912,7 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                         .putString(sessionPrefKey, "idle")
                         .remove(sessionProjectPrefKey)
                         .apply()
-                    return "Anda telah keluar dari menu interaktif. Ketik *menu* kapan saja untuk membukanya kembali."
+                    return "Anda telah keluar dari menu interaktif."
                 }
 
                 // 2. Tombol 0 (Kembali ke Menu Utama atau Keluar)
@@ -925,7 +925,7 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                             .putString(sessionPrefKey, "idle")
                             .remove(sessionProjectPrefKey)
                             .apply()
-                        return "Anda telah keluar dari menu interaktif. Ketik *menu* kapan saja untuk membukanya kembali."
+                        return "Anda telah keluar dari menu interaktif."
                     }
                 }
 
@@ -946,7 +946,7 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                             .putString(sessionPrefKey, "idle")
                             .remove(sessionProjectPrefKey)
                             .apply()
-                        return "Anda telah keluar dari menu interaktif. Ketik *menu* kapan saja untuk membukanya kembali."
+                        return "Anda telah keluar dari menu interaktif."
                     }
                 }
 
@@ -974,14 +974,14 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                             .remove(sessionProjectPrefKey)
                             .apply()
                         val rendered = formatTags(subPrompt.optString("text").trim(), sender, cleanMsg)
-                        return "$rendered\n\n*(Sesi menu selesai. Ketik 'menu' untuk membuka kembali)*"
+                        return rendered
                     } else {
                         prefs.edit()
                             .putString(sessionPrefKey, "idle")
                             .remove(sessionProjectPrefKey)
                             .apply()
                         val rendered = formatTags(matchedOption.optString("text").trim(), sender, cleanMsg)
-                        return "$rendered\n\n*(Sesi menu selesai. Ketik 'menu' untuk membuka kembali)*"
+                        return rendered
                     }
                 }
 

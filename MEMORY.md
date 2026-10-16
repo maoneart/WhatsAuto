@@ -27,6 +27,17 @@
 ---
 
 ## 🚀 Recent Milestones
+### 🧹 Eliminasi Teks Footer Hardcoded 'Sesi menu selesai' & Pembersihan Pesan Keluar (v1.0.38+39 - 16 Oktober 2026)
+- **Problem**: 
+  - Pada setiap respons daun/akhir (leaf node) dari menu interaktif, sistem sebelumnya selalu menambahkan teks footer kaku: `\n\n*(Sesi menu selesai. Ketik "menu" untuk membuka kembali)*`.
+  - Karena sistem kini mendukung **Multi-Proyek**, setiap proyek dibuka oleh kata kuncinya masing-masing (misal `#klinik`, `#makanan`, dll.), teks hardcoded `Ketik 'menu'` menjadi tidak relevan, membingungkan pelanggan, dan mengotori balasan informasi bisnis.
+  - Pesan saat membatalkan menu juga menyertakan instruksi `Ketik *menu* kapan saja`.
+- **Solusi & Implementasi**:
+  1. Di `auto_reply_engine.dart` & `MaoneAutoNotificationService.kt`:
+     - Menghapus imbuhan footer `\n\n*(Sesi menu selesai. Ketik 'menu' untuk membuka kembali)*` dari balasan leaf node, sehingga respons hanya menampilkan isi informasi asli yang bersih.
+     - Menyederhanakan pesan keluar/batal menjadi `Anda telah keluar dari menu interaktif.` tanpa menyebut kata kunci tertentu.
+  2. Bump versi ke `v1.0.38+39`.
+
 ### 🗂️ Sistem Multi-Proyek Menu Balas & Penargetan Proyek per-Kata Kunci (v1.0.37+38 - 16 Oktober 2026)
 - **Problem**: 
   1. Sebelumnya, fitur Menu Balas (Tree Menu) bersifat global tunggal (hanya 1 pohon menu untuk seluruh sistem).
