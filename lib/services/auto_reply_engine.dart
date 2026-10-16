@@ -183,7 +183,7 @@ class AutoReplyEngine {
   static bool matchesContains(String text, String paddedText, String kw) {
     if (kw == '*' || kw.isEmpty) return false;
     final cleanKw = kw.replaceAll(RegExp(r'''["'?!.]'''), '').trim().toLowerCase();
-    if (cleanKw.isEmpty()) return false;
+    if (cleanKw.isEmpty) return false;
 
     // 1. Cek kecocokan kata utuh dengan spasi (padded)
     if (paddedText.contains(' $kw ') || paddedText.contains(' $cleanKw ')) return true;
