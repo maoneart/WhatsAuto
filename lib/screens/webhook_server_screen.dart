@@ -498,26 +498,29 @@ class _WebhookServerScreenState extends State<WebhookServerScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
+      enableDrag: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) {
         return StatefulBuilder(
           builder: (modalContext, setModalState) {
             final current = templates[selectedIndex];
             return Container(
-              height: MediaQuery.of(context).size.height * 0.85,
+              height: MediaQuery.of(context).size.height,
               decoration: const BoxDecoration(
                 color: Color(0xFF111B21),
-                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
                 border: Border(
                   top: BorderSide(color: Color(0xFF00A884), width: 1.5),
                   left: BorderSide(color: Colors.white12),
                   right: BorderSide(color: Colors.white12),
                 ),
               ),
-              child: Column(
-                children: [
-                  // Handle bar
-                  Center(
+              child: SafeArea(
+                child: Column(
+                  children: [
+                    // Handle bar
+                    Center(
                     child: Container(
                       margin: const EdgeInsets.only(top: 10, bottom: 8),
                       width: 40,
@@ -709,7 +712,8 @@ class _WebhookServerScreenState extends State<WebhookServerScreen> {
                   ),
                 ],
               ),
-            );
+            ),
+          );
           },
         );
       },

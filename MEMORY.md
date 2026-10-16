@@ -541,12 +541,22 @@
        * Tombol `[Link GitHub]`: Menyalin tautan repositori GitHub template ke clipboard dengan alert modal MaoneArt.
 - **Versi**: Dinaikkan ke `v1.0.29+30`.
 
+### 📱 Modal Template Webhook Full-Screen Slide (v1.0.30+31 - 16 Oktober 2026)
+- **Konteks & Kebutuhan Pengguna**:
+  - Pengguna meminta agar modal template webhook tidak hanya setengah layar, melainkan dibuat full 1 layar penuh dengan efek slide dari bawah sampai mentok ke atas layar.
+- **Penyelarasan & Implementasi**:
+  1. `lib/screens/webhook_server_screen.dart`:
+     - Menambahkan konfigurasi `useSafeArea: true` dan `enableDrag: true` pada `showModalBottomSheet`.
+     - Mengubah tinggi container sheet menjadi `height: MediaQuery.of(context).size.height` penuh.
+     - Membungkus isi kolom dengan `SafeArea` agar header dan gesture bar tetap terproteksi rapi dan nyaman dibaca.
+- **Versi**: Dinaikkan ke `v1.0.30+31`.
+
 ---
 
 ## 📋 Active Tasks / Next Steps
 - [x] Opsi balasan single choice (pilih salah 1): Menu Balas, ChatGPT/AI, Web Server (v1.0.27+28).
 - [x] Auto-fill & lock field balasan saat opsi balasan aktif (v1.0.28+29).
-- [x] Template webhook lengkap (Google Apps Script, PHP, Node.js, Python, README) & Modal 1-klik salin di Webhook Screen (v1.0.29+30).
-- [x] Push commit ke GitHub repository `maoneart/WhatsAuto` dan trigger GitHub Actions build APK v1.0.29.
-- [x] Unduh APK rilis `v1.0.29` ke `/sdcard/Download/MaoneAuto.apk` dan verifikasi integritas.
-
+- [x] Template webhook lengkap (Google Apps Script, PHP, Node.js, Python, README) (v1.0.29+30).
+- [x] Modal template webhook full-screen slide mentok ke atas layar (v1.0.30+31).
+- [ ] Push commit ke GitHub repository `maoneart/WhatsAuto` dan trigger GitHub Actions build APK v1.0.30.
+- [ ] Unduh APK rilis `v1.0.30` ke `/sdcard/Download/MaoneAuto.apk` dan verifikasi integritas.
