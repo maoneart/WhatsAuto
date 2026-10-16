@@ -682,6 +682,27 @@ class MaoneAutoNotificationService : NotificationListenerService() {
             .filter { it.isNotEmpty() }
     }
 
+    private fun matchesContains(text: String, paddedText: String, kw: String): Boolean {
+        if (kw == "*" || kw.isBlank()) return false
+        val cleanKw = kw.replace(Regex("[\"\'?!.]"), "").trim().lowercase()
+        if (cleanKw.isEmpty()) return false
+
+        // 1. Cek kecocokan kata utuh dengan spasi (padded)
+        if (paddedText.contains(" $kw ") || paddedText.contains(" $cleanKw ")) return true
+
+        // 2. Word boundary regex: pastikan dipisahkan oleh spasi, simbol, atau batas awal/akhir kalimat
+        // Mencegah kata pendek seperti 'ass' memicu kata 'classic', 'as' memicu 'nasabah', 'hi' memicu 'arsip'
+        try {
+            val boundaryRegex = Regex("(^|\\s|[^\\w])${Regex.escape(cleanKw)}($|\\s|[^\\w])", RegexOption.IGNORE_CASE)
+            if (boundaryRegex.containsMatchIn(text)) return true
+        } catch (_: Exception) {}
+
+        // 3. Fallback hanya untuk kata kunci panjang (>= 5 huruf)
+        if (cleanKw.length >= 5 && text.contains(cleanKw)) return true
+
+        return false
+    }
+
     private fun computeReply(sender: String, messageText: String, prefs: android.content.SharedPreferences): String? {
         val cleanMsg = messageText.trim()
         if (cleanMsg.isEmpty()) return null
@@ -774,8 +795,7 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                         val keywordsList = parseKeywordList(rawKeywords)
 
                         val isMatch = keywordsList.any { kw ->
-                            val cleanKw = kw.replace(Regex("[ ?!.\\n]"), "")
-                            kw != "*" && cleanKw.isNotEmpty() && (paddedMsg.contains(" $kw ") || normalizedMsg.contains(kw) || compactMsg.contains(cleanKw))
+                            matchesContains(normalizedMsg, paddedMsg, kw)
                         }
                         if (isMatch) {
                             var rep = formatTags(rule.optString("replyMessage", ""), sender, cleanMsg)
@@ -925,8 +945,7 @@ class MaoneAutoNotificationService : NotificationListenerService() {
 
                         val kwList = parseKeywordList(rawKw)
                         val isMatch = kwList.any { kw ->
-                            val cleanKw = kw.replace(Regex("[ ?!.\\n]"), "")
-                            kw != "*" && cleanKw.isNotEmpty() && (paddedMsg.contains(" $kw ") || normalizedMsg.contains(kw) || compactMsg.contains(cleanKw))
+                            matchesContains(normalizedMsg, paddedMsg, kw)
                         }
                         if (isMatch) {
                             val rep = formatTags(item.optString("reply", ""), sender, cleanMsg)

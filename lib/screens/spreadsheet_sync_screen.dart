@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../models/spreadsheet_model.dart';
 import '../services/storage_service.dart';
 import '../services/spreadsheet_service.dart';
+import '../services/auto_reply_engine.dart';
 import '../widgets/glassmorphism_modal.dart';
 
 class SpreadsheetSyncScreen extends StatefulWidget {
@@ -105,6 +106,7 @@ class _SpreadsheetSyncScreenState extends State<SpreadsheetSyncScreen> {
       return;
     }
 
+    final paddedInput = " $input ";
     String? wildcardReply;
 
     // 1. Exact Match
@@ -115,8 +117,8 @@ class _SpreadsheetSyncScreenState extends State<SpreadsheetSyncScreen> {
         continue;
       }
       if (item.matchOption == 0) {
-        final kwList = raw.split(',').map((e) => e.replaceAll(RegExp(r'[?!.]'), '').trim().toLowerCase()).where((k) => k.isNotEmpty);
-        if (kwList.any((kw) => kw == input)) {
+        final kwList = AutoReplyEngine.parseKeywordList(raw);
+        if (kwList.any((kw) => kw != '*' && kw == input)) {
           setState(() => _testResult = '✅ Cocok (Tepat / Exact):\n"${item.reply}"');
           return;
         }
@@ -131,8 +133,8 @@ class _SpreadsheetSyncScreenState extends State<SpreadsheetSyncScreen> {
         continue;
       }
       if (item.matchOption == 1) {
-        final kwList = raw.split(',').map((e) => e.replaceAll(RegExp(r'[?!.]'), '').trim().toLowerCase()).where((k) => k.isNotEmpty);
-        if (kwList.any((kw) => input.contains(kw) || kw.contains(input))) {
+        final kwList = AutoReplyEngine.parseKeywordList(raw);
+        if (kwList.any((kw) => AutoReplyEngine.matchesContains(input, paddedInput, kw))) {
           setState(() => _testResult = '✅ Cocok (Mengandung / Contains):\n"${item.reply}"');
           return;
         }

@@ -27,6 +27,22 @@
 ---
 
 ## 🚀 Recent Milestones
+### 🛡️ Word Boundary Matching Fix untuk Kata Kunci Pendek (v1.0.36+37 - 16 Oktober 2026)
+- **Problem**: Pesan resmi dari Bank Mandiri ("...Visa Classic nomor XXXX...") memicu balasan otomatis salam ("Wa'alaikumussalam") padahal tidak ada kata kunci salam yang dimaksudkan secara eksplisit.
+- **Akar Masalah**:
+  1. Pengguna mendaftarkan variasi salam seperti `ass//askum//assalamuallaikum` dalam mode **Mengandung** (Contains Match).
+  2. Pemeriksaan substring mentah `normalizedMsg.contains("ass")` mencocokkan kata `"classic"` (`cl-ass-ic`), `"asset"`, atau `"password"`. Hal serupa terjadi jika kata `'as'` mencocokkan `"nasabah"`.
+- **Solusi & Implementasi**:
+  1. **Helper `matchesContains`**:
+     - Pengecekan kata utuh dengan padding spasi (`paddedText.contains(" $kw ")`).
+     - Word boundary regex `(^|\s|[^\w])$kw($|\s|[^\w])` untuk memastikan kata pendek dipisahkan oleh spasi, simbol, atau batas awal/akhir kalimat sehingga tidak mencocokkan bagian dalam kata lain.
+     - Fallback substring matching hanya diizinkan untuk kata kunci panjang (>= 5 huruf).
+  2. **Sinkronisasi Dart & Kotlin**:
+     - `lib/services/auto_reply_engine.dart`
+     - `android/app/src/main/kotlin/com/maoneart/maoneauto/MaoneAutoNotificationService.kt`
+     - `lib/screens/spreadsheet_sync_screen.dart`
+  3. **Bump Versi**: Dinaikkan ke `v1.0.36+37`.
+
 ### 🔀 Multi-Keyword & Typo Separator `//` pada Kata Kunci & Google Sheets (v1.0.35+36 - 16 Oktober 2026)
 - **Problem**: Pengguna ingin menampung banyak variasi kata kunci atau kemungkinan typo (misal: `ass`, `askum`, `assalamuallaikum`, `asalamualaikum`) ke dalam 1 entri kata kunci dengan 1 jawaban yang sama menggunakan pemisah khusus `//` (misal: `ass//askum//assalamuallaikum`). Metode ini harus berlaku baik di Kata Kunci lokal maupun Google Spreadsheet, untuk mode Cocokan Tepat (Exact Match) maupun Mengandung (Contains Match).
 - **Solusi & Implementasi**:

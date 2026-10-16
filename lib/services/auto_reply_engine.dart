@@ -177,6 +177,29 @@ class AutoReplyEngine {
         .toList();
   }
 
+  /// Evaluasi kecocokan 'Contains' (Mengandung) yang aman dengan boundary check.
+  /// Mencegah kata pendek (misal 'ass') memicu kata panjang tak bersalah (misal 'classic', 'asset', 'password'),
+  /// atau kata pendek 'as' memicu 'nasabah'.
+  static bool matchesContains(String text, String paddedText, String kw) {
+    if (kw == '*' || kw.isEmpty) return false;
+    final cleanKw = kw.replaceAll(RegExp(r'''["'?!.]'''), '').trim().toLowerCase();
+    if (cleanKw.isEmpty()) return false;
+
+    // 1. Cek kecocokan kata utuh dengan spasi (padded)
+    if (paddedText.contains(' $kw ') || paddedText.contains(' $cleanKw ')) return true;
+
+    // 2. Word boundary regex: pastikan dipisahkan oleh spasi, simbol, atau batas awal/akhir kalimat
+    try {
+      final boundaryRegex = RegExp(r'(^|\s|[^\w])' + RegExp.escape(cleanKw) + r'($|\s|[^\w])', caseSensitive: false);
+      if (boundaryRegex.hasMatch(text)) return true;
+    } catch (_) {}
+
+    // 3. Fallback hanya untuk kata kunci panjang (>= 5 huruf)
+    if (cleanKw.length >= 5 && text.contains(cleanKw)) return true;
+
+    return false;
+  }
+
   String _computeRawReply({
     required String senderId,
     required String incomingMessage,
@@ -230,9 +253,7 @@ class AutoReplyEngine {
         if (!rule.isEnabled || rule.isExactMatch) continue;
         final keywords = parseKeywordList(rule.incomingKeywords);
         final isMatch = keywords.any((cleanKw) {
-          if (cleanKw == '*') return false;
-          // Word boundary check persis WhatsAuto: cek dengan spasi atau substring
-          return paddedMsg.contains(" $cleanKw ") || normalizedMsg.contains(cleanKw);
+          return matchesContains(normalizedMsg, paddedMsg, cleanKw);
         });
 
         if (isMatch) {
@@ -373,7 +394,7 @@ class AutoReplyEngine {
         if (item.matchOption != 1) continue;
 
         final kwList = parseKeywordList(rawKw);
-        if (kwList.any((kw) => kw != '*' && (paddedMsg.contains(" $kw ") || normalizedMsg.contains(kw)))) {
+        if (kwList.any((kw) => matchesContains(normalizedMsg, paddedMsg, kw))) {
           final reply = applyTags(item.reply, senderId: senderId, incomingMessage: cleanMsg);
           if (reply.trim().isNotEmpty) return reply;
         }
