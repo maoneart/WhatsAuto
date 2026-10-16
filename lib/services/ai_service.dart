@@ -16,7 +16,7 @@ class AiService {
         : 'Anda adalah asisten WhatsApp cerdas MaoneAuto. Jawab pertanyaan pengguna dengan ramah, informatif, ringkas, dan jelas dalam bahasa Indonesia.';
 
     final endpoint = settings.aiProvider == 'gemini'
-        ? 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${settings.aiApiKey}'
+        ? 'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${settings.aiApiKey}'
         : default9RouterUrl;
     final uri = Uri.parse(endpoint);
 

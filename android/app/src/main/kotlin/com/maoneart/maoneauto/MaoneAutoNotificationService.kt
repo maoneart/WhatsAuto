@@ -600,7 +600,7 @@ class MaoneAutoNotificationService : NotificationListenerService() {
         return try {
             if (provider == "gemini") {
                 if (apiKey.isBlank()) return null
-                val endpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$apiKey"
+                val endpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=$apiKey"
                 val url = java.net.URL(endpoint)
                 val conn = url.openConnection() as java.net.HttpURLConnection
                 conn.requestMethod = "POST"

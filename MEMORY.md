@@ -27,6 +27,15 @@
 ---
 
 ## 🚀 Recent Milestones
+### ⚡ Pembaruan Model Gemini Cloud ke `gemini-flash-latest` (v1.0.42+43 - 16 Oktober 2026)
+- **Problem**: 
+  - Endpoint Gemini pada versi sebelumnya masih mengarah ke `gemini-1.5-flash` yang telah didepresiasi oleh Google (mengembalikan error 404 Not Found pada API v1beta).
+  - Model `gemini-2.5-flash` juga telah dibatasi untuk user baru dengan saran migrasi ke lini model terbaru.
+- **Solusi & Implementasi**:
+  1. Memperbarui endpoint Google Gemini di [`ai_service.dart`](file:///sdcard/www/WhatsAuto/lib/services/ai_service.dart) dan [`MaoneAutoNotificationService.kt`](file:///sdcard/www/WhatsAuto/android/app/src/main/kotlin/com/maoneart/maoneauto/MaoneAutoNotificationService.kt) menjadi `models/gemini-flash-latest:generateContent`.
+  2. Memverifikasi validitas format API Key Google Cloud Pay-as-you-go (`AQ....`) yang diuji langsung terhadap server resmi Google.
+  3. Bump versi ke `v1.0.42+43`.
+
 ### 👥 Pemisahan Sakelar Balasan AI: Chat Pribadi (Japri) & Grup WhatsApp (v1.0.41+42 - 16 Oktober 2026)
 - **Problem**: 
   - Pengguna membutuhkan kontrol terpisah untuk balasan AI antara pesan pribadi (japri) dan grup WhatsApp. Balasan AI yang aktif di grup berisiko merespons percakapan antar-anggota grup sehingga mengganggu obrolan grup (*group spam*).
