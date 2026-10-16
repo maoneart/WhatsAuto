@@ -608,6 +608,7 @@ class MaoneAutoNotificationService : NotificationListenerService() {
 
         val normalizedMsg = cleanMsg.replace(Regex("[?!.\\n]"), "").trim().lowercase()
         val compactMsg = cleanMsg.replace(Regex("[ ?!.\\n]"), "").trim().lowercase()
+        val paddedMsg = " $normalizedMsg "
         val defaultReply = prefs.getString("flutter.default_reply", "Halo! Terima kasih telah menghubungi kami.") ?: "Halo!"
         val onlyKeywords = prefs.getBoolean("flutter.only_reply_keywords", false)
 
@@ -641,7 +642,6 @@ class MaoneAutoNotificationService : NotificationListenerService() {
             if (isKeywordEnabled && !keywordJsonStr.isNullOrEmpty()) {
                 try {
                     val kwArray = JSONArray(keywordJsonStr)
-                    val paddedMsg = " $normalizedMsg "
 
                     // Prioritas 1: Exact Match untuk kata kunci spesifik (bukan '*')
                     for (i in 0 until kwArray.length()) {
@@ -804,7 +804,6 @@ class MaoneAutoNotificationService : NotificationListenerService() {
             if (isSheetEnabled && !sheetJsonStr.isNullOrEmpty()) {
                 try {
                     val sheetArray = JSONArray(sheetJsonStr)
-                    val paddedMsg = " $normalizedMsg "
                     var wildcardReply: String? = null
 
                     // 1. Exact Match di Sheet
