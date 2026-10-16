@@ -457,7 +457,7 @@ class _KeywordReplyListScreenState extends State<KeywordReplyListScreen> {
   Widget _buildRuleCard(KeywordReply rule, int index) {
     final keywordsList = rule.incomingKeywords
         .split(RegExp(r'//|,|\||\n|;'))
-        .map((k) => k.trim())
+        .map((k) => k.replaceAll(RegExp(r'''["']'''), '').trim())
         .where((k) => k.isNotEmpty)
         .toList();
 

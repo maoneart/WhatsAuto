@@ -667,7 +667,7 @@ class _SpreadsheetSyncScreenState extends State<SpreadsheetSyncScreen> {
                             runSpacing: 4,
                             children: item.keyword
                                 .split(RegExp(r'//|,|\||\n|;'))
-                                .map((k) => k.trim())
+                                .map((k) => k.replaceAll(RegExp(r'''["']'''), '').trim())
                                 .where((k) => k.isNotEmpty)
                                 .map(
                                   (kw) => Container(

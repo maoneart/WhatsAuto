@@ -172,7 +172,7 @@ class AutoReplyEngine {
   static List<String> parseKeywordList(String rawKeywords) {
     return rawKeywords
         .split(RegExp(r'//|,|\||\n|;'))
-        .map((k) => k.replaceAll(RegExp(r'[?!.]'), '').trim().toLowerCase())
+        .map((k) => k.replaceAll(RegExp(r'''["'?!.]'''), '').trim().toLowerCase())
         .where((k) => k.isNotEmpty)
         .toList();
   }

@@ -678,7 +678,7 @@ class MaoneAutoNotificationService : NotificationListenerService() {
 
     private fun parseKeywordList(rawKeywords: String): List<String> {
         return rawKeywords.split(Regex("//|,|\\||\\n|;"))
-            .map { it.replace(Regex("[?!.]"), "").trim().lowercase() }
+            .map { it.replace(Regex("[\"\'?!.]"), "").trim().lowercase() }
             .filter { it.isNotEmpty() }
     }
 
