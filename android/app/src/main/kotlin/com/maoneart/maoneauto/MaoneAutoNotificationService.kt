@@ -964,7 +964,7 @@ class MaoneAutoNotificationService : NotificationListenerService() {
 
                 // 4. Cocokkan pilihan dengan opsi di bawah currentParent
                 val options = sessionNodes.filter { it.optString("parentId") == currentParent && it.optInt("type") == 2 }
-
+                val numChoice = normalizedMsg.toIntOrNull()
                 var matchedOption: JSONObject? = null
                 if (numChoice != null && numChoice in 1..options.size) {
                     matchedOption = options[numChoice - 1]
