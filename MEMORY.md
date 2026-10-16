@@ -509,8 +509,8 @@
 - [x] Dukungan multi-keyword koma dan wildcard (*) di Google Spreadsheet (v1.0.24+25).
 - [x] Tombol cepat "Semua (*)" di atas keyword, wildcard catch-all engine (v1.0.25+26).
 - [x] Opsi balasan single choice (pilih salah 1): Menu Balas, ChatGPT/AI, Web Server (v1.0.27+28).
-- [ ] Push commit ke GitHub repository `maoneart/WhatsAuto` dan trigger GitHub Actions build APK v1.0.27.
-- [ ] Unduh APK rilis `v1.0.27` ke `/sdcard/Download/MaoneAuto.apk` dan verifikasi integritas.
+- [x] Push commit ke GitHub repository `maoneart/WhatsAuto` dan trigger GitHub Actions build APK v1.0.27 (Run ID `38828604529` sukses).
+- [x] Unduh APK rilis `v1.0.27` ke `/sdcard/Download/MaoneAuto.apk` (56.7 MB) dan verifikasi integritas.
 
 
 
