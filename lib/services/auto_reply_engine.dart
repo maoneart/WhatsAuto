@@ -10,7 +10,9 @@ class AutoReplyEngine {
   final List<SheetReplyItem> sheetItems;
   final bool isSheetEnabled;
   final AppSettings settings;
+  final Map<String, List<MenuNode>> projectNodes; // projectId -> nodes
   final Map<String, String> _sessions = {}; // senderId -> 'idle', 'parent', or '<node_id>'
+  final Map<String, String> _sessionProjects = {}; // senderId -> '<project_id>'
 
   AutoReplyEngine({
     required this.nodes,
@@ -18,6 +20,7 @@ class AutoReplyEngine {
     this.sheetItems = const [],
     this.isSheetEnabled = false,
     required this.settings,
+    this.projectNodes = const {},
   });
 
   static Map<String, String> resolveSenderAndDateTime({
@@ -114,6 +117,7 @@ class AutoReplyEngine {
 
   void resetSession(String senderId) {
     _sessions[senderId] = 'idle';
+    _sessionProjects.remove(senderId);
   }
 
   String wrapHeaderFooter(String reply) {
@@ -230,8 +234,13 @@ class AutoReplyEngine {
           var reply = applyTags(rule.replyMessage, senderId: senderId, incomingMessage: cleanMsg);
 
           if (rule.useMenuReply) {
+            final targetProjId = (rule.targetMenuProjectId != null && rule.targetMenuProjectId!.isNotEmpty)
+                ? rule.targetMenuProjectId!
+                : 'default_main';
+            final targetNodes = projectNodes[targetProjId] ?? nodes;
+            _sessionProjects[senderId] = targetProjId;
             _sessions[senderId] = 'parent';
-            final menuText = renderMenu('parent');
+            final menuText = renderMenu('parent', customNodes: targetNodes);
             return (reply.trim().isEmpty || reply.trim() == 'Menu Balas') ? menuText : '$reply\n\n$menuText';
           }
           if (rule.useWebhook) {
@@ -242,6 +251,7 @@ class AutoReplyEngine {
           }
           // Reset sesi menu menjadi idle
           _sessions[senderId] = 'idle';
+          _sessionProjects.remove(senderId);
           if (reply.trim().isNotEmpty) {
             return reply;
           }
@@ -260,8 +270,13 @@ class AutoReplyEngine {
           var reply = applyTags(rule.replyMessage, senderId: senderId, incomingMessage: cleanMsg);
 
           if (rule.useMenuReply) {
+            final targetProjId = (rule.targetMenuProjectId != null && rule.targetMenuProjectId!.isNotEmpty)
+                ? rule.targetMenuProjectId!
+                : 'default_main';
+            final targetNodes = projectNodes[targetProjId] ?? nodes;
+            _sessionProjects[senderId] = targetProjId;
             _sessions[senderId] = 'parent';
-            final menuText = renderMenu('parent');
+            final menuText = renderMenu('parent', customNodes: targetNodes);
             return (reply.trim().isEmpty || reply.trim() == 'Menu Balas') ? menuText : '$reply\n\n$menuText';
           }
           if (rule.useWebhook) {
@@ -272,6 +287,7 @@ class AutoReplyEngine {
           }
           // Reset sesi menu menjadi idle
           _sessions[senderId] = 'idle';
+          _sessionProjects.remove(senderId);
           if (reply.trim().isNotEmpty) {
             return reply;
           }
@@ -283,9 +299,13 @@ class AutoReplyEngine {
     // FASE 2: Sesi Menu Aktif (Hanya jika TIDAK ADA kata kunci yang cocok)
     // =========================================================================
     if (currentParent != 'idle') {
+      final currentProjectId = _sessionProjects[senderId] ?? 'default_main';
+      final activeNodes = projectNodes[currentProjectId] ?? nodes;
+
       // 1. Perintah Keluar / Batal
       if (normalizedMsg == 'batal' || normalizedMsg == 'keluar' || normalizedMsg == 'exit') {
         _sessions[senderId] = 'idle';
+        _sessionProjects.remove(senderId);
         return 'Anda telah keluar dari menu interaktif. Ketik *menu* kapan saja untuk membukanya kembali.';
       }
 
@@ -293,15 +313,16 @@ class AutoReplyEngine {
       if (normalizedMsg == '0') {
         if (currentParent != 'parent') {
           _sessions[senderId] = 'parent';
-          return renderMenu('parent');
+          return renderMenu('parent', customNodes: activeNodes);
         } else {
           _sessions[senderId] = 'idle';
+          _sessionProjects.remove(senderId);
           return 'Anda telah keluar dari menu interaktif. Ketik *menu* kapan saja untuk membukanya kembali.';
         }
       }
 
       // 3. Ambil opsi di bawah parent saat ini
-      final options = nodes.where((n) => n.parentId == currentParent && n.type == 2).toList();
+      final options = activeNodes.where((n) => n.parentId == currentParent && n.type == 2).toList();
       final previousMenuNum = options.length + 1; // Nomor untuk 'Menu Sebelumnya' persis WhatsAuto
 
       // Cek apakah user memilih tombol 'Menu Sebelumnya' (angka options.length + 1 atau teks 'kembali')
@@ -309,15 +330,16 @@ class AutoReplyEngine {
       if (numChoice == previousMenuNum || normalizedMsg == 'kembali' || normalizedMsg == 'back') {
         if (currentParent != 'parent') {
           // Cari parent dari currentParent
-          final currentNode = nodes.firstWhere(
+          final currentNode = activeNodes.firstWhere(
             (n) => n.id == currentParent,
             orElse: () => MenuNode(id: '', text: '', parentId: 'parent', type: 0),
           );
           final grandParent = currentNode.parentId.isEmpty ? 'parent' : currentNode.parentId;
           _sessions[senderId] = grandParent;
-          return renderMenu(grandParent);
+          return renderMenu(grandParent, customNodes: activeNodes);
         } else {
           _sessions[senderId] = 'idle';
+          _sessionProjects.remove(senderId);
           return 'Anda telah keluar dari menu interaktif. Ketik *menu* kapan saja untuk membukanya kembali.';
         }
       }
@@ -338,8 +360,8 @@ class AutoReplyEngine {
 
       if (matchedOption != null) {
         final selectedId = matchedOption.id;
-        final subOptions = nodes.where((n) => n.parentId == selectedId && n.type == 2).toList();
-        final subPrompt = nodes.firstWhere(
+        final subOptions = activeNodes.where((n) => n.parentId == selectedId && n.type == 2).toList();
+        final subPrompt = activeNodes.firstWhere(
           (n) => n.parentId == selectedId && n.type == 1,
           orElse: () => MenuNode(id: '', text: '', parentId: '', type: 0),
         );
@@ -347,21 +369,23 @@ class AutoReplyEngine {
         if (subOptions.isNotEmpty) {
           // Masuk ke level submenu berikutnya
           _sessions[senderId] = selectedId;
-          return renderMenu(selectedId);
+          return renderMenu(selectedId, customNodes: activeNodes);
         } else if (subPrompt.id.isNotEmpty) {
           // Leaf response (detail info/harga) -> reset sesi persis WhatsAuto e == 1
           _sessions[senderId] = 'idle';
+          _sessionProjects.remove(senderId);
           final renderedLeaf = applyTags(subPrompt.text.trim(), senderId: senderId, incomingMessage: cleanMsg);
           return '$renderedLeaf\n\n*(Sesi menu selesai. Ketik "menu" untuk membuka kembali)*';
         } else {
           _sessions[senderId] = 'idle';
+          _sessionProjects.remove(senderId);
           final renderedLeaf = applyTags(matchedOption.text.trim(), senderId: senderId, incomingMessage: cleanMsg);
           return '$renderedLeaf\n\n*(Sesi menu selesai. Ketik "menu" untuk membuka kembali)*';
         }
       }
 
       // Jika input salah saat berada di dalam menu aktif
-      return '⚠️ *Pilihan tidak ditemukan.*\nSilakan balas dengan *Nomor* opsi yang tertera:\n\n${renderMenu(currentParent)}';
+      return '⚠️ *Pilihan tidak ditemukan.*\nSilakan balas dengan *Nomor* opsi yang tertera:\n\n${renderMenu(currentParent, customNodes: activeNodes)}';
     }
 
     // B. Cek Balasan Google Spreadsheet (Katalog Harga / FAQ dari Lembar Kerja)
@@ -448,13 +472,14 @@ class AutoReplyEngine {
     return applyTags(settings.defaultReply, senderId: senderId, incomingMessage: cleanMsg);
   }
 
-  String renderMenu(String parentId) {
-    final promptNode = nodes.firstWhere(
+  String renderMenu(String parentId, {List<MenuNode>? customNodes}) {
+    final activeNodes = customNodes ?? nodes;
+    final promptNode = activeNodes.firstWhere(
       (n) => n.parentId == parentId && n.type == 1,
       orElse: () => MenuNode(id: '', text: '', parentId: '', type: 0),
     );
 
-    final options = nodes.where((n) => n.parentId == parentId && n.type == 2).toList();
+    final options = activeNodes.where((n) => n.parentId == parentId && n.type == 2).toList();
 
     final buffer = StringBuffer();
 

@@ -8,11 +8,15 @@ import 'csv_service.dart';
 import '../models/keyword_reply.dart';
 import '../models/spreadsheet_model.dart';
 import '../models/quick_note_model.dart';
+import '../models/menu_project.dart';
 
 class StorageService {
   static const String _keySettings = 'app_settings';
   static const String _keyMenuNodes = 'menu_nodes';
   static const String _keyNativeNodesCache = 'menu_nodes_cache';
+  static const String _keyMenuProjects = 'menu_projects';
+  static const String _keyNativeProjectsCache = 'menu_projects_cache';
+  static const String _keyActiveProjectId = 'active_menu_project_id';
   static const String _keyNativeEnabled = 'is_auto_reply_enabled';
   static const String _keyNativeDefaultReply = 'default_reply';
   static const String _keyKeywordReplies = 'keyword_replies';
@@ -183,6 +187,128 @@ class StorageService {
     }
     final sampleNodes = await CsvService.loadDefaultSampleCsv();
     await saveMenuNodes(sampleNodes);
+  }
+
+  // =========================================================================
+  // Multi-Proyek Menu Balas (Klinik, Makanan, Toko, dll.)
+  // =========================================================================
+  static Future<List<MenuProject>> loadMenuProjects() async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonStr = prefs.getString(_keyMenuProjects);
+    if (jsonStr != null && jsonStr.isNotEmpty) {
+      try {
+        final List<dynamic> list = json.decode(jsonStr);
+        final projects = list.map((item) => MenuProject.fromJson(item as Map<String, dynamic>)).toList();
+        if (projects.isNotEmpty) {
+          return projects;
+        }
+      } catch (_) {}
+    }
+
+    // Migrasi otomatis atau inisialisasi dari menu_nodes yang sudah ada
+    final existingNodes = await loadMenuNodes();
+    final defaultProject = MenuProject(
+      id: 'default_main',
+      name: 'Proyek Utama',
+      description: 'Katalog Menu Balas Utama',
+      nodes: existingNodes,
+    );
+    final projects = [defaultProject];
+    await saveMenuProjects(projects);
+    await setActiveProjectId('default_main');
+    return projects;
+  }
+
+  static Future<void> saveMenuProjects(List<MenuProject> projects) async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonList = projects.map((p) => p.toJson()).toList();
+    final jsonStr = json.encode(jsonList);
+
+    await prefs.setString(_keyMenuProjects, jsonStr);
+    await prefs.setString(_keyNativeProjectsCache, jsonStr);
+
+    // Sinkronkan active project nodes ke menu_nodes_cache untuk kompatibilitas
+    final activeId = await getActiveProjectId();
+    final activeProject = projects.firstWhere(
+      (p) => p.id == activeId,
+      orElse: () => projects.first,
+    );
+    await saveMenuNodes(activeProject.nodes);
+  }
+
+  static Future<String> getActiveProjectId() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_keyActiveProjectId) ?? 'default_main';
+  }
+
+  static Future<void> setActiveProjectId(String projectId) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyActiveProjectId, projectId);
+
+    // Update menu_nodes_cache dengan nodes dari proyek yang aktif
+    final jsonStr = prefs.getString(_keyMenuProjects);
+    if (jsonStr != null && jsonStr.isNotEmpty) {
+      try {
+        final List<dynamic> list = json.decode(jsonStr);
+        final projects = list.map((item) => MenuProject.fromJson(item as Map<String, dynamic>)).toList();
+        final activeProject = projects.firstWhere(
+          (p) => p.id == projectId,
+          orElse: () => projects.first,
+        );
+        await saveMenuNodes(activeProject.nodes);
+      } catch (_) {}
+    }
+  }
+
+  static Future<MenuProject> loadActiveProject() async {
+    final projects = await loadMenuProjects();
+    final activeId = await getActiveProjectId();
+    return projects.firstWhere(
+      (p) => p.id == activeId,
+      orElse: () => projects.first,
+    );
+  }
+
+  static Future<void> saveActiveProjectNodes(List<MenuNode> nodes) async {
+    final projects = await loadMenuProjects();
+    final activeId = await getActiveProjectId();
+    final index = projects.indexWhere((p) => p.id == activeId);
+    if (index != -1) {
+      projects[index].nodes = nodes;
+      projects[index].updatedAt = DateTime.now();
+    } else {
+      projects.add(MenuProject(
+        id: activeId,
+        name: 'Proyek $activeId',
+        nodes: nodes,
+      ));
+    }
+    await saveMenuProjects(projects);
+  }
+
+  static Future<void> saveProject(MenuProject project) async {
+    final projects = await loadMenuProjects();
+    final index = projects.indexWhere((p) => p.id == project.id);
+    if (index != -1) {
+      projects[index] = project;
+    } else {
+      projects.add(project);
+    }
+    await saveMenuProjects(projects);
+  }
+
+  static Future<bool> deleteProject(String projectId) async {
+    final projects = await loadMenuProjects();
+    if (projects.length <= 1) {
+      return false; // Minimal harus ada 1 proyek tersisa
+    }
+    projects.removeWhere((p) => p.id == projectId);
+    final activeId = await getActiveProjectId();
+    if (activeId == projectId) {
+      await setActiveProjectId(projects.first.id);
+    }
+    await saveMenuProjects(projects);
+    return true;
   }
 
   // =========================================================================

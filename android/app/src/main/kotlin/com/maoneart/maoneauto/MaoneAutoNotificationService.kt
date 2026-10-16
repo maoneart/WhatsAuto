@@ -714,20 +714,56 @@ class MaoneAutoNotificationService : NotificationListenerService() {
         val onlyKeywords = prefs.getBoolean("flutter.only_reply_keywords", false)
 
         val sessionPrefKey = "flutter.session_$sender"
+        val sessionProjectPrefKey = "flutter.session_project_$sender"
         val currentParent = prefs.getString(sessionPrefKey, "idle") ?: "idle"
+        val currentSessionProject = prefs.getString(sessionProjectPrefKey, "default_main") ?: "default_main"
 
-        // Baca cache tree nodes jika ada (opsional)
+        // Baca cache legacy tree nodes jika ada (opsional)
         val treeJsonStr = prefs.getString("flutter.menu_nodes_cache", null)
-        val nodes = mutableListOf<JSONObject>()
+        val defaultNodes = mutableListOf<JSONObject>()
         if (!treeJsonStr.isNullOrEmpty()) {
             try {
                 val nodesArray = JSONArray(treeJsonStr)
                 for (i in 0 until nodesArray.length()) {
-                    nodes.add(nodesArray.getJSONObject(i))
+                    defaultNodes.add(nodesArray.getJSONObject(i))
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error parsing menu nodes cache: ${e.message}")
             }
+        }
+
+        // Baca cache multi-proyek menu
+        val projectNodesMap = mutableMapOf<String, MutableList<JSONObject>>()
+        val projectsJsonStr = prefs.getString("flutter.menu_projects_cache", null)
+        if (!projectsJsonStr.isNullOrEmpty()) {
+            try {
+                val projArray = JSONArray(projectsJsonStr)
+                for (i in 0 until projArray.length()) {
+                    val projObj = projArray.getJSONObject(i)
+                    val projId = projObj.optString("id", "")
+                    if (projId.isNotEmpty()) {
+                        val projNodes = mutableListOf<JSONObject>()
+                        val nodesArray = projObj.optJSONArray("nodes")
+                        if (nodesArray != null) {
+                            for (j in 0 until nodesArray.length()) {
+                                projNodes.add(nodesArray.getJSONObject(j))
+                            }
+                        }
+                        projectNodesMap[projId] = projNodes
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error parsing menu projects cache: ${e.message}")
+            }
+        }
+        if (defaultNodes.isNotEmpty() && !projectNodesMap.containsKey("default_main")) {
+            projectNodesMap["default_main"] = defaultNodes
+        }
+
+        // Helper untuk mendapatkan nodes berdasarkan project id
+        fun getProjectNodes(projId: String?): List<JSONObject> {
+            val targetId = if (projId.isNullOrBlank()) "default_main" else projId
+            return projectNodesMap[targetId] ?: projectNodesMap["default_main"] ?: defaultNodes
         }
 
         try {
@@ -757,10 +793,17 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                         }
                         if (isMatch) {
                             var rep = formatTags(rule.optString("replyMessage", ""), sender, cleanMsg)
-                            if (rule.optBoolean("useMenuReply", false) && nodes.isNotEmpty()) {
-                                prefs.edit().putString(sessionPrefKey, "parent").apply()
-                                val menuText = renderMenu(nodes, "parent")
-                                return if (rep.isBlank() || rep.equals("Menu Balas", ignoreCase = true)) menuText else "$rep\n\n$menuText"
+                            if (rule.optBoolean("useMenuReply", false)) {
+                                val targetProjId = rule.optString("targetMenuProjectId", "default_main").ifEmpty { "default_main" }
+                                val targetNodes = getProjectNodes(targetProjId)
+                                if (targetNodes.isNotEmpty()) {
+                                    prefs.edit()
+                                        .putString(sessionPrefKey, "parent")
+                                        .putString(sessionProjectPrefKey, targetProjId)
+                                        .apply()
+                                    val menuText = renderMenu(targetNodes, "parent")
+                                    return if (rep.isBlank() || rep.equals("Menu Balas", ignoreCase = true)) menuText else "$rep\n\n$menuText"
+                                }
                             }
                             if (rule.optBoolean("useWebhook", false)) {
                                 val webhookUrl = prefs.getString("flutter.server_webhook_url", "")?.ifEmpty {
@@ -768,7 +811,10 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                                 } ?: ""
                                 val hookRep = queryWebhook(webhookUrl, sender, cleanMsg)
                                 if (!hookRep.isNullOrBlank()) {
-                                    prefs.edit().putString(sessionPrefKey, "idle").apply()
+                                    prefs.edit()
+                                        .putString(sessionPrefKey, "idle")
+                                        .remove(sessionProjectPrefKey)
+                                        .apply()
                                     return formatTags(hookRep, sender, cleanMsg)
                                 }
                                 return null
@@ -776,13 +822,19 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                             if (rule.optBoolean("useAiReply", false)) {
                                 val aiRep = queryAi(sender, cleanMsg, prefs)
                                 if (!aiRep.isNullOrBlank()) {
-                                    prefs.edit().putString(sessionPrefKey, "idle").apply()
+                                    prefs.edit()
+                                        .putString(sessionPrefKey, "idle")
+                                        .remove(sessionProjectPrefKey)
+                                        .apply()
                                     return formatTags(aiRep, sender, cleanMsg)
                                 }
                                 return null
                             }
                             // Jika kata kunci biasa (tidak pakai menu), reset sesi menu menjadi idle
-                            prefs.edit().putString(sessionPrefKey, "idle").apply()
+                            prefs.edit()
+                                .putString(sessionPrefKey, "idle")
+                                .remove(sessionProjectPrefKey)
+                                .apply()
                             if (rep.isNotBlank()) return rep
                         }
                     }
@@ -799,10 +851,17 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                         }
                         if (isMatch) {
                             var rep = formatTags(rule.optString("replyMessage", ""), sender, cleanMsg)
-                            if (rule.optBoolean("useMenuReply", false) && nodes.isNotEmpty()) {
-                                prefs.edit().putString(sessionPrefKey, "parent").apply()
-                                val menuText = renderMenu(nodes, "parent")
-                                return if (rep.isBlank() || rep.equals("Menu Balas", ignoreCase = true)) menuText else "$rep\n\n$menuText"
+                            if (rule.optBoolean("useMenuReply", false)) {
+                                val targetProjId = rule.optString("targetMenuProjectId", "default_main").ifEmpty { "default_main" }
+                                val targetNodes = getProjectNodes(targetProjId)
+                                if (targetNodes.isNotEmpty()) {
+                                    prefs.edit()
+                                        .putString(sessionPrefKey, "parent")
+                                        .putString(sessionProjectPrefKey, targetProjId)
+                                        .apply()
+                                    val menuText = renderMenu(targetNodes, "parent")
+                                    return if (rep.isBlank() || rep.equals("Menu Balas", ignoreCase = true)) menuText else "$rep\n\n$menuText"
+                                }
                             }
                             if (rule.optBoolean("useWebhook", false)) {
                                 val webhookUrl = prefs.getString("flutter.server_webhook_url", "")?.ifEmpty {
@@ -810,7 +869,10 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                                 } ?: ""
                                 val hookRep = queryWebhook(webhookUrl, sender, cleanMsg)
                                 if (!hookRep.isNullOrBlank()) {
-                                    prefs.edit().putString(sessionPrefKey, "idle").apply()
+                                    prefs.edit()
+                                        .putString(sessionPrefKey, "idle")
+                                        .remove(sessionProjectPrefKey)
+                                        .apply()
                                     return formatTags(hookRep, sender, cleanMsg)
                                 }
                                 return null
@@ -818,13 +880,19 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                             if (rule.optBoolean("useAiReply", false)) {
                                 val aiRep = queryAi(sender, cleanMsg, prefs)
                                 if (!aiRep.isNullOrBlank()) {
-                                    prefs.edit().putString(sessionPrefKey, "idle").apply()
+                                    prefs.edit()
+                                        .putString(sessionPrefKey, "idle")
+                                        .remove(sessionProjectPrefKey)
+                                        .apply()
                                     return formatTags(aiRep, sender, cleanMsg)
                                 }
                                 return null
                             }
                             // Jika kata kunci biasa (tidak pakai menu), reset sesi menu menjadi idle
-                            prefs.edit().putString(sessionPrefKey, "idle").apply()
+                            prefs.edit()
+                                .putString(sessionPrefKey, "idle")
+                                .remove(sessionProjectPrefKey)
+                                .apply()
                             if (rep.isNotBlank()) return rep
                         }
                     }
@@ -836,10 +904,14 @@ class MaoneAutoNotificationService : NotificationListenerService() {
             // =========================================================================
             // FASE 2: Sesi Menu Aktif (Hanya jika TIDAK ADA kata kunci yang cocok)
             // =========================================================================
-            if (currentParent != "idle" && nodes.isNotEmpty()) {
+            val sessionNodes = getProjectNodes(currentSessionProject)
+            if (currentParent != "idle" && sessionNodes.isNotEmpty()) {
                 // 1. Perintah Keluar / Batal
                 if (normalizedMsg == "batal" || normalizedMsg == "keluar" || normalizedMsg == "exit") {
-                    prefs.edit().putString(sessionPrefKey, "idle").apply()
+                    prefs.edit()
+                        .putString(sessionPrefKey, "idle")
+                        .remove(sessionProjectPrefKey)
+                        .apply()
                     return "Anda telah keluar dari menu interaktif. Ketik *menu* kapan saja untuk membukanya kembali."
                 }
 
@@ -847,27 +919,33 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                 if (normalizedMsg == "0") {
                     if (currentParent != "parent") {
                         prefs.edit().putString(sessionPrefKey, "parent").apply()
-                        return renderMenu(nodes, "parent")
+                        return renderMenu(sessionNodes, "parent")
                     } else {
-                        prefs.edit().putString(sessionPrefKey, "idle").apply()
+                        prefs.edit()
+                            .putString(sessionPrefKey, "idle")
+                            .remove(sessionProjectPrefKey)
+                            .apply()
                         return "Anda telah keluar dari menu interaktif. Ketik *menu* kapan saja untuk membukanya kembali."
                     }
                 }
 
                 // 3. Cocokkan pilihan dengan opsi di bawah currentParent
-                val options = nodes.filter { it.optString("parentId") == currentParent && it.optInt("type") == 2 }
+                val options = sessionNodes.filter { it.optString("parentId") == currentParent && it.optInt("type") == 2 }
                 val previousMenuNum = options.size + 1
 
                 val numChoice = normalizedMsg.toIntOrNull()
                 // Cek tombol 'Menu Sebelumnya' persis WhatsAuto
                 if (numChoice == previousMenuNum || normalizedMsg == "kembali" || normalizedMsg == "back") {
                     if (currentParent != "parent") {
-                        val currentNode = nodes.firstOrNull { it.optString("id") == currentParent }
+                        val currentNode = sessionNodes.firstOrNull { it.optString("id") == currentParent }
                         val grandParent = currentNode?.optString("parentId")?.ifEmpty { "parent" } ?: "parent"
                         prefs.edit().putString(sessionPrefKey, grandParent).apply()
-                        return renderMenu(nodes, grandParent)
+                        return renderMenu(sessionNodes, grandParent)
                     } else {
-                        prefs.edit().putString(sessionPrefKey, "idle").apply()
+                        prefs.edit()
+                            .putString(sessionPrefKey, "idle")
+                            .remove(sessionProjectPrefKey)
+                            .apply()
                         return "Anda telah keluar dari menu interaktif. Ketik *menu* kapan saja untuk membukanya kembali."
                     }
                 }
@@ -884,24 +962,30 @@ class MaoneAutoNotificationService : NotificationListenerService() {
 
                 if (matchedOption != null) {
                     val matchedId = matchedOption.optString("id")
-                    val subPrompt = nodes.firstOrNull { it.optString("parentId") == matchedId && it.optInt("type") == 1 }
-                    val subOptions = nodes.filter { it.optString("parentId") == matchedId && it.optInt("type") == 2 }
+                    val subPrompt = sessionNodes.firstOrNull { it.optString("parentId") == matchedId && it.optInt("type") == 1 }
+                    val subOptions = sessionNodes.filter { it.optString("parentId") == matchedId && it.optInt("type") == 2 }
 
                     if (subOptions.isNotEmpty()) {
                         prefs.edit().putString(sessionPrefKey, matchedId).apply()
-                        return renderMenu(nodes, matchedId)
+                        return renderMenu(sessionNodes, matchedId)
                     } else if (subPrompt != null) {
-                        prefs.edit().putString(sessionPrefKey, "idle").apply()
+                        prefs.edit()
+                            .putString(sessionPrefKey, "idle")
+                            .remove(sessionProjectPrefKey)
+                            .apply()
                         val rendered = formatTags(subPrompt.optString("text").trim(), sender, cleanMsg)
                         return "$rendered\n\n*(Sesi menu selesai. Ketik 'menu' untuk membuka kembali)*"
                     } else {
-                        prefs.edit().putString(sessionPrefKey, "idle").apply()
+                        prefs.edit()
+                            .putString(sessionPrefKey, "idle")
+                            .remove(sessionProjectPrefKey)
+                            .apply()
                         val rendered = formatTags(matchedOption.optString("text").trim(), sender, cleanMsg)
                         return "$rendered\n\n*(Sesi menu selesai. Ketik 'menu' untuk membuka kembali)*"
                     }
                 }
 
-                return "⚠️ *Pilihan tidak ditemukan.*\nSilakan balas dengan *Nomor* opsi yang tertera:\n\n" + renderMenu(nodes, currentParent)
+                return "⚠️ *Pilihan tidak ditemukan.*\nSilakan balas dengan *Nomor* opsi yang tertera:\n\n" + renderMenu(sessionNodes, currentParent)
             }
 
             // B. Cek Balasan Google Spreadsheet (Katalog Lembar Kerja)
@@ -973,10 +1057,17 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                         val hasWildcard = parseKeywordList(rawKeywords).any { it == "*" }
                         if (hasWildcard) {
                             var rep = formatTags(rule.optString("replyMessage", ""), sender, cleanMsg)
-                            if (rule.optBoolean("useMenuReply", false) && nodes.isNotEmpty()) {
-                                prefs.edit().putString(sessionPrefKey, "parent").apply()
-                                val menuText = renderMenu(nodes, "parent")
-                                return if (rep.isBlank() || rep.equals("Menu Balas", ignoreCase = true)) menuText else "$rep\n\n$menuText"
+                            if (rule.optBoolean("useMenuReply", false)) {
+                                val targetProjId = rule.optString("targetMenuProjectId", "default_main").ifEmpty { "default_main" }
+                                val targetNodes = getProjectNodes(targetProjId)
+                                if (targetNodes.isNotEmpty()) {
+                                    prefs.edit()
+                                        .putString(sessionPrefKey, "parent")
+                                        .putString(sessionProjectPrefKey, targetProjId)
+                                        .apply()
+                                    val menuText = renderMenu(targetNodes, "parent")
+                                    return if (rep.isBlank() || rep.equals("Menu Balas", ignoreCase = true)) menuText else "$rep\n\n$menuText"
+                                }
                             }
                             if (rule.optBoolean("useWebhook", false)) {
                                 val webhookUrl = prefs.getString("flutter.server_webhook_url", "")?.ifEmpty {
@@ -984,7 +1075,10 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                                 } ?: ""
                                 val hookRep = queryWebhook(webhookUrl, sender, cleanMsg)
                                 if (!hookRep.isNullOrBlank()) {
-                                    prefs.edit().putString(sessionPrefKey, "idle").apply()
+                                    prefs.edit()
+                                        .putString(sessionPrefKey, "idle")
+                                        .remove(sessionProjectPrefKey)
+                                        .apply()
                                     return formatTags(hookRep, sender, cleanMsg)
                                 }
                                 return null
@@ -992,12 +1086,18 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                             if (rule.optBoolean("useAiReply", false)) {
                                 val aiRep = queryAi(sender, cleanMsg, prefs)
                                 if (!aiRep.isNullOrBlank()) {
-                                    prefs.edit().putString(sessionPrefKey, "idle").apply()
+                                    prefs.edit()
+                                        .putString(sessionPrefKey, "idle")
+                                        .remove(sessionProjectPrefKey)
+                                        .apply()
                                     return formatTags(aiRep, sender, cleanMsg)
                                 }
                                 return null
                             }
-                            prefs.edit().putString(sessionPrefKey, "idle").apply()
+                            prefs.edit()
+                                .putString(sessionPrefKey, "idle")
+                                .remove(sessionProjectPrefKey)
+                                .apply()
                             if (rep.isNotBlank()) return rep
                         }
                     }
@@ -1007,12 +1107,16 @@ class MaoneAutoNotificationService : NotificationListenerService() {
             }
 
             // D. Kata kunci default pemanggil menu ("menu", "katalog", "bantuan")
-            if (nodes.isNotEmpty() && (normalizedMsg == "menu" ||
+            val defaultMainNodes = getProjectNodes("default_main")
+            if (defaultMainNodes.isNotEmpty() && (normalizedMsg == "menu" ||
                 normalizedMsg == "katalog" ||
                 normalizedMsg == "pilihan" ||
                 normalizedMsg == "bantuan")) {
-                prefs.edit().putString(sessionPrefKey, "parent").apply()
-                return renderMenu(nodes, "parent")
+                prefs.edit()
+                    .putString(sessionPrefKey, "parent")
+                    .putString(sessionProjectPrefKey, "default_main")
+                    .apply()
+                return renderMenu(defaultMainNodes, "parent")
             }
 
             // D. Pesan Sambutan untuk kontak baru pertama kali (Welcome Message)

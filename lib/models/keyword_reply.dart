@@ -9,6 +9,7 @@ class KeywordReply {
   bool useWebhook; // Opsi balasan: Web Server / Webhook
   bool useGoogleSheets; // Opsi balasan: Google Sheets
   bool sendEmailNotification; // Pemberitahuan Balasan: Kirim Email
+  String? targetMenuProjectId; // ID proyek menu balasan yang dituju (misal: 'default_main', 'proj_klinik', dll)
 
   KeywordReply({
     required this.id,
@@ -21,6 +22,7 @@ class KeywordReply {
     this.useWebhook = false,
     this.useGoogleSheets = false,
     this.sendEmailNotification = false,
+    this.targetMenuProjectId,
   });
 
   Map<String, dynamic> toJson() => {
@@ -34,6 +36,7 @@ class KeywordReply {
         'useWebhook': useWebhook,
         'useGoogleSheets': useGoogleSheets,
         'sendEmailNotification': sendEmailNotification,
+        if (targetMenuProjectId != null) 'targetMenuProjectId': targetMenuProjectId,
       };
 
   factory KeywordReply.fromJson(Map<String, dynamic> json) => KeywordReply(
@@ -47,5 +50,6 @@ class KeywordReply {
         useWebhook: json['useWebhook'] ?? false,
         useGoogleSheets: json['useGoogleSheets'] ?? false,
         sendEmailNotification: json['sendEmailNotification'] ?? false,
+        targetMenuProjectId: json['targetMenuProjectId'],
       );
 }

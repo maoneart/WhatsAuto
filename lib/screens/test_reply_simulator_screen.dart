@@ -26,17 +26,20 @@ class _TestReplySimulatorScreenState extends State<TestReplySimulatorScreen> {
   }
 
   Future<void> _initEngine() async {
-    final nodes = await StorageService.loadMenuNodes();
+    final projects = await StorageService.loadMenuProjects();
+    final projectNodesMap = {for (var p in projects) p.id: p.nodes};
+    final activeProject = await StorageService.loadActiveProject();
     final settings = await StorageService.loadSettings();
     final keywordReplies = await StorageService.loadKeywordReplies();
     final sheetConfig = await StorageService.loadSpreadsheetConfig();
 
     _engine = AutoReplyEngine(
-      nodes: nodes,
+      nodes: activeProject.nodes,
       keywordReplies: keywordReplies,
       sheetItems: sheetConfig.items,
       isSheetEnabled: sheetConfig.isEnabled,
       settings: settings,
+      projectNodes: projectNodesMap,
     );
 
     setState(() {

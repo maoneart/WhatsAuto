@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../models/keyword_reply.dart';
+import '../models/menu_project.dart';
 import '../services/auto_reply_engine.dart';
+import '../services/storage_service.dart';
 import '../widgets/glassmorphism_modal.dart';
 
 class AddEditKeywordReplyScreen extends StatefulWidget {
@@ -22,6 +24,9 @@ class _AddEditKeywordReplyScreenState extends State<AddEditKeywordReplyScreen> {
   bool _useWebhook = false;
   bool _sendEmail = false;
 
+  List<MenuProject> _availableProjects = [];
+  String? _selectedMenuProjectId;
+
   bool get _isOptionLocked => _useMenuReply || _useAiReply || _useWebhook;
 
   String get _lockedOptionName {
@@ -42,6 +47,7 @@ class _AddEditKeywordReplyScreenState extends State<AddEditKeywordReplyScreen> {
       _useAiReply = r.useAiReply;
       _useWebhook = r.useWebhook;
       _sendEmail = r.sendEmailNotification;
+      _selectedMenuProjectId = r.targetMenuProjectId;
       if (_useMenuReply) {
         _replyController.text = 'Menu Balas';
       } else if (_useAiReply) {
@@ -52,6 +58,18 @@ class _AddEditKeywordReplyScreenState extends State<AddEditKeywordReplyScreen> {
         _replyController.text = r.replyMessage;
       }
     }
+    _loadMenuProjects();
+  }
+
+  Future<void> _loadMenuProjects() async {
+    final projs = await StorageService.loadMenuProjects();
+    if (!mounted) return;
+    setState(() {
+      _availableProjects = projs;
+      if (_selectedMenuProjectId == null || !_availableProjects.any((p) => p.id == _selectedMenuProjectId)) {
+        _selectedMenuProjectId = projs.isNotEmpty ? projs.first.id : 'default_main';
+      }
+    });
   }
 
   void _selectReplyOption(String option) {
@@ -191,6 +209,7 @@ class _AddEditKeywordReplyScreenState extends State<AddEditKeywordReplyScreen> {
       useAiReply: _useAiReply,
       useWebhook: _useWebhook,
       sendEmailNotification: _sendEmail,
+      targetMenuProjectId: _useMenuReply ? _selectedMenuProjectId : null,
     );
 
     Navigator.of(context).pop(result);
@@ -611,6 +630,53 @@ class _AddEditKeywordReplyScreenState extends State<AddEditKeywordReplyScreen> {
                       ],
                     ),
                   ),
+                  if (_useMenuReply) ...[
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF111B21),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFF00A884).withOpacity(0.5)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.account_tree_outlined, color: Color(0xFF00A884), size: 20),
+                          const SizedBox(width: 10),
+                          const Text(
+                            'Proyek Menu:',
+                            style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: DropdownButtonHideUnderline(
+                              child: DropdownButton<String>(
+                                value: (_selectedMenuProjectId != null && _availableProjects.any((p) => p.id == _selectedMenuProjectId))
+                                    ? _selectedMenuProjectId
+                                    : (_availableProjects.isNotEmpty ? _availableProjects.first.id : null),
+                                dropdownColor: const Color(0xFF1F2C34),
+                                icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF00A884)),
+                                style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+                                isExpanded: true,
+                                items: _availableProjects.map((p) {
+                                  return DropdownMenuItem<String>(
+                                    value: p.id,
+                                    child: Text(
+                                      '${p.name} (${p.nodes.length} menu)',
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  );
+                                }).toList(),
+                                onChanged: (val) {
+                                  if (val != null) setState(() => _selectedMenuProjectId = val);
+                                },
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 24),
 
                   // Section: Opsi pencocokan

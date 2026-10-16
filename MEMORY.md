@@ -27,7 +27,39 @@
 ---
 
 ## 🚀 Recent Milestones
-### 🛡️ Word Boundary Matching Fix untuk Kata Kunci Pendek (v1.0.36+37 - 16 Oktober 2026)
+### 🗂️ Sistem Multi-Proyek Menu Balas & Penargetan Proyek per-Kata Kunci (v1.0.37+38 - 16 Oktober 2026)
+- **Problem**: 
+  1. Sebelumnya, fitur Menu Balas (Tree Menu) bersifat global tunggal (hanya 1 pohon menu untuk seluruh sistem).
+  2. Pengguna meminta arsitektur multi-proyek di mana pengguna bisa membuat banyak proyek menu balasan dengan judul masing-masing (contoh: "Klinik", "Makanan", "Toko Online", dsb.), dengan isi hierarki sub-menu dan respons mandiri.
+  3. Pada form **Balasan Kata Kunci** (*Keyword Reply*), saat opsi `Menu Balas` dicentang, harus muncul dropdown/selector untuk memilih menu proyek mana yang ingin ditargetkan (misal kata kunci `#klinik` membuka menu Klinik, kata kunci `#makanan` membuka menu Makanan).
+- **Solusi & Implementasi**:
+  1. **Model Data Baru `MenuProject` (`lib/models/menu_project.dart`)**:
+     - Struktur: `id`, `name`, `description`, `List<MenuNode> nodes`, `createdAt`, `updatedAt`.
+     - Serialisasi JSON dan copyWith.
+  2. **Ekstensi `KeywordReply` (`lib/models/keyword_reply.dart`)**:
+     - Ditambahkan properti `targetMenuProjectId: String?`.
+  3. **Manajemen Penyimpanan & Migrasi Otomatis (`lib/services/storage_service.dart`)**:
+     - Otomatis memigrasikan pohon menu yang sudah ada (`menu_nodes`) menjadi proyek default `'default_main'` berlabel "Proyek Utama".
+     - Sinkronisasi cache proyek (`menu_projects_cache` / `flutter.menu_projects_cache`) dan cache fallback legacy (`menu_nodes_cache`).
+     - Menyediakan API: `loadMenuProjects`, `saveMenuProjects`, `getActiveProjectId`, `setActiveProjectId`, `saveActiveProjectNodes`, `saveProject`, `deleteProject`.
+  4. **Antarmuka Pemilih Proyek di Balasan Kata Kunci (`lib/screens/add_edit_keyword_reply_screen.dart`)**:
+     - Menampilkan dropdown picker berdesain MaoneArt Glassmorphism tepat di bawah checkbox `Menu Balas`.
+     - Menyimpan `targetMenuProjectId` ke aturan kata kunci.
+  5. **Pengalih Proyek & Manajemen di Menu Balas (`lib/screens/menu_reply_screen.dart`)**:
+     - Ditambahkan banner kartu interaktif *Project Switcher* di root Menu Balas.
+     - Bottom sheet selector untuk ganti proyek aktif, tambah proyek baru, ganti nama, dan hapus proyek.
+     - Tombol cepat ikon folder pada AppBar actions dan menu titik tiga (⋮).
+  6. **Multi-Project Auto-Reply Engine di Dart & Simulator (`auto_reply_engine.dart` & `test_reply_simulator_screen.dart`)**:
+     - Melacak `_sessionProjects` per-pengirim (`senderId ➔ projectId`).
+     - Mengarahkan `useMenuReply` ke nodes milik `targetMenuProjectId`.
+     - Membaca dan menavigasi sub-menu bertingkat sesuai konteks proyek aktif sesi tersebut.
+  7. **Native Android Background Service (`MaoneAutoNotificationService.kt`)**:
+     - Membaca `flutter.menu_projects_cache` menjadi `projectNodesMap`.
+     - Melacak sesi per pengirim: `flutter.session_project_$sender`.
+     - Mengisolasi navigasi sub-menu Phase 2 ke nodes proyek yang sedang aktif pada percakapan tersebut.
+     - Membersihkan `session_project_$sender` saat keluar/selesai.
+  8. **Bump Versi**: Dinaikkan ke `v1.0.37+38` di `pubspec.yaml` dan `about_screen.dart`.
+
 - **Problem**: Pesan resmi dari Bank Mandiri ("...Visa Classic nomor XXXX...") memicu balasan otomatis salam ("Wa'alaikumussalam") padahal tidak ada kata kunci salam yang dimaksudkan secara eksplisit.
 - **Akar Masalah**:
   1. Pengguna mendaftarkan variasi salam seperti `ass//askum//assalamuallaikum` dalam mode **Mengandung** (Contains Match).

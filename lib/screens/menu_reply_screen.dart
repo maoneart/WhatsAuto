@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import '../models/menu_node.dart';
+import '../models/menu_project.dart';
 import '../services/storage_service.dart';
 import '../services/csv_service.dart';
 import '../widgets/glassmorphism_modal.dart';
@@ -16,6 +17,8 @@ class MenuReplyScreen extends StatefulWidget {
 
 class _MenuReplyScreenState extends State<MenuReplyScreen> {
   List<MenuNode> _allNodes = [];
+  List<MenuProject> _projects = [];
+  MenuProject? _currentProject;
   bool _isLoading = true;
 
   // Stack navigasi hierarki pohon (dimulai dari 'parent')
@@ -31,15 +34,36 @@ class _MenuReplyScreenState extends State<MenuReplyScreen> {
 
   Future<void> _loadNodes() async {
     setState(() => _isLoading = true);
-    final nodes = await StorageService.loadMenuNodes();
+    final projects = await StorageService.loadMenuProjects();
+    final activeId = await StorageService.getActiveProjectId();
+    final activeProject = projects.firstWhere(
+      (p) => p.id == activeId,
+      orElse: () => projects.first,
+    );
     setState(() {
-      _allNodes = nodes;
+      _projects = projects;
+      _currentProject = activeProject;
+      _allNodes = List<MenuNode>.from(activeProject.nodes);
+      _navigationStack.clear();
+      _navigationStack.add('parent');
       _isLoading = false;
     });
   }
 
   Future<void> _saveCurrentNodes() async {
-    await StorageService.saveMenuNodes(_allNodes);
+    if (_currentProject != null) {
+      _currentProject!.nodes = List<MenuNode>.from(_allNodes);
+      _currentProject!.updatedAt = DateTime.now();
+      await StorageService.saveProject(_currentProject!);
+    } else {
+      await StorageService.saveMenuNodes(_allNodes);
+    }
+  }
+
+  Future<void> _switchProject(String projectId) async {
+    await _saveCurrentNodes();
+    await StorageService.setActiveProjectId(projectId);
+    await _loadNodes();
   }
 
   void _navigateDown(String nodeId) {
@@ -412,6 +436,408 @@ class _MenuReplyScreenState extends State<MenuReplyScreen> {
     }
   }
 
+  // =========================================================================
+  // Dialog & Sheet Manajemen Multi-Proyek Menu Balas
+  // =========================================================================
+  void _showProjectSelectorSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF111B21),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.white24,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Kelola Proyek Menu Balas',
+                              style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                            ),
+                            SizedBox(height: 2),
+                            Text(
+                              'Beralih atau buat katalog menu untuk bisnis berbeda',
+                              style: TextStyle(color: Colors.white54, fontSize: 11),
+                            ),
+                          ],
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.add_circle, color: Color(0xFF00A884), size: 26),
+                          tooltip: 'Buat Proyek Baru',
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            _createNewProjectDialog();
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxHeight: MediaQuery.of(context).size.height * 0.45,
+                      ),
+                      child: ListView.separated(
+                        shrinkWrap: true,
+                        itemCount: _projects.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 8),
+                        itemBuilder: (context, index) {
+                          final p = _projects[index];
+                          final isActive = p.id == _currentProject?.id;
+
+                          return Container(
+                            decoration: BoxDecoration(
+                              color: isActive ? const Color(0xFF005D4B).withOpacity(0.35) : const Color(0xFF1F2C34),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: isActive ? const Color(0xFF00A884) : Colors.white.withOpacity(0.08),
+                                width: isActive ? 1.5 : 1.0,
+                              ),
+                            ),
+                            child: ListTile(
+                              leading: Icon(
+                                isActive ? Icons.check_circle : Icons.folder_outlined,
+                                color: isActive ? const Color(0xFF00A884) : Colors.white54,
+                              ),
+                              title: Text(
+                                p.name,
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              subtitle: Text(
+                                '${p.nodes.length} menu • ${p.description.isNotEmpty ? p.description : "Katalog Menu"}',
+                                style: const TextStyle(color: Colors.white54, fontSize: 11),
+                              ),
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(Icons.edit_outlined, color: Colors.white60, size: 18),
+                                    onPressed: () {
+                                      Navigator.pop(ctx);
+                                      _renameProjectDialog(p);
+                                    },
+                                    tooltip: 'Edit Nama Proyek',
+                                  ),
+                                  if (_projects.length > 1)
+                                    IconButton(
+                                      icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 18),
+                                      onPressed: () {
+                                        Navigator.pop(ctx);
+                                        _deleteProjectDialog(p);
+                                      },
+                                      tooltip: 'Hapus Proyek',
+                                    ),
+                                ],
+                              ),
+                              onTap: () {
+                                Navigator.pop(ctx);
+                                _switchProject(p.id);
+                              },
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF00A884),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        icon: const Icon(Icons.add, size: 18),
+                        label: const Text('Buat Proyek Menu Baru', style: TextStyle(fontWeight: FontWeight.bold)),
+                        onPressed: () {
+                          Navigator.pop(ctx);
+                          _createNewProjectDialog();
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _createNewProjectDialog() {
+    final nameController = TextEditingController();
+    final descController = TextEditingController();
+    bool copyCurrent = false;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDlgState) {
+          return AlertDialog(
+            backgroundColor: const Color(0xFF1F2C34),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: const Row(
+              children: [
+                Icon(Icons.create_new_folder_outlined, color: Color(0xFF00A884), size: 22),
+                SizedBox(width: 10),
+                Text('Proyek Menu Baru', style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold)),
+              ],
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Nama Proyek (misal: Klinik, Makanan, Toko)', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: nameController,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
+                      hintText: 'Contoh: Klinik Pratama Sehat',
+                      hintStyle: TextStyle(color: Colors.white.withOpacity(0.35)),
+                      filled: true,
+                      fillColor: const Color(0xFF111B21),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  const Text('Deskripsi Singkat (Opsional)', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: descController,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
+                      hintText: 'Contoh: Layanan Poli & Jadwal Dokter',
+                      hintStyle: TextStyle(color: Colors.white.withOpacity(0.35)),
+                      filled: true,
+                      fillColor: const Color(0xFF111B21),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  CheckboxListTile(
+                    contentPadding: EdgeInsets.zero,
+                    value: copyCurrent,
+                    activeColor: const Color(0xFF00A884),
+                    title: const Text('Salin menu dari proyek saat ini', style: TextStyle(color: Colors.white70, fontSize: 13)),
+                    onChanged: (v) => setDlgState(() => copyCurrent = v ?? false),
+                  ),
+                ],
+              ),
+            ),
+            actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            actions: [
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.white70,
+                        side: BorderSide(color: Colors.white.withOpacity(0.2)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      onPressed: () => Navigator.pop(ctx),
+                      child: const Text('Batal'),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF00A884),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      onPressed: () async {
+                        final name = nameController.text.trim();
+                        if (name.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Nama proyek tidak boleh kosong!')),
+                          );
+                          return;
+                        }
+
+                        List<MenuNode> initialNodes;
+                        if (copyCurrent && _allNodes.isNotEmpty) {
+                          initialNodes = _allNodes.map((n) => n.copyWith()).toList();
+                        } else {
+                          initialNodes = [
+                            MenuNode(
+                              id: '1',
+                              text: 'Halo! Selamat datang di $name.\n\nSilakan pilih nomor layanan:',
+                              parentId: 'parent',
+                              type: 1,
+                            ),
+                          ];
+                        }
+
+                        final newProj = MenuProject(
+                          id: 'proj_${DateTime.now().millisecondsSinceEpoch}',
+                          name: name,
+                          description: descController.text.trim(),
+                          nodes: initialNodes,
+                        );
+
+                        await StorageService.saveProject(newProj);
+                        await StorageService.setActiveProjectId(newProj.id);
+                        if (ctx.mounted) Navigator.pop(ctx);
+                        await _loadNodes();
+
+                        if (mounted) {
+                          GlassmorphismModal.showAlertModal(
+                            context: context,
+                            title: 'Proyek Dibuat',
+                            message: 'Proyek "$name" berhasil dibuat dan aktif sebagai Menu Balas.',
+                          );
+                        }
+                      },
+                      child: const Text('Simpan'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  void _renameProjectDialog(MenuProject project) {
+    final nameController = TextEditingController(text: project.name);
+    final descController = TextEditingController(text: project.description);
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1F2C34),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Edit Proyek Menu', style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Nama Proyek', style: TextStyle(color: Colors.white70, fontSize: 12)),
+            const SizedBox(height: 6),
+            TextField(
+              controller: nameController,
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: const Color(0xFF111B21),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Text('Deskripsi Singkat', style: TextStyle(color: Colors.white70, fontSize: 12)),
+            const SizedBox(height: 6),
+            TextField(
+              controller: descController,
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: const Color(0xFF111B21),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+              ),
+            ),
+          ],
+        ),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        actions: [
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.white70,
+                    side: BorderSide(color: Colors.white.withOpacity(0.2)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Batal'),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF00A884),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  onPressed: () async {
+                    final name = nameController.text.trim();
+                    if (name.isEmpty) return;
+                    project.name = name;
+                    project.description = descController.text.trim();
+                    project.updatedAt = DateTime.now();
+                    await StorageService.saveProject(project);
+                    if (ctx.mounted) Navigator.pop(ctx);
+                    await _loadNodes();
+                  },
+                  child: const Text('Simpan'),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _deleteProjectDialog(MenuProject project) {
+    GlassmorphismModal.showConfirmModal(
+      context: context,
+      title: 'Hapus Proyek?',
+      message: 'Apakah Anda yakin ingin menghapus proyek "${project.name}" beserta ${project.nodes.length} menu di dalamnya?',
+      confirmText: 'Hapus',
+      cancelText: 'Batal',
+      isDanger: true,
+      onConfirm: () async {
+        final success = await StorageService.deleteProject(project.id);
+        if (success) {
+          await _loadNodes();
+          if (mounted) {
+            GlassmorphismModal.showAlertModal(
+              context: context,
+              title: 'Proyek Dihapus',
+              message: 'Proyek "${project.name}" berhasil dihapus.',
+            );
+          }
+        }
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -460,13 +886,16 @@ class _MenuReplyScreenState extends State<MenuReplyScreen> {
           ),
           actions: [
             IconButton(
-              icon: const Icon(Icons.access_time, color: Colors.white70),
-              onPressed: () {},
+              icon: const Icon(Icons.folder_copy_outlined, color: Color(0xFF00A884)),
+              tooltip: 'Kelola Proyek Menu',
+              onPressed: _showProjectSelectorSheet,
             ),
             PopupMenuButton<String>(
               icon: const Icon(Icons.more_vert, color: Colors.white70),
               color: const Color(0xFF1F2C34),
               onSelected: (val) {
+                if (val == 'projects') _showProjectSelectorSheet();
+                if (val == 'new_project') _createNewProjectDialog();
                 if (val == 'import') _importCsvAction();
                 if (val == 'export') _exportCsvAction();
                 if (val == 'reset') {
@@ -474,6 +903,26 @@ class _MenuReplyScreenState extends State<MenuReplyScreen> {
                 }
               },
               itemBuilder: (ctx) => [
+                const PopupMenuItem(
+                  value: 'projects',
+                  child: Row(
+                    children: [
+                      Icon(Icons.folder_open, color: Color(0xFF00A884), size: 20),
+                      SizedBox(width: 10),
+                      Text('Daftar Proyek Menu', style: TextStyle(color: Colors.white)),
+                    ],
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'new_project',
+                  child: Row(
+                    children: [
+                      Icon(Icons.add_circle_outline, color: Color(0xFF00A884), size: 20),
+                      SizedBox(width: 10),
+                      Text('Buat Proyek Baru', style: TextStyle(color: Colors.white)),
+                    ],
+                  ),
+                ),
                 const PopupMenuItem(
                   value: 'import',
                   child: Row(
@@ -513,6 +962,80 @@ class _MenuReplyScreenState extends State<MenuReplyScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Switcher Proyek Menu Balas (Aktif di Root Level)
+              if (isRoot) ...[
+                InkWell(
+                  onTap: _showProjectSelectorSheet,
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF111B21),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFF00A884).withOpacity(0.35)),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(7),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF00A884).withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(Icons.account_tree, color: Color(0xFF00A884), size: 18),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  const Text(
+                                    'PROYEK MENU BALAS',
+                                    style: TextStyle(
+                                      color: Color(0xFF00A884),
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 0.6,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white10,
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: Text(
+                                      '${_projects.length} Proyek',
+                                      style: const TextStyle(color: Colors.white70, fontSize: 9),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                _currentProject?.name ?? 'Proyek Menu Utama',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(Icons.unfold_more, color: Colors.white54, size: 20),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+              ],
+
               // Breadcrumb Navigation jika di dalam sub-menu
               if (!isRoot) ...[
                 InkWell(
