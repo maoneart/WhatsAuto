@@ -27,6 +27,15 @@
 ---
 
 ## 🚀 Recent Milestones
+### 👁️ Restorasi Tombol Mata API Key & Pesan Error Cerdas Gemini / 9Router (v1.0.43+44 - 16 Oktober 2026)
+- **Problem**: 
+  - Tombol mata (icon toggle show/hide obscureText) pada input API Key di menu Balasan AI sempat hilang sehingga pengguna tidak bisa memeriksa API Key yang dimasukkan.
+  - Saat pengetesan koneksi AI gagal (misalnya karena limit kuota Gemini habis), pesan error tertelan generic fallback yang menyebut "Pastikan server 9Router aktif", membingungkan pengguna yang memilih provider Google Gemini.
+- **Solusi & Implementasi**:
+  1. Menambahkan tombol mata (`suffixIcon` eye toggle `_obscureApiKey`) pada input API Key di [`AiReplyScreen`](file:///sdcard/www/WhatsAuto/lib/screens/ai_reply_screen.dart).
+  2. Memperbaiki [`AiService.generateReply`](file:///sdcard/www/WhatsAuto/lib/services/ai_service.dart) dengan parameter `throwOnError: true` pada pengujian koneksi, sehingga detail respon resmi dari Google Gemini (misal HTTP 429 Spend Cap / 400 Invalid Key) langsung ditampilkan secara transparan dan jelas kepada pengguna.
+  3. Bump versi ke `v1.0.43+44`.
+
 ### ⚡ Pembaruan Model Gemini Cloud ke `gemini-flash-latest` (v1.0.42+43 - 16 Oktober 2026)
 - **Problem**: 
   - Endpoint Gemini pada versi sebelumnya masih mengarah ke `gemini-1.5-flash` yang telah didepresiasi oleh Google (mengembalikan error 404 Not Found pada API v1beta).

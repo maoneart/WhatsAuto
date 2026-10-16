@@ -15,6 +15,7 @@ class _AiReplyScreenState extends State<AiReplyScreen> {
   AppSettings _settings = AppSettings();
   bool _isLoading = true;
   bool _isTesting = false;
+  bool _obscureApiKey = true;
 
   final TextEditingController _promptController = TextEditingController();
   final TextEditingController _apiKeyController = TextEditingController();
@@ -489,15 +490,28 @@ class _AiReplyScreenState extends State<AiReplyScreen> {
           ] else ...[
             TextField(
               controller: _apiKeyController,
-              obscureText: true,
+              obscureText: _obscureApiKey,
               style: const TextStyle(color: Colors.white, fontSize: 13),
               decoration: InputDecoration(
-                hintText: 'AIzaSy...',
+                hintText: 'AIzaSy... / AQ....',
                 hintStyle: const TextStyle(color: Colors.white30, fontSize: 13),
                 filled: true,
                 fillColor: const Color(0xFF0B141B),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _obscureApiKey ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                    color: Colors.white54,
+                    size: 20,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _obscureApiKey = !_obscureApiKey;
+                    });
+                  },
+                  tooltip: _obscureApiKey ? 'Tampilkan API Key' : 'Sembunyikan API Key',
+                ),
               ),
               onChanged: (_) => _saveSettings(),
             ),

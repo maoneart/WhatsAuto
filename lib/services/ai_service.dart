@@ -10,6 +10,7 @@ class AiService {
     required String incomingMessage,
     required AppSettings settings,
     String? senderName,
+    bool throwOnError = false,
   }) async {
     final systemPrompt = settings.aiCustomPrompt.trim().isNotEmpty
         ? settings.aiCustomPrompt.trim()
@@ -22,6 +23,10 @@ class AiService {
 
     try {
       if (settings.aiProvider == 'gemini') {
+        if (settings.aiApiKey.trim().isEmpty) {
+          throw Exception('Google Gemini API Key belum diisi. Silakan masukkan API Key Anda di menu Balasan AI.');
+        }
+
         final body = json.encode({
           'contents': [
             {
@@ -47,7 +52,22 @@ class AiService {
             return text.toString().trim();
           }
         }
-        throw Exception('Gemini API error (Status ${response.statusCode}): ${response.body}');
+
+        String errDetail = response.body;
+        try {
+          final errJson = json.decode(utf8.decode(response.bodyBytes));
+          if (errJson['error']?['message'] != null) {
+            errDetail = errJson['error']['message'];
+          }
+        } catch (_) {}
+
+        if (response.statusCode == 429) {
+          throw Exception('Gemini Kuota / Spending Cap Terlampaui (429): $errDetail');
+        } else if (response.statusCode == 400) {
+          throw Exception('Gemini API Key Tidak Valid / Salah Format (400): $errDetail');
+        } else {
+          throw Exception('Gemini API Error (${response.statusCode}): $errDetail');
+        }
       } else {
         // 9Router Local Gateway (OpenAI Compatible)
         final token = settings.aiApiKey.isNotEmpty
@@ -78,9 +98,19 @@ class AiService {
             return text.toString().trim();
           }
         }
-        throw Exception('9Router error (Status ${response.statusCode}): ${response.body}');
+
+        String errDetail = response.body;
+        try {
+          final errJson = json.decode(utf8.decode(response.bodyBytes));
+          if (errJson['error']?['message'] != null) {
+            errDetail = errJson['error']['message'];
+          }
+        } catch (_) {}
+
+        throw Exception('9Router Error (${response.statusCode}): $errDetail');
       }
     } catch (e) {
+      if (throwOnError) rethrow;
       return '';
     }
   }
@@ -102,10 +132,15 @@ class AiService {
       incomingMessage: testMessage.isEmpty ? 'Halo, perkenalkan tokomu!' : testMessage,
       settings: settings,
       senderName: 'Penguji',
+      throwOnError: true,
     );
 
     if (reply.isEmpty) {
-      throw Exception('Gagal mendapatkan balasan dari AI Gateway. Pastikan server 9Router aktif di port 20128 atau API key valid.');
+      if (provider == 'gemini') {
+        throw Exception('Respon dari Google Gemini kosong. Pastikan API Key aktif dan memiliki kuota.');
+      } else {
+        throw Exception('Gagal mendapatkan balasan dari 9Router. Pastikan server 9Router aktif di port 20128.');
+      }
     }
     return reply;
   }
