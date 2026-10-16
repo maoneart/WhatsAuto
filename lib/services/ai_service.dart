@@ -18,10 +18,10 @@ class AiService {
     final endpoint = settings.aiProvider == 'gemini'
         ? 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${settings.aiApiKey}'
         : default9RouterUrl;
+    final uri = Uri.parse(endpoint);
 
     try {
       if (settings.aiProvider == 'gemini') {
-        final uri = Uri.parse(endpoint);
         final body = json.encode({
           'contents': [
             {

@@ -116,6 +116,10 @@ class _AiReplyScreenState extends State<AiReplyScreen> {
             _buildMasterToggle(),
             const SizedBox(height: 16),
 
+            // 1b. Cakupan Penerima AI (Japri vs Grup Terpisah)
+            _buildScopeCard(),
+            const SizedBox(height: 16),
+
             // 2. Gateway Provider Selector
             _buildProviderCard(),
             const SizedBox(height: 16),
@@ -132,6 +136,146 @@ class _AiReplyScreenState extends State<AiReplyScreen> {
             _buildLiveAiTester(),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildScopeCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF111B21),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: const [
+              Icon(Icons.tune_rounded, color: Color(0xFF10B981), size: 18),
+              SizedBox(width: 8),
+              Text(
+                'Cakupan Balasan AI',
+                style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Pisahkan sakelar untuk pesan pribadi (japri) dan grup agar tidak mengganggu obrolan grup.',
+            style: TextStyle(color: Colors.white54, fontSize: 12),
+          ),
+          const SizedBox(height: 14),
+          // Toggle Chat Pribadi (Japri)
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: (_settings.aiReplyPersonal ? const Color(0xFF10B981) : Colors.white12).withOpacity(0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.person_rounded,
+                  color: _settings.aiReplyPersonal ? const Color(0xFF10B981) : Colors.white54,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Chat Pribadi (Japri)',
+                      style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      _settings.aiReplyPersonal
+                          ? 'Aktif — AI membalas pesan obrolan 1-lawan-1'
+                          : 'Nonaktif — Abaikan chat pribadi',
+                      style: TextStyle(
+                        color: _settings.aiReplyPersonal ? const Color(0xFF10B981) : Colors.white38,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Switch(
+                value: _settings.aiReplyPersonal,
+                activeColor: const Color(0xFF10B981),
+                activeTrackColor: const Color(0xFF10B981).withOpacity(0.4),
+                inactiveThumbColor: Colors.white38,
+                inactiveTrackColor: Colors.white10,
+                onChanged: _settings.aiReplyEnabled
+                    ? (val) {
+                        setState(() => _settings.aiReplyPersonal = val);
+                        _saveSettings();
+                      }
+                    : null,
+              ),
+            ],
+          ),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 8),
+            child: Divider(color: Colors.white10, height: 1),
+          ),
+          // Toggle Chat Grup
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: (_settings.aiReplyGroup ? const Color(0xFF38BDF8) : Colors.white12).withOpacity(0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.groups_rounded,
+                  color: _settings.aiReplyGroup ? const Color(0xFF38BDF8) : Colors.white54,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Chat Grup WhatsApp',
+                      style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      _settings.aiReplyGroup
+                          ? 'Aktif — AI merespons di dalam grup'
+                          : 'Nonaktif — AI tidak membalas di grup (Aman)',
+                      style: TextStyle(
+                        color: _settings.aiReplyGroup ? const Color(0xFF38BDF8) : Colors.white38,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Switch(
+                value: _settings.aiReplyGroup,
+                activeColor: const Color(0xFF38BDF8),
+                activeTrackColor: const Color(0xFF38BDF8).withOpacity(0.4),
+                inactiveThumbColor: Colors.white38,
+                inactiveTrackColor: Colors.white10,
+                onChanged: _settings.aiReplyEnabled
+                    ? (val) {
+                        setState(() => _settings.aiReplyGroup = val);
+                        _saveSettings();
+                      }
+                    : null,
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

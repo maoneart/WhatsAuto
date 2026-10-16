@@ -145,7 +145,11 @@ class AutoReplyEngine {
   Future<String> processMessageAsync({
     required String senderId,
     required String incomingMessage,
+    bool isGroup = false,
   }) async {
+    final effectiveIsGroup = isGroup || senderId.contains('@') || (senderId.contains(':') && !senderId.startsWith('+'));
+    final canAiReply = settings.aiReplyEnabled && (effectiveIsGroup ? settings.aiReplyGroup : settings.aiReplyPersonal);
+
     var rawReply = _computeRawReply(senderId: senderId, incomingMessage: incomingMessage);
     if (rawReply == '🌐 [Pesan diproses via Web Server]') {
       final cleanMsg = incomingMessage.replaceAll(RegExp(r'[\u200e\u2068\u2069]'), '').trim();
@@ -169,18 +173,22 @@ class AutoReplyEngine {
         rawReply = '⚠️ URL Webhook belum diatur di menu Webhook Server.';
       }
     } else if (rawReply == '🤖 [Balasan otomatis oleh AI]') {
-      final cleanMsg = incomingMessage.replaceAll(RegExp(r'[\u200e\u2068\u2069]'), '').trim();
-      try {
-        final aiReply = await AiService.generateReply(
-          incomingMessage: cleanMsg,
-          settings: settings,
-          senderName: senderId,
-        );
-        rawReply = aiReply.isNotEmpty ? aiReply : '⚠️ AI Gateway tidak merespon.';
-      } catch (e) {
-        rawReply = '❌ Gagal memanggil AI: $e';
+      if (!canAiReply) {
+        rawReply = '';
+      } else {
+        final cleanMsg = incomingMessage.replaceAll(RegExp(r'[\u200e\u2068\u2069]'), '').trim();
+        try {
+          final aiReply = await AiService.generateReply(
+            incomingMessage: cleanMsg,
+            settings: settings,
+            senderName: senderId,
+          );
+          rawReply = aiReply.isNotEmpty ? aiReply : '⚠️ AI Gateway tidak merespon.';
+        } catch (e) {
+          rawReply = '❌ Gagal memanggil AI: $e';
+        }
       }
-    } else if (settings.aiReplyEnabled && rawReply.isEmpty && !settings.onlyReplyKeywords && (_sessions[senderId] == null || _sessions[senderId] == 'idle')) {
+    } else if (canAiReply && rawReply.isEmpty && !settings.onlyReplyKeywords && (_sessions[senderId] == null || _sessions[senderId] == 'idle')) {
       final cleanMsg = incomingMessage.replaceAll(RegExp(r'[\u200e\u2068\u2069]'), '').trim();
       try {
         final aiReply = await AiService.generateReply(

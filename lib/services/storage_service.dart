@@ -62,6 +62,8 @@ class StorageService {
     await prefs.setBool('welcome_message_enabled', settings.welcomeMessageEnabled);
     await prefs.setString('welcome_message', settings.welcomeMessage);
     await prefs.setBool('ai_reply_enabled', settings.aiReplyEnabled);
+    await prefs.setBool('ai_reply_personal', settings.aiReplyPersonal);
+    await prefs.setBool('ai_reply_group', settings.aiReplyGroup);
     await prefs.setString('ai_provider', settings.aiProvider);
     await prefs.setString('ai_api_key', settings.aiApiKey);
     await prefs.setString('ai_custom_prompt', settings.aiCustomPrompt);

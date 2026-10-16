@@ -18,6 +18,7 @@ class _TestReplySimulatorScreenState extends State<TestReplySimulatorScreen> {
 
   AutoReplyEngine? _engine;
   bool _isLoading = true;
+  bool _isSimulatingGroup = false;
 
   @override
   void initState() {
@@ -87,8 +88,9 @@ class _TestReplySimulatorScreenState extends State<TestReplySimulatorScreen> {
     // Simulasi delay pengetikan bot (250ms)
     Future.delayed(const Duration(milliseconds: 250), () async {
       final reply = await _engine!.processMessageAsync(
-        senderId: 'Budi Santoso',
+        senderId: _isSimulatingGroup ? 'Budi Santoso @ Grup Diskusi' : 'Budi Santoso',
         incomingMessage: clean,
+        isGroup: _isSimulatingGroup,
       );
 
       if (!mounted) return;
@@ -169,6 +171,59 @@ class _TestReplySimulatorScreenState extends State<TestReplySimulatorScreen> {
           ],
         ),
         actions: [
+          // Switch Simulasi Japri / Grup
+          InkWell(
+            borderRadius: BorderRadius.circular(20),
+            onTap: () {
+              setState(() {
+                _isSimulatingGroup = !_isSimulatingGroup;
+              });
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    _isSimulatingGroup
+                        ? 'Simulasi beralih ke Mode Grup (👥)'
+                        : 'Simulasi beralih ke Mode Pribadi / Japri (👤)',
+                  ),
+                  duration: const Duration(milliseconds: 900),
+                  backgroundColor: const Color(0xFF111B21),
+                ),
+              );
+            },
+            child: Container(
+              margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: _isSimulatingGroup
+                    ? const Color(0xFF38BDF8).withOpacity(0.2)
+                    : const Color(0xFF10B981).withOpacity(0.2),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: _isSimulatingGroup ? const Color(0xFF38BDF8) : const Color(0xFF10B981),
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    _isSimulatingGroup ? Icons.groups_rounded : Icons.person_rounded,
+                    size: 16,
+                    color: _isSimulatingGroup ? const Color(0xFF38BDF8) : const Color(0xFF10B981),
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    _isSimulatingGroup ? 'Grup' : 'Japri',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: _isSimulatingGroup ? const Color(0xFF38BDF8) : const Color(0xFF10B981),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.refresh, color: Colors.white70),
             onPressed: _resetChat,

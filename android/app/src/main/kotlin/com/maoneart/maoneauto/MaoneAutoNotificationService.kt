@@ -228,7 +228,10 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                 cleanSender.contains(" @ ")
             }
             val enableGroups = prefs.getBoolean("flutter.enable_groups", false)
-            if (isGroup && !enableGroups) {
+            val aiReplyGroup = prefs.getBoolean("flutter.ai_reply_group", false)
+            val isAiReplyEnabled = prefs.getBoolean("flutter.ai_reply_enabled", false)
+            val allowGroupForAi = isAiReplyEnabled && aiReplyGroup
+            if (isGroup && !enableGroups && !allowGroupForAi) {
                 ServiceLogManager.log("👥 Abaikan pesan grup '$cleanSender' karena fitur Grup dinonaktifkan")
                 return
             }
@@ -288,7 +291,7 @@ class MaoneAutoNotificationService : NotificationListenerService() {
             }
 
             // 6. Hitung teks balasan dengan Tree Menu & Rule Kata Kunci
-            val replyText = computeReply(cleanSender, cleanMsg, prefs)
+            val replyText = computeReply(cleanSender, cleanMsg, prefs, isGroup)
             if (replyText.isNullOrBlank()) {
                 ServiceLogManager.log("ℹ️ Tidak ada aturan balasan untuk '$cleanMsg' dari '$cleanSender'")
                 return
@@ -702,7 +705,7 @@ class MaoneAutoNotificationService : NotificationListenerService() {
         return false
     }
 
-    private fun computeReply(sender: String, messageText: String, prefs: android.content.SharedPreferences): String? {
+    private fun computeReply(sender: String, messageText: String, prefs: android.content.SharedPreferences, isGroup: Boolean = false): String? {
         val cleanMsg = messageText.trim()
         if (cleanMsg.isEmpty()) return null
 
@@ -711,6 +714,11 @@ class MaoneAutoNotificationService : NotificationListenerService() {
         val paddedMsg = " $normalizedMsg "
         val defaultReply = prefs.getString("flutter.default_reply", "Halo! Terima kasih telah menghubungi kami.") ?: "Halo!"
         val onlyKeywords = prefs.getBoolean("flutter.only_reply_keywords", false)
+
+        val isAiReplyEnabled = prefs.getBoolean("flutter.ai_reply_enabled", false)
+        val aiReplyPersonal = prefs.getBoolean("flutter.ai_reply_personal", true)
+        val aiReplyGroup = prefs.getBoolean("flutter.ai_reply_group", false)
+        val canAiReply = isAiReplyEnabled && (if (isGroup) aiReplyGroup else aiReplyPersonal)
 
         val sessionPrefKey = "flutter.session_$sender"
         val sessionProjectPrefKey = "flutter.session_project_$sender"
@@ -819,13 +827,17 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                                 return null
                             }
                             if (rule.optBoolean("useAiReply", false)) {
-                                val aiRep = queryAi(sender, cleanMsg, prefs)
-                                if (!aiRep.isNullOrBlank()) {
-                                    prefs.edit()
-                                        .putString(sessionPrefKey, "idle")
-                                        .remove(sessionProjectPrefKey)
-                                        .apply()
-                                    return formatTags(aiRep, sender, cleanMsg)
+                                if (canAiReply) {
+                                    val aiRep = queryAi(sender, cleanMsg, prefs)
+                                    if (!aiRep.isNullOrBlank()) {
+                                        prefs.edit()
+                                            .putString(sessionPrefKey, "idle")
+                                            .remove(sessionProjectPrefKey)
+                                            .apply()
+                                        return formatTags(aiRep, sender, cleanMsg)
+                                    }
+                                } else {
+                                    ServiceLogManager.log("🤖 Balasan AI dilewati untuk ${if (isGroup) "Grup" else "Pribadi"} karena sakelar AI khusus ini nonaktif")
                                 }
                                 return null
                             }
@@ -877,13 +889,17 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                                 return null
                             }
                             if (rule.optBoolean("useAiReply", false)) {
-                                val aiRep = queryAi(sender, cleanMsg, prefs)
-                                if (!aiRep.isNullOrBlank()) {
-                                    prefs.edit()
-                                        .putString(sessionPrefKey, "idle")
-                                        .remove(sessionProjectPrefKey)
-                                        .apply()
-                                    return formatTags(aiRep, sender, cleanMsg)
+                                if (canAiReply) {
+                                    val aiRep = queryAi(sender, cleanMsg, prefs)
+                                    if (!aiRep.isNullOrBlank()) {
+                                        prefs.edit()
+                                            .putString(sessionPrefKey, "idle")
+                                            .remove(sessionProjectPrefKey)
+                                            .apply()
+                                        return formatTags(aiRep, sender, cleanMsg)
+                                    }
+                                } else {
+                                    ServiceLogManager.log("🤖 Balasan AI dilewati untuk ${if (isGroup) "Grup" else "Pribadi"} karena sakelar AI khusus ini nonaktif")
                                 }
                                 return null
                             }
@@ -1098,13 +1114,15 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                                 return null
                             }
                             if (rule.optBoolean("useAiReply", false)) {
-                                val aiRep = queryAi(sender, cleanMsg, prefs)
-                                if (!aiRep.isNullOrBlank()) {
-                                    prefs.edit()
-                                        .putString(sessionPrefKey, "idle")
-                                        .remove(sessionProjectPrefKey)
-                                        .apply()
-                                    return formatTags(aiRep, sender, cleanMsg)
+                                if (canAiReply) {
+                                    val aiRep = queryAi(sender, cleanMsg, prefs)
+                                    if (!aiRep.isNullOrBlank()) {
+                                        prefs.edit()
+                                            .putString(sessionPrefKey, "idle")
+                                            .remove(sessionProjectPrefKey)
+                                            .apply()
+                                        return formatTags(aiRep, sender, cleanMsg)
+                                    }
                                 }
                                 return null
                             }
@@ -1144,9 +1162,8 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                 }
             }
 
-            // E. Balasan AI untuk pesan biasa di luar menu (jika Master Switch Balasan AI diaktifkan)
-            val isAiReplyEnabled = prefs.getBoolean("flutter.ai_reply_enabled", false)
-            if (isAiReplyEnabled && !onlyKeywords) {
+            // E. Balasan AI untuk pesan biasa di luar menu (jika Master Switch Balasan AI diaktifkan & sesuai cakupan Japri/Grup)
+            if (canAiReply && !onlyKeywords) {
                 val aiRep = queryAi(sender, cleanMsg, prefs)
                 if (!aiRep.isNullOrBlank()) {
                     return formatTags(aiRep, sender, cleanMsg)

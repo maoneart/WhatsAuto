@@ -6,6 +6,8 @@ class AppSettings {
   bool welcomeMessageEnabled;
   String welcomeMessage;
   bool aiReplyEnabled;
+  bool aiReplyPersonal;
+  bool aiReplyGroup;
   String aiProvider; // '9router', 'gemini', 'openai'
   String aiApiKey;
   String aiCustomPrompt;
@@ -28,6 +30,8 @@ class AppSettings {
     this.welcomeMessageEnabled = false,
     this.welcomeMessage = 'Selamat datang! Ada yang bisa kami bantu?',
     this.aiReplyEnabled = false,
+    this.aiReplyPersonal = true,
+    this.aiReplyGroup = false,
     this.aiProvider = '9router',
     this.aiApiKey = '',
     this.aiCustomPrompt = 'Anda adalah customer support ramah. Jawab pertanyaan pelanggan dengan singkat dan solutif.',
@@ -56,6 +60,8 @@ class AppSettings {
     'welcomeMessageEnabled': welcomeMessageEnabled,
     'welcomeMessage': welcomeMessage,
     'aiReplyEnabled': aiReplyEnabled,
+    'aiReplyPersonal': aiReplyPersonal,
+    'aiReplyGroup': aiReplyGroup,
     'aiProvider': aiProvider,
     'aiApiKey': aiApiKey,
     'aiCustomPrompt': aiCustomPrompt,
@@ -79,6 +85,8 @@ class AppSettings {
     welcomeMessageEnabled: json['welcomeMessageEnabled'] ?? false,
     welcomeMessage: json['welcomeMessage'] ?? 'Selamat datang! Ada yang bisa kami bantu?',
     aiReplyEnabled: json['aiReplyEnabled'] ?? false,
+    aiReplyPersonal: json['aiReplyPersonal'] ?? true,
+    aiReplyGroup: json['aiReplyGroup'] ?? false,
     aiProvider: json['aiProvider'] ?? '9router',
     aiApiKey: json['aiApiKey'] ?? '',
     aiCustomPrompt: json['aiCustomPrompt'] ?? '',

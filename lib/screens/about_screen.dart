@@ -5,7 +5,7 @@ import 'package:flutter/services.dart';
 class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
 
-  static const String appVersion = 'v1.0.40';
+  static const String appVersion = 'v1.0.41';
   static const String developerName = 'Hermawan (MaoneArt)';
   static const String languageFramework = 'Flutter (Dart) & Native Android (Kotlin)';
 

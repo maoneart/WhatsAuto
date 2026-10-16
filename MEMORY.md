@@ -27,6 +27,29 @@
 ---
 
 ## 🚀 Recent Milestones
+### 👥 Pemisahan Sakelar Balasan AI: Chat Pribadi (Japri) & Grup WhatsApp (v1.0.41+42 - 16 Oktober 2026)
+- **Problem**: 
+  - Pengguna membutuhkan kontrol terpisah untuk balasan AI antara pesan pribadi (japri) dan grup WhatsApp. Balasan AI yang aktif di grup berisiko merespons percakapan antar-anggota grup sehingga mengganggu obrolan grup (*group spam*).
+  - Scope `uri` pada `lib/services/ai_service.dart` sempat terisolasi dalam blok Gemini sehingga memicu build failure saat 9Router dipanggil.
+- **Solusi & Implementasi**:
+  1. **Model & Penyimpanan (`AppSettings` & `StorageService`)**:
+     - Ditambahkan properti `aiReplyPersonal` (default `true`) dan `aiReplyGroup` (default `false`).
+     - Disinkronkan ke SharedPreferences native: `flutter.ai_reply_personal` dan `flutter.ai_reply_group`.
+  2. **Antarmuka Pengaturan Balasan AI (`AiReplyScreen`)**:
+     - Ditambahkan kartu *Cakupan Balasan AI* dengan 2 toggle mandiri:
+       * 👤 **Chat Pribadi (Japri)**: AI membalas pesan obrolan langsung 1-on-1.
+       * 👥 **Chat Grup**: AI membalas percakapan di grup WhatsApp (default mati agar aman dari spam grup).
+  3. **Engine Balasan & Simulator Chat (`auto_reply_engine.dart` & `test_reply_simulator_screen.dart`)**:
+     - `processMessageAsync` mengevaluasi parameter `isGroup`. Jika chat grup dan `aiReplyGroup` nonaktif, AI tidak akan merespons.
+     - Simulator chat ditambahkan tombol toggle switch cepat `👤 Japri / 👥 Grup` di AppBar untuk memudahkan pengujian respons AI pada mode pribadi vs grup tanpa WhatsApp nyata.
+  4. **Background Service Android (`MaoneAutoNotificationService.kt`)**:
+     - Evaluasi `canAiReply = isAiReplyEnabled && (if (isGroup) aiReplyGroup else aiReplyPersonal)`.
+     - Diterapkan pada master AI switch, rule keyword AI, dan sheet AI.
+     - Membuka akses grup jika `ai_reply_group` aktif meskipun filter grup global nonaktif.
+  5. **Perbaikan Build (`ai_service.dart`)**:
+     - Memperbaiki deklarasi `uri` di luar blok percabangan provider sehingga kedua engine (9Router & Gemini) tereksekusi dengan lancar.
+  6. Bump versi ke `v1.0.41+42`.
+
 ### 🤖 Integrasi Penuh & Penguatan Balasan AI (9Router & Google Gemini) (v1.0.40+41 - 16 Oktober 2026)
 - **Problem**: 
   - Pada pengujian balasan otomatis, fitur AI belum terhubung secara menyeluruh ke pesan umum ketika master switch "Balasan AI" diaktifkan (hanya terbatas pada kata kunci spesifik).
