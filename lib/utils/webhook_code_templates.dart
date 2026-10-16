@@ -155,6 +155,8 @@ app.post('/webhook', (req, res) => {
 
 app.listen(PORT, () => console.log(`Webhook server berjalan di port \${PORT}`));''';
 
+  static const String nodeTemplate = nodejsTemplate;
+
   static const String pythonTemplate = '''"""
 =========================================================================
 WEBHOOK MAONEAUTO - PYTHON (FLASK)

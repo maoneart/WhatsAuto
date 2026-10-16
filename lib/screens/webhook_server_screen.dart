@@ -484,7 +484,7 @@ class _WebhookServerScreenState extends State<WebhookServerScreen> {
       {
         'title': 'Node.js',
         'badge': 'Express',
-        'code': WebhookCodeTemplates.nodeTemplate,
+        'code': WebhookCodeTemplates.nodejsTemplate,
         'info': 'Jalankan di VPS, PC lokal, atau Termux. Install express lalu jalankan server node.',
       },
       {
