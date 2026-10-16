@@ -82,11 +82,13 @@ class _TestReplySimulatorScreenState extends State<TestReplySimulatorScreen> {
     _scrollToBottom();
 
     // Simulasi delay pengetikan bot (250ms)
-    Future.delayed(const Duration(milliseconds: 250), () {
-      final reply = _engine!.processMessage(
+    Future.delayed(const Duration(milliseconds: 250), () async {
+      final reply = await _engine!.processMessageAsync(
         senderId: 'Budi Santoso',
         incomingMessage: clean,
       );
+
+      if (!mounted) return;
 
       setState(() {
         if (reply.trim().isEmpty) {

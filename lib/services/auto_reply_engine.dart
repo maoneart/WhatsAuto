@@ -2,6 +2,7 @@ import '../models/menu_node.dart';
 import '../models/app_settings.dart';
 import '../models/keyword_reply.dart';
 import '../models/spreadsheet_model.dart';
+import 'webhook_service.dart';
 
 class AutoReplyEngine {
   final List<MenuNode> nodes;
@@ -132,6 +133,37 @@ class AutoReplyEngine {
     required String incomingMessage,
   }) {
     final rawReply = _computeRawReply(senderId: senderId, incomingMessage: incomingMessage);
+    if (rawReply.trim().isEmpty) return '';
+    return wrapHeaderFooter(rawReply);
+  }
+
+  Future<String> processMessageAsync({
+    required String senderId,
+    required String incomingMessage,
+  }) async {
+    var rawReply = _computeRawReply(senderId: senderId, incomingMessage: incomingMessage);
+    if (rawReply == '🌐 [Pesan diproses via Web Server]') {
+      final cleanMsg = incomingMessage.replaceAll(RegExp(r'[\u200e\u2068\u2069]'), '').trim();
+      final webhookUrl = settings.serverWebhookUrl.trim();
+      if (webhookUrl.isNotEmpty) {
+        try {
+          final hookReply = await WebhookService.sendWebhook(
+            webhookUrl: webhookUrl,
+            sender: senderId,
+            message: cleanMsg,
+          );
+          if (hookReply.isNotEmpty) {
+            rawReply = hookReply;
+          } else {
+            rawReply = '⚠️ Webhook terhubung namun server mengembalikan respon kosong.';
+          }
+        } catch (e) {
+          rawReply = '❌ Gagal memanggil Webhook Server: $e';
+        }
+      } else {
+        rawReply = '⚠️ URL Webhook belum diatur di menu Webhook Server.';
+      }
+    }
     if (rawReply.trim().isEmpty) return '';
     return wrapHeaderFooter(rawReply);
   }

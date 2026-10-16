@@ -581,6 +581,17 @@
      - Memastikan `_saveSettings()` langsung dipanggil saat tombol tes ping ditekan.
 - **Versi**: Dinaikkan ke `v1.0.32+33`.
 
+### 💬 Real-Time Webhook Execution di Simulator Chat (v1.0.33+34 - 16 Oktober 2026)
+- **Konteks & Masalah**:
+  - Saat user mengetes di layar Simulator Chat aplikasi MaoneAuto, bot membalas dengan teks placeholder `🌐 [Pesan diproses via Web Server]`, bukan respon asli dari Google Apps Script.
+- **Penyelarasan & Solusi**:
+  1. `lib/services/auto_reply_engine.dart`:
+     - Menambahkan method `processMessageAsync`.
+     - Saat rule berstatus `useWebhook: true`, engine langsung melakukan pemanggilan nyata via `WebhookService.sendWebhook` ke URL Webhook yang disimpan.
+  2. `lib/screens/test_reply_simulator_screen.dart`:
+     - Memperbarui pengiriman simulasi chat menggunakan `processMessageAsync` sehingga balasan nyata Google Apps Script (`🏓 Pong! Webhook Google Apps Script aktif...`) langsung muncul di layar simulator.
+- **Versi**: Dinaikkan ke `v1.0.33+34`.
+
 ---
 
 ## 📋 Active Tasks / Next Steps
@@ -590,6 +601,8 @@
 - [x] Modal template webhook full-screen slide mentok ke atas layar (v1.0.30+31).
 - [x] Dukungan HTTP 302 Redirect Google Apps Script Webhook (v1.0.31+32).
 - [x] Eliminasi NetworkOnMainThreadException & StrictMode PermitAll di background WhatsApp service (v1.0.32+33).
-- [ ] Push commit ke GitHub repository `maoneart/WhatsAuto` dan trigger GitHub Actions build APK v1.0.32.
-- [ ] Unduh APK rilis `v1.0.32` ke `/sdcard/Download/MaoneAuto.apk` dan verifikasi integritas.
+- [x] Real-time Webhook Execution di Simulator Chat internal aplikasi (v1.0.33+34).
+- [ ] Push commit ke GitHub repository `maoneart/WhatsAuto` dan trigger GitHub Actions build APK v1.0.33.
+- [ ] Unduh APK rilis `v1.0.33` ke `/sdcard/Download/MaoneAuto.apk` dan verifikasi integritas.
+
 
