@@ -57,6 +57,9 @@ class _WebhookServerScreenState extends State<WebhookServerScreen> {
       return;
     }
 
+    // Pastikan URL langsung tersimpan ke SharedPreferences background service
+    await _saveSettings();
+
     setState(() {
       _isTesting = true;
       _testResponse = '';

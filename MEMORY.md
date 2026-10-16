@@ -564,6 +564,23 @@
      - Menambahkan handler redirect pada `queryWebhook` yang otomatis mendeteksi header `Location` dan melakukan GET ke URL redirect sehingga notifikasi WhatsApp latar belakang membalas sempurna.
 - **Versi**: Dinaikkan ke `v1.0.31+32`.
 
+### ⚡ Eliminasi NetworkOnMainThreadException & StrictMode PermitAll (v1.0.32+33 - 16 Oktober 2026)
+- **Konteks & Masalah**:
+  - Saat tes ping di aplikasi berhasil, tetapi saat chat "ping" masuk di WhatsApp, bot tidak membalas.
+- **Akar Masalah**:
+  - Android `NotificationListenerService.onNotificationPosted` berjalan di Main/UI Thread OS.
+  - Saat `queryWebhook` membuka koneksi jaringan (`HttpURLConnection`), Android melempar `android.os.NetworkOnMainThreadException` sehingga query gagal diam-diam dan mengembalikan `null`.
+  - Pada `WebhookServerScreen`, URL baru tersimpan saat event blur/change, belum otomatis disimpan sebelum tes ping dijalankan.
+- **Penyelarasan & Solusi**:
+  1. `MaoneAutoNotificationService.kt`:
+     - Menambahkan `StrictMode.setThreadPolicy(permitAll())` di `onCreate()` dan di awal `queryWebhook` serta `queryAi`.
+     - Menambahkan logging mendalam ke `ServiceLogManager` (terlihat di layar Live Monitor aplikasi).
+     - Menambahkan header `User-Agent: MaoneAuto-Android-Bot` dan timeout 8000ms.
+     - Menambahkan fallback pembacaan SharedPreferences key `server_webhook_url`.
+  2. `lib/screens/webhook_server_screen.dart`:
+     - Memastikan `_saveSettings()` langsung dipanggil saat tombol tes ping ditekan.
+- **Versi**: Dinaikkan ke `v1.0.32+33`.
+
 ---
 
 ## 📋 Active Tasks / Next Steps
@@ -572,7 +589,7 @@
 - [x] Template webhook lengkap (Google Apps Script, PHP, Node.js, Python, README) (v1.0.29+30).
 - [x] Modal template webhook full-screen slide mentok ke atas layar (v1.0.30+31).
 - [x] Dukungan HTTP 302 Redirect Google Apps Script Webhook (v1.0.31+32).
-- [x] Push commit ke GitHub repository `maoneart/WhatsAuto` dan trigger GitHub Actions build APK v1.0.31.
-- [x] Unduh APK rilis `v1.0.31` ke `/sdcard/Download/MaoneAuto.apk` dan verifikasi integritas.
-
+- [x] Eliminasi NetworkOnMainThreadException & StrictMode PermitAll di background WhatsApp service (v1.0.32+33).
+- [ ] Push commit ke GitHub repository `maoneart/WhatsAuto` dan trigger GitHub Actions build APK v1.0.32.
+- [ ] Unduh APK rilis `v1.0.32` ke `/sdcard/Download/MaoneAuto.apk` dan verifikasi integritas.
 

@@ -64,6 +64,10 @@ class MaoneAutoNotificationService : NotificationListenerService() {
     override fun onCreate() {
         super.onCreate()
         instance = this
+        try {
+            val policy = android.os.StrictMode.ThreadPolicy.Builder().permitAll().build()
+            android.os.StrictMode.setThreadPolicy(policy)
+        } catch (_: Exception) {}
         ServiceLogManager.log("🚀 Service onCreate() diinisialisasi")
     }
 
@@ -501,17 +505,29 @@ class MaoneAutoNotificationService : NotificationListenerService() {
 
     private fun queryWebhook(webhookUrl: String, sender: String, message: String): String? {
         val trimmed = webhookUrl.trim()
-        if (trimmed.isEmpty()) return null
+        if (trimmed.isEmpty()) {
+            ServiceLogManager.log("⚠️ URL Webhook kosong di pengaturan")
+            return null
+        }
+
+        try {
+            val policy = android.os.StrictMode.ThreadPolicy.Builder().permitAll().build()
+            android.os.StrictMode.setThreadPolicy(policy)
+        } catch (_: Exception) {}
+
+        ServiceLogManager.log("🌐 Menghubungi Webhook: $trimmed (pengirim: $sender, pesan: $message)")
+
         return try {
             val url = java.net.URL(trimmed)
             var conn = url.openConnection() as java.net.HttpURLConnection
             conn.instanceFollowRedirects = false
             conn.requestMethod = "POST"
-            conn.connectTimeout = 6000
-            conn.readTimeout = 6000
+            conn.connectTimeout = 8000
+            conn.readTimeout = 8000
             conn.doOutput = true
             conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8")
             conn.setRequestProperty("Accept", "application/json, text/plain, */*")
+            conn.setRequestProperty("User-Agent", "MaoneAuto-Android-Bot")
 
             val payload = JSONObject().apply {
                 put("sender", sender)
@@ -525,6 +541,7 @@ class MaoneAutoNotificationService : NotificationListenerService() {
             }
 
             var responseCode = conn.responseCode
+            ServiceLogManager.log("🌐 Webhook respon kode: $responseCode")
 
             // Handle HTTP 301, 302, 303, 307, 308 Redirect (Google Apps Script Web App mengembalikan 302 ke Echo URL)
             if (responseCode == java.net.HttpURLConnection.HTTP_MOVED_TEMP ||
@@ -533,19 +550,23 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                 responseCode == 307 || responseCode == 308) {
                 val newLocation = conn.getHeaderField("Location")
                 if (!newLocation.isNullOrEmpty()) {
+                    ServiceLogManager.log("🔄 Mengikuti Webhook Redirect...")
                     conn.disconnect()
                     val redirectUrl = java.net.URL(newLocation)
                     conn = redirectUrl.openConnection() as java.net.HttpURLConnection
                     conn.requestMethod = "GET"
-                    conn.connectTimeout = 6000
-                    conn.readTimeout = 6000
+                    conn.connectTimeout = 8000
+                    conn.readTimeout = 8000
                     conn.setRequestProperty("Accept", "application/json, text/plain, */*")
+                    conn.setRequestProperty("User-Agent", "MaoneAuto-Android-Bot")
                     responseCode = conn.responseCode
+                    ServiceLogManager.log("🌐 Webhook respon kode setelah redirect: $responseCode")
                 }
             }
 
             if (responseCode in 200..299) {
                 val responseBody = conn.inputStream.bufferedReader().use { it.readText() }.trim()
+                ServiceLogManager.log("🌐 Webhook balasan diterima: $responseBody")
                 if (responseBody.isNotEmpty()) {
                     try {
                         val json = JSONObject(responseBody)
@@ -556,10 +577,13 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                         return responseBody
                     }
                 }
+            } else {
+                ServiceLogManager.log("❌ Webhook error: status HTTP $responseCode")
             }
             null
         } catch (e: Exception) {
-            Log.e(TAG, "Error querying webhook: ${e.message}")
+            ServiceLogManager.log("❌ Webhook Exception: ${e.javaClass.simpleName}: ${e.message}")
+            Log.e(TAG, "Error querying webhook: ${e.message}", e)
             null
         }
     }
@@ -712,7 +736,9 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                                 return if (rep.isBlank() || rep.equals("Menu Balas", ignoreCase = true)) menuText else "$rep\n\n$menuText"
                             }
                             if (rule.optBoolean("useWebhook", false)) {
-                                val webhookUrl = prefs.getString("flutter.server_webhook_url", "") ?: ""
+                                val webhookUrl = prefs.getString("flutter.server_webhook_url", "")?.ifEmpty {
+                                    prefs.getString("server_webhook_url", "") ?: ""
+                                } ?: ""
                                 val hookRep = queryWebhook(webhookUrl, sender, cleanMsg)
                                 if (!hookRep.isNullOrBlank()) {
                                     prefs.edit().putString(sessionPrefKey, "idle").apply()
@@ -753,7 +779,9 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                                 return if (rep.isBlank() || rep.equals("Menu Balas", ignoreCase = true)) menuText else "$rep\n\n$menuText"
                             }
                             if (rule.optBoolean("useWebhook", false)) {
-                                val webhookUrl = prefs.getString("flutter.server_webhook_url", "") ?: ""
+                                val webhookUrl = prefs.getString("flutter.server_webhook_url", "")?.ifEmpty {
+                                    prefs.getString("server_webhook_url", "") ?: ""
+                                } ?: ""
                                 val hookRep = queryWebhook(webhookUrl, sender, cleanMsg)
                                 if (!hookRep.isNullOrBlank()) {
                                     prefs.edit().putString(sessionPrefKey, "idle").apply()
@@ -926,7 +954,9 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                                 return if (rep.isBlank() || rep.equals("Menu Balas", ignoreCase = true)) menuText else "$rep\n\n$menuText"
                             }
                             if (rule.optBoolean("useWebhook", false)) {
-                                val webhookUrl = prefs.getString("flutter.server_webhook_url", "") ?: ""
+                                val webhookUrl = prefs.getString("flutter.server_webhook_url", "")?.ifEmpty {
+                                    prefs.getString("server_webhook_url", "") ?: ""
+                                } ?: ""
                                 val hookRep = queryWebhook(webhookUrl, sender, cleanMsg)
                                 if (!hookRep.isNullOrBlank()) {
                                     prefs.edit().putString(sessionPrefKey, "idle").apply()
