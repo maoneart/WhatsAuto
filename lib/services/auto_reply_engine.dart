@@ -358,6 +358,7 @@ class AutoReplyEngine {
         }
       }
 
+      final int? numChoice = int.tryParse(normalizedMsg);
       MenuNode? matchedOption;
       if (numChoice != null && numChoice >= 1 && numChoice <= options.length) {
         matchedOption = options[numChoice - 1];
