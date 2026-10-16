@@ -20,18 +20,16 @@ class _AddEditKeywordReplyScreenState extends State<AddEditKeywordReplyScreen> {
 
   bool _isExactMatch = true;
   bool _useMenuReply = false;
-  bool _useAiReply = false;
   bool _useWebhook = false;
   bool _sendEmail = false;
 
   List<MenuProject> _availableProjects = [];
   String? _selectedMenuProjectId;
 
-  bool get _isOptionLocked => _useMenuReply || _useAiReply || _useWebhook;
+  bool get _isOptionLocked => _useMenuReply || _useWebhook;
 
   String get _lockedOptionName {
     if (_useMenuReply) return 'Menu Balas';
-    if (_useAiReply) return 'ChatGPT / AI';
     if (_useWebhook) return 'Web Server';
     return '';
   }
@@ -44,14 +42,11 @@ class _AddEditKeywordReplyScreenState extends State<AddEditKeywordReplyScreen> {
       _keywordController.text = r.incomingKeywords;
       _isExactMatch = r.isExactMatch;
       _useMenuReply = r.useMenuReply;
-      _useAiReply = r.useAiReply;
       _useWebhook = r.useWebhook;
       _sendEmail = r.sendEmailNotification;
       _selectedMenuProjectId = r.targetMenuProjectId;
       if (_useMenuReply) {
         _replyController.text = 'Menu Balas';
-      } else if (_useAiReply) {
-        _replyController.text = 'ChatGPT / AI';
       } else if (_useWebhook) {
         _replyController.text = 'Web Server';
       } else {
@@ -78,7 +73,6 @@ class _AddEditKeywordReplyScreenState extends State<AddEditKeywordReplyScreen> {
         case 'menu':
           _useMenuReply = !_useMenuReply;
           if (_useMenuReply) {
-            _useAiReply = false;
             _useWebhook = false;
             _replyController.text = 'Menu Balas';
           } else {
@@ -87,23 +81,10 @@ class _AddEditKeywordReplyScreenState extends State<AddEditKeywordReplyScreen> {
             }
           }
           break;
-        case 'ai':
-          _useAiReply = !_useAiReply;
-          if (_useAiReply) {
-            _useMenuReply = false;
-            _useWebhook = false;
-            _replyController.text = 'ChatGPT / AI';
-          } else {
-            if (_replyController.text == 'ChatGPT / AI') {
-              _replyController.clear();
-            }
-          }
-          break;
         case 'webhook':
           _useWebhook = !_useWebhook;
           if (_useWebhook) {
             _useMenuReply = false;
-            _useAiReply = false;
             _replyController.text = 'Web Server';
           } else {
             if (_replyController.text == 'Web Server') {
@@ -155,9 +136,6 @@ class _AddEditKeywordReplyScreenState extends State<AddEditKeywordReplyScreen> {
     if (_useMenuReply) {
       return '📋 [Menu Balas Aktif]\n(Pohon menu otomatis terkirim)';
     }
-    if (_useAiReply) {
-      return '🤖 [Balasan AI Aktif]\n(Dijawab otomatis oleh AI)';
-    }
     if (_useWebhook) {
       return '🌐 [Web Server Aktif]\n(Dijawab otomatis oleh Server Webhook)';
     }
@@ -188,11 +166,11 @@ class _AddEditKeywordReplyScreenState extends State<AddEditKeywordReplyScreen> {
       return;
     }
 
-    final hasDynamicSource = _useMenuReply || _useAiReply || _useWebhook;
+    final hasDynamicSource = _useMenuReply || _useWebhook;
     if (reply.isEmpty && !hasDynamicSource) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Tulis pesan balasan, atau pilih salah satu Opsi Balasan (Menu Balas / AI / Web Server)!'),
+          content: Text('Tulis pesan balasan, atau pilih salah satu Opsi Balasan (Menu Balas / Web Server)!'),
           backgroundColor: Colors.redAccent,
         ),
       );
@@ -206,7 +184,7 @@ class _AddEditKeywordReplyScreenState extends State<AddEditKeywordReplyScreen> {
       isExactMatch: _isExactMatch,
       isEnabled: widget.existingRule?.isEnabled ?? true,
       useMenuReply: _useMenuReply,
-      useAiReply: _useAiReply,
+      useAiReply: false,
       useWebhook: _useWebhook,
       sendEmailNotification: _sendEmail,
       targetMenuProjectId: _useMenuReply ? _selectedMenuProjectId : null,
@@ -614,12 +592,6 @@ class _AddEditKeywordReplyScreenState extends State<AddEditKeywordReplyScreen> {
                           label: 'Menu Balas',
                           value: _useMenuReply,
                           onChanged: (_) => _selectReplyOption('menu'),
-                        ),
-                        const SizedBox(width: 14),
-                        _buildCheckboxTile(
-                          label: 'ChatGPT / AI',
-                          value: _useAiReply,
-                          onChanged: (_) => _selectReplyOption('ai'),
                         ),
                         const SizedBox(width: 14),
                         _buildCheckboxTile(

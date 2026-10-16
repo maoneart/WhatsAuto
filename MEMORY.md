@@ -27,6 +27,15 @@
 ---
 
 ## 🚀 Recent Milestones
+### 🧹 Pembersihan Opsi Balasan: Penghapusan 'ChatGPT / AI' dari Form Kata Kunci (v1.0.44+45 - 16 Oktober 2026)
+- **Problem**: 
+  - Pada form tambah/edit *Balasan Kata Kunci* (`add_edit_keyword_reply_screen.dart`), opsi 'ChatGPT / AI' sebelumnya tersedia sebagai opsi balasan dinamis.
+  - Hal ini membingungkan dan redundan karena Balasan AI telah memiliki menu pengaturan terdedikasi sendiri (*Balasan AI*) yang bekerja secara otomatis untuk merespons seluruh pesan umum di luar kata kunci tanpa memerlukan konfigurasi kata kunci per-aturan.
+- **Solusi & Implementasi**:
+  1. Menghapus opsi `ChatGPT / AI` dari bagian *Opsi Balasan* pada form Balasan Kata Kunci.
+  2. Kini Opsi Balasan difokuskan secara bersih hanya pada dua integrasi: **Menu Balas** (pohon menu interaktif) dan **Web Server** (webhook).
+  3. Bump versi ke `v1.0.44+45`.
+
 ### 👁️ Restorasi Tombol Mata API Key & Pesan Error Cerdas Gemini / 9Router (v1.0.43+44 - 16 Oktober 2026)
 - **Problem**: 
   - Tombol mata (icon toggle show/hide obscureText) pada input API Key di menu Balasan AI sempat hilang sehingga pengguna tidak bisa memeriksa API Key yang dimasukkan.
