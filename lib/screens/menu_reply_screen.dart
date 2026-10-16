@@ -814,28 +814,29 @@ class _MenuReplyScreenState extends State<MenuReplyScreen> {
     );
   }
 
-  void _deleteProjectDialog(MenuProject project) {
-    GlassmorphismModal.showConfirmModal(
+  void _deleteProjectDialog(MenuProject project) async {
+    final confirm = await GlassmorphismModal.showConfirmModal(
       context: context,
       title: 'Hapus Proyek?',
       message: 'Apakah Anda yakin ingin menghapus proyek "${project.name}" beserta ${project.nodes.length} menu di dalamnya?',
       confirmText: 'Hapus',
       cancelText: 'Batal',
-      isDanger: true,
-      onConfirm: () async {
-        final success = await StorageService.deleteProject(project.id);
-        if (success) {
-          await _loadNodes();
-          if (mounted) {
-            GlassmorphismModal.showAlertModal(
-              context: context,
-              title: 'Proyek Dihapus',
-              message: 'Proyek "${project.name}" berhasil dihapus.',
-            );
-          }
-        }
-      },
+      confirmColor: const Color(0xFFEF4444),
+      icon: Icons.delete_outline,
     );
+    if (confirm == true) {
+      final success = await StorageService.deleteProject(project.id);
+      if (success) {
+        await _loadNodes();
+        if (mounted) {
+          GlassmorphismModal.showAlertModal(
+            context: context,
+            title: 'Proyek Dihapus',
+            message: 'Proyek "${project.name}" berhasil dihapus.',
+          );
+        }
+      }
+    }
   }
 
   @override
