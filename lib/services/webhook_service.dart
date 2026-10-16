@@ -21,13 +21,24 @@ class WebhookService {
         'timestamp': DateTime.now().toIso8601String(),
       });
 
-      final response = await http
+      http.Response response = await http
           .post(
             uri,
             headers: {'Content-Type': 'application/json'},
             body: body,
           )
-          .timeout(const Duration(seconds: 8));
+          .timeout(const Duration(seconds: 10));
+
+      // Dukung Redirect HTTP 301, 302, 303, 307, 308 (misal Google Apps Script mengembalikan 302 ke URL Echo)
+      if ((response.statusCode == 301 ||
+              response.statusCode == 302 ||
+              response.statusCode == 303 ||
+              response.statusCode == 307 ||
+              response.statusCode == 308) &&
+          response.headers.containsKey('location')) {
+        final redirectUrl = response.headers['location']!;
+        response = await http.get(Uri.parse(redirectUrl)).timeout(const Duration(seconds: 10));
+      }
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final bodyStr = utf8.decode(response.bodyBytes).trim();

@@ -504,10 +504,11 @@ class MaoneAutoNotificationService : NotificationListenerService() {
         if (trimmed.isEmpty()) return null
         return try {
             val url = java.net.URL(trimmed)
-            val conn = url.openConnection() as java.net.HttpURLConnection
+            var conn = url.openConnection() as java.net.HttpURLConnection
+            conn.instanceFollowRedirects = false
             conn.requestMethod = "POST"
-            conn.connectTimeout = 4000
-            conn.readTimeout = 4000
+            conn.connectTimeout = 6000
+            conn.readTimeout = 6000
             conn.doOutput = true
             conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8")
             conn.setRequestProperty("Accept", "application/json, text/plain, */*")
@@ -523,7 +524,26 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                 os.write(payload.toString().toByteArray(Charsets.UTF_8))
             }
 
-            val responseCode = conn.responseCode
+            var responseCode = conn.responseCode
+
+            // Handle HTTP 301, 302, 303, 307, 308 Redirect (Google Apps Script Web App mengembalikan 302 ke Echo URL)
+            if (responseCode == java.net.HttpURLConnection.HTTP_MOVED_TEMP ||
+                responseCode == java.net.HttpURLConnection.HTTP_MOVED_PERM ||
+                responseCode == java.net.HttpURLConnection.HTTP_SEE_OTHER ||
+                responseCode == 307 || responseCode == 308) {
+                val newLocation = conn.getHeaderField("Location")
+                if (!newLocation.isNullOrEmpty()) {
+                    conn.disconnect()
+                    val redirectUrl = java.net.URL(newLocation)
+                    conn = redirectUrl.openConnection() as java.net.HttpURLConnection
+                    conn.requestMethod = "GET"
+                    conn.connectTimeout = 6000
+                    conn.readTimeout = 6000
+                    conn.setRequestProperty("Accept", "application/json, text/plain, */*")
+                    responseCode = conn.responseCode
+                }
+            }
+
             if (responseCode in 200..299) {
                 val responseBody = conn.inputStream.bufferedReader().use { it.readText() }.trim()
                 if (responseBody.isNotEmpty()) {

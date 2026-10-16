@@ -551,6 +551,19 @@
      - Membungkus isi kolom dengan `SafeArea` agar header dan gesture bar tetap terproteksi rapi dan nyaman dibaca.
 - **Versi**: Dinaikkan ke `v1.0.30+31`.
 
+### 🔄 Dukungan HTTP 302 Redirect Google Apps Script Webhook (v1.0.31+32 - 16 Oktober 2026)
+- **Konteks & Masalah**:
+  - Pengguna memasukkan URL Google Apps Script Web App (`https://script.google.com/macros/s/.../exec`) tetapi pengujian dan balasan otomatis gagal.
+- **Akar Masalah**:
+  - Google Apps Script Web App SELALU merespons HTTP POST dengan status `302 Found` (Redirect) mengarah ke URL `Location: https://script.googleusercontent.com/macros/echo?...`.
+  - Baik Dart `http.post` maupun Android Java `HttpURLConnection` secara default tidak mengikuti redirect pada HTTP POST dan menganggap status code `302` sebagai kegagalan karena berada di luar rentang `200..299`.
+- **Penyelarasan & Solusi**:
+  1. `lib/services/webhook_service.dart`:
+     - Menambahkan penanganan otomatis untuk HTTP status 301, 302, 303, 307, 308. Jika menerima redirect, aplikasi secara otomatis melakukan HTTP GET ke header `location` untuk mengambil respon JSON final.
+  2. `android/app/src/main/kotlin/com/maoneart/maoneauto/MaoneAutoNotificationService.kt`:
+     - Menambahkan handler redirect pada `queryWebhook` yang otomatis mendeteksi header `Location` dan melakukan GET ke URL redirect sehingga notifikasi WhatsApp latar belakang membalas sempurna.
+- **Versi**: Dinaikkan ke `v1.0.31+32`.
+
 ---
 
 ## 📋 Active Tasks / Next Steps
@@ -558,5 +571,7 @@
 - [x] Auto-fill & lock field balasan saat opsi balasan aktif (v1.0.28+29).
 - [x] Template webhook lengkap (Google Apps Script, PHP, Node.js, Python, README) (v1.0.29+30).
 - [x] Modal template webhook full-screen slide mentok ke atas layar (v1.0.30+31).
-- [ ] Push commit ke GitHub repository `maoneart/WhatsAuto` dan trigger GitHub Actions build APK v1.0.30.
-- [ ] Unduh APK rilis `v1.0.30` ke `/sdcard/Download/MaoneAuto.apk` dan verifikasi integritas.
+- [x] Dukungan HTTP 302 Redirect Google Apps Script Webhook (v1.0.31+32).
+- [ ] Push commit ke GitHub repository `maoneart/WhatsAuto` dan trigger GitHub Actions build APK v1.0.31.
+- [ ] Unduh APK rilis `v1.0.31` ke `/sdcard/Download/MaoneAuto.apk` dan verifikasi integritas.
+
