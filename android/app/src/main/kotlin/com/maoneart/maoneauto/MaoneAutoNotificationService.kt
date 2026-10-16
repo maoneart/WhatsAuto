@@ -676,6 +676,12 @@ class MaoneAutoNotificationService : NotificationListenerService() {
         }
     }
 
+    private fun parseKeywordList(rawKeywords: String): List<String> {
+        return rawKeywords.split(Regex("//|,|\\||\\n|;"))
+            .map { it.replace(Regex("[?!.]"), "").trim().lowercase() }
+            .filter { it.isNotEmpty() }
+    }
+
     private fun computeReply(sender: String, messageText: String, prefs: android.content.SharedPreferences): String? {
         val cleanMsg = messageText.trim()
         if (cleanMsg.isEmpty()) return null
@@ -722,7 +728,7 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                         val rule = kwArray.getJSONObject(i)
                         if (!rule.optBoolean("isEnabled", true) || !rule.optBoolean("isExactMatch", true)) continue
                         val rawKeywords = rule.optString("incomingKeywords", "")
-                        val keywordsList = rawKeywords.split(",").map { it.replace(Regex("[?!.]"), "").trim().lowercase() }.filter { it.isNotEmpty() }
+                        val keywordsList = parseKeywordList(rawKeywords)
 
                         val isMatch = keywordsList.any { kw ->
                             val cleanKw = kw.replace(Regex("[ ?!.\\n]"), "")
@@ -765,7 +771,7 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                         val rule = kwArray.getJSONObject(i)
                         if (!rule.optBoolean("isEnabled", true) || rule.optBoolean("isExactMatch", true)) continue
                         val rawKeywords = rule.optString("incomingKeywords", "")
-                        val keywordsList = rawKeywords.split(",").map { it.replace(Regex("[?!.]"), "").trim().lowercase() }.filter { it.isNotEmpty() }
+                        val keywordsList = parseKeywordList(rawKeywords)
 
                         val isMatch = keywordsList.any { kw ->
                             val cleanKw = kw.replace(Regex("[ ?!.\\n]"), "")
@@ -896,10 +902,10 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                         }
                         if (item.optInt("matchOption", 1) != 0) continue
 
-                        val kwList = rawKw.split(",").map { it.replace(Regex("[?!.]"), "").trim().lowercase() }.filter { it.isNotEmpty() }
+                        val kwList = parseKeywordList(rawKw)
                         val isMatch = kwList.any { kw ->
                             val cleanKw = kw.replace(Regex("[ ?!.\\n]"), "")
-                            kw == normalizedMsg || (cleanKw.isNotEmpty() && cleanKw == compactMsg)
+                            kw != "*" && (kw == normalizedMsg || (cleanKw.isNotEmpty() && cleanKw == compactMsg))
                         }
                         if (isMatch) {
                             val rep = formatTags(item.optString("reply", ""), sender, cleanMsg)
@@ -917,10 +923,10 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                         }
                         if (item.optInt("matchOption", 1) != 1) continue
 
-                        val kwList = rawKw.split(",").map { it.replace(Regex("[?!.]"), "").trim().lowercase() }.filter { it.isNotEmpty() }
+                        val kwList = parseKeywordList(rawKw)
                         val isMatch = kwList.any { kw ->
                             val cleanKw = kw.replace(Regex("[ ?!.\\n]"), "")
-                            cleanKw.isNotEmpty() && (paddedMsg.contains(" $kw ") || normalizedMsg.contains(kw) || compactMsg.contains(cleanKw))
+                            kw != "*" && cleanKw.isNotEmpty() && (paddedMsg.contains(" $kw ") || normalizedMsg.contains(kw) || compactMsg.contains(cleanKw))
                         }
                         if (isMatch) {
                             val rep = formatTags(item.optString("reply", ""), sender, cleanMsg)
@@ -945,7 +951,7 @@ class MaoneAutoNotificationService : NotificationListenerService() {
                         val rule = kwArray.getJSONObject(i)
                         if (!rule.optBoolean("isEnabled", true)) continue
                         val rawKeywords = rule.optString("incomingKeywords", "")
-                        val hasWildcard = rawKeywords.split(",").any { it.trim() == "*" }
+                        val hasWildcard = parseKeywordList(rawKeywords).any { it == "*" }
                         if (hasWildcard) {
                             var rep = formatTags(rule.optString("replyMessage", ""), sender, cleanMsg)
                             if (rule.optBoolean("useMenuReply", false) && nodes.isNotEmpty()) {

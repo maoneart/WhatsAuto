@@ -396,8 +396,8 @@ class _AddEditKeywordReplyScreenState extends State<AddEditKeywordReplyScreen> {
                       style: const TextStyle(color: Colors.white, fontSize: 15),
                       onChanged: (_) => setState(() {}),
                       decoration: const InputDecoration(
-                        hintText: 'Keyword Masuk (atau klik "Semua (*)")',
-                        hintStyle: TextStyle(color: Colors.white54, fontSize: 14),
+                        hintText: 'Keyword Masuk (misal: ass//askum//assalamuallaikum)',
+                        hintStyle: TextStyle(color: Colors.white54, fontSize: 13.5),
                         border: InputBorder.none,
                       ),
                     ),
@@ -408,12 +408,12 @@ class _AddEditKeywordReplyScreenState extends State<AddEditKeywordReplyScreen> {
                     child: Text(
                       _keywordController.text.trim() == '*'
                           ? '⭐ Mode Balas Semua: Menangkap APAPUN pesan masuk (Wildcard).'
-                          : 'Contoh: harga, biaya, berapa (atau klik tombol "Semua (*)" di atas)',
+                          : 'Bisa banyak variasi kata/typo dipisah "//" atau koma (misal: ass//askum//assalamuallaikum atau harga, biaya)',
                       style: TextStyle(
                         color: _keywordController.text.trim() == '*'
                             ? const Color(0xFF00A884)
                             : Colors.white38,
-                        fontSize: 12,
+                        fontSize: 11.5,
                       ),
                     ),
                   ),

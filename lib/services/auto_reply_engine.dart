@@ -168,6 +168,15 @@ class AutoReplyEngine {
     return wrapHeaderFooter(rawReply);
   }
 
+  /// Memecah kata kunci dengan berbagai pemisah: //, koma, pipe (|), baris baru, atau titik koma (;)
+  static List<String> parseKeywordList(String rawKeywords) {
+    return rawKeywords
+        .split(RegExp(r'//|,|\||\n|;'))
+        .map((k) => k.replaceAll(RegExp(r'[?!.]'), '').trim().toLowerCase())
+        .where((k) => k.isNotEmpty)
+        .toList();
+  }
+
   String _computeRawReply({
     required String senderId,
     required String incomingMessage,
@@ -189,10 +198,9 @@ class AutoReplyEngine {
       // 1. Prioritas 1: Exact Match (Cocokan Tepat) untuk kata kunci spesifik (bukan '*')
       for (final rule in keywordReplies) {
         if (!rule.isEnabled || !rule.isExactMatch) continue;
-        final keywords = rule.incomingKeywords.split(',');
+        final keywords = parseKeywordList(rule.incomingKeywords);
         final isMatch = keywords.any((k) {
-          final cleanKw = k.replaceAll(RegExp(r'[?!.]'), '').trim().toLowerCase();
-          return cleanKw.isNotEmpty && cleanKw != '*' && cleanKw == normalizedMsg;
+          return k != '*' && k == normalizedMsg;
         });
 
         if (isMatch) {
@@ -220,10 +228,9 @@ class AutoReplyEngine {
       // 2. Prioritas 2: Contains Match (Mengandung) untuk kata kunci spesifik (bukan '*')
       for (final rule in keywordReplies) {
         if (!rule.isEnabled || rule.isExactMatch) continue;
-        final keywords = rule.incomingKeywords.split(',');
-        final isMatch = keywords.any((k) {
-          final cleanKw = k.replaceAll(RegExp(r'[?!.]'), '').trim().toLowerCase();
-          if (cleanKw.isEmpty || cleanKw == '*') return false;
+        final keywords = parseKeywordList(rule.incomingKeywords);
+        final isMatch = keywords.any((cleanKw) {
+          if (cleanKw == '*') return false;
           // Word boundary check persis WhatsAuto: cek dengan spasi atau substring
           return paddedMsg.contains(" $cleanKw ") || normalizedMsg.contains(cleanKw);
         });
@@ -349,8 +356,8 @@ class AutoReplyEngine {
         }
         if (item.matchOption != 0) continue;
 
-        final kwList = rawKw.split(',').map((e) => e.replaceAll(RegExp(r'[?!.]'), '').trim().toLowerCase()).where((k) => k.isNotEmpty);
-        if (kwList.any((kw) => kw == normalizedMsg)) {
+        final kwList = parseKeywordList(rawKw);
+        if (kwList.any((kw) => kw != '*' && kw == normalizedMsg)) {
           final reply = applyTags(item.reply, senderId: senderId, incomingMessage: cleanMsg);
           if (reply.trim().isNotEmpty) return reply;
         }
@@ -365,8 +372,8 @@ class AutoReplyEngine {
         }
         if (item.matchOption != 1) continue;
 
-        final kwList = rawKw.split(',').map((e) => e.replaceAll(RegExp(r'[?!.]'), '').trim().toLowerCase()).where((k) => k.isNotEmpty);
-        if (kwList.any((kw) => paddedMsg.contains(" $kw ") || normalizedMsg.contains(kw))) {
+        final kwList = parseKeywordList(rawKw);
+        if (kwList.any((kw) => kw != '*' && (paddedMsg.contains(" $kw ") || normalizedMsg.contains(kw)))) {
           final reply = applyTags(item.reply, senderId: senderId, incomingMessage: cleanMsg);
           if (reply.trim().isNotEmpty) return reply;
         }
@@ -382,7 +389,7 @@ class AutoReplyEngine {
     // C. Wildcard Catch-All (*) dari Balasan Kata Kunci (Membalas SEMUA pesan yang masuk)
     if (settings.isKeywordReplyEnabled && keywordReplies.isNotEmpty) {
       final wildcardRule = keywordReplies.firstWhere(
-        (r) => r.isEnabled && r.incomingKeywords.split(',').any((k) => k.trim() == '*'),
+        (r) => r.isEnabled && parseKeywordList(r.incomingKeywords).any((k) => k == '*'),
         orElse: () => KeywordReply(id: '', incomingKeywords: '', replyMessage: ''),
       );
 

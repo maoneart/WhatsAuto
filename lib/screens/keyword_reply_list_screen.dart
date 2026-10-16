@@ -455,7 +455,11 @@ class _KeywordReplyListScreenState extends State<KeywordReplyListScreen> {
   }
 
   Widget _buildRuleCard(KeywordReply rule, int index) {
-    final keywordsList = rule.incomingKeywords.split(',').map((k) => k.trim()).where((k) => k.isNotEmpty).toList();
+    final keywordsList = rule.incomingKeywords
+        .split(RegExp(r'//|,|\||\n|;'))
+        .map((k) => k.trim())
+        .where((k) => k.isNotEmpty)
+        .toList();
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -542,7 +546,7 @@ class _KeywordReplyListScreenState extends State<KeywordReplyListScreen> {
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
-                          rule.incomingKeywords.split(',').any((k) => k.trim() == '*')
+                          rule.incomingKeywords.split(RegExp(r'//|,|\||\n|;')).any((k) => k.trim() == '*')
                               ? 'Balas Semua'
                               : (rule.isExactMatch ? 'Cocokan Tepat' : 'Mengandung'),
                           style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 11),

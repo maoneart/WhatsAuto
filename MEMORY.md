@@ -27,6 +27,24 @@
 ---
 
 ## 🚀 Recent Milestones
+### 🔀 Multi-Keyword & Typo Separator `//` pada Kata Kunci & Google Sheets (v1.0.35+36 - 16 Oktober 2026)
+- **Problem**: Pengguna ingin menampung banyak variasi kata kunci atau kemungkinan typo (misal: `ass`, `askum`, `assalamuallaikum`, `asalamualaikum`) ke dalam 1 entri kata kunci dengan 1 jawaban yang sama menggunakan pemisah khusus `//` (misal: `ass//askum//assalamuallaikum`). Metode ini harus berlaku baik di Kata Kunci lokal maupun Google Spreadsheet, untuk mode Cocokan Tepat (Exact Match) maupun Mengandung (Contains Match).
+- **Solusi & Implementasi**:
+  1. **Multi-Separator Regex Parsing**:
+     - Mengembangkan parser kata kunci `parseKeywordList` di Dart (`auto_reply_engine.dart`) dan Kotlin (`MaoneAutoNotificationService.kt`) dengan regex `//|,|\||\n|;`.
+     - Mendukung pemisah ganda `//`, koma `,`, pipe `|`, baris baru `\n`, dan titik koma `;`.
+  2. **Dukungan Penuh Cocok Tepat & Mengandung**:
+     - *Exact Match*: jika pesan masuk persis cocok dengan salah satu kata di dalam kumpulan kata kunci (misal mengetik "ass", atau "askum", atau "assalamuallaikum"), langsung merespons jawaban yang sama.
+     - *Contains Match*: jika pesan masuk mengandung salah satu variasi kata kunci tersebut, langsung memicu balasan.
+  3. **Dukungan Penuh Google Spreadsheet**:
+     - Kolom A pada Google Sheet dapat diisi kumpulan variasi kata (misal: `ass//askum//assalamuallaikum` atau `harga, biaya, tarif`).
+     - Sinkronisasi dan evaluasi runtime di Dart & Kotlin otomatis memecah setiap variasi kata dan mencocokkan dengan pesan masuk.
+  4. **Penyempurnaan UI**:
+     - Form input [add_edit_keyword_reply_screen.dart]: Placeholder dan petunjuk diperbarui menjelaskan format `ass//askum//assalamuallaikum`.
+     - Daftar kata kunci [keyword_reply_list_screen.dart]: Chip dirender secara terpisah dan rapi untuk setiap variasi kata.
+     - Pratinjau Google Sheet [spreadsheet_sync_screen.dart]: Setiap variasi kata dari Kolom A dirender sebagai badge/chip tersendiri.
+  5. **Bump Versi**: Versi dinaikkan ke `v1.0.35+36` di `pubspec.yaml` dan `about_screen.dart`.
+
 ### 📱 Fitur Menu Titik 3 AppBar (Akses Notifikasi & Tentang Aplikasi) + Pembersihan Tab Alat (v1.0.34+35 - 16 Oktober 2026)
 - **Problem**:
   1. Tombol titik 3 (⋮) di AppBar `HomeTab` & `ToolsTab` belum difungsikan.

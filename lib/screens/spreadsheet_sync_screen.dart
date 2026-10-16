@@ -401,7 +401,7 @@ class _SpreadsheetSyncScreenState extends State<SpreadsheetSyncScreen> {
           _buildGuideRow('Kolom B', 'Teks Balasan Otomatis bot'),
           _buildGuideRow('Kolom C', 'Opsi: 0 = Tepat (Exact), 1 = Mengandung (Contains)'),
           _buildGuideRow('Kolom A = *', 'Gunakan "*" jika ingin membalas SEMUA pesan dengan balasan spreadsheet'),
-          _buildGuideRow('Multi-Kata', 'Bisa menulis beberapa kata kunci dipisah koma (misal: "harga, tarif, paket")'),
+          _buildGuideRow('Variasi/Typo', 'Bisa banyak variasi kata/typo dipisah // atau koma (misal: "ass//askum//assalamuallaikum" atau "harga, tarif")'),
           const SizedBox(height: 6),
           const Text(
             '* Pastikan setelan akses Google Sheet diubah ke "Siapa saja yang memiliki link dapat melihat".',
@@ -643,27 +643,52 @@ class _SpreadsheetSyncScreenState extends State<SpreadsheetSyncScreen> {
             children: [
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF00A884).withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(4),
+                  Expanded(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF00A884).withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            '#${index + 1}',
+                            style: const TextStyle(color: Color(0xFF00A884), fontSize: 10, fontWeight: FontWeight.bold),
+                          ),
                         ),
-                        child: Text(
-                          '#${index + 1}',
-                          style: const TextStyle(color: Color(0xFF00A884), fontSize: 10, fontWeight: FontWeight.bold),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Wrap(
+                            spacing: 4,
+                            runSpacing: 4,
+                            children: item.keyword
+                                .split(RegExp(r'//|,|\||\n|;'))
+                                .map((k) => k.trim())
+                                .where((k) => k.isNotEmpty)
+                                .map(
+                                  (kw) => Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withOpacity(0.08),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: Text(
+                                      kw,
+                                      style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                                    ),
+                                  ),
+                                )
+                                .toList(),
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        item.keyword,
-                        style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
+                  const SizedBox(width: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
