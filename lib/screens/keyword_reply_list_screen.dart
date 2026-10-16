@@ -590,20 +590,6 @@ class _KeywordReplyListScreenState extends State<KeywordReplyListScreen> {
                           ),
                         ),
                       ],
-                      if (rule.useGoogleSheets) ...[
-                        const SizedBox(width: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: Colors.tealAccent.withOpacity(0.15),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: const Text(
-                            'Sheets',
-                            style: TextStyle(color: Colors.tealAccent, fontSize: 11),
-                          ),
-                        ),
-                      ],
                     ],
                   ),
                   IconButton(

@@ -475,6 +475,22 @@
 
 ---
 
+### 🎯 Penegasan Opsi Balasan Kata Kunci: Menu Balas, AI, & Web Server (v1.0.27+28 - 16 Oktober 2026)
+- **Konteks & Keputusan Desain Pengguna**:
+  - Google Sheets / Spreadsheet adalah modul fitur mandiri dengan master toggle terpisah, sinkronisasi cloud, kata kunci sendiri, dan wildcard catch-all `*` mandiri (Phase B).
+  - Pada halaman Balasan Kata Kunci, "Opsi balasan" secara eksklusif hanya berisi 3 opsi:
+    1. `Menu Balas` (`useMenuReply`)
+    2. `ChatGPT / AI` (`useAiReply`)
+    3. `Web Server` (`useWebhook`)
+  - Opsi `Google Sheets` dihapus dari checklist "Opsi balasan" kata kunci agar bersih, terfokus, dan tidak tumpang tindih.
+- **Penyelarasan & Implementasi**:
+  1. `AddEditKeywordReplyScreen`: Opsi balasan hanya menampilkan `Menu Balas`, `ChatGPT / AI`, `Web Server` dalam mode single-choice.
+  2. `KeywordReplyListScreen`: Badge Sheets dihapus dari daftar kartu kata kunci.
+  3. `AutoReplyEngine.dart` & `MaoneAutoNotificationService.kt`: Menghapus percabangan `useGoogleSheets` pada aturan kata kunci. Google Sheets tetap berjalan mandiri di Phase B.
+- **Versi**: Dinaikkan ke `v1.0.27+28`.
+
+---
+
 ## 📋 Active Tasks / Next Steps
 - [x] Bedah APK WhatsAuto official (`com.guibais.whatsauto.apk`) via JADX decompiler.
 - [x] Redesign UI menyeluruh: Hero Master Card, WhatsApp Preview Bubble, Bento Grid Fitur Pintar, Custom Target Selectors, Live Header/Footer Preview, MaoneArt VIP Card, dan Glassmorphic Modals (v1.0.11+12).
@@ -492,9 +508,9 @@
 - [x] Eliminasi total balasan ganda via 4-Layer Echo Shield (isSelf check, recentSentReplies cache, 3s debounce, summary text filter) (v1.0.23+24).
 - [x] Dukungan multi-keyword koma dan wildcard (*) di Google Spreadsheet (v1.0.24+25).
 - [x] Tombol cepat "Semua (*)" di atas keyword, wildcard catch-all engine (v1.0.25+26).
-- [x] Opsi balasan single choice (pilih salah 1) & integrasi penuh Google Sheets di rule kata kunci (v1.0.26+27).
-- [x] Push commit ke GitHub repository `maoneart/WhatsAuto` dan trigger GitHub Actions build APK v1.0.26 (Run ID `38826912067` sukses).
-- [x] Unduh APK rilis `v1.0.26` ke `/sdcard/Download/MaoneAuto.apk` (56 MB) dan verifikasi integritas.
+- [x] Opsi balasan single choice (pilih salah 1): Menu Balas, ChatGPT/AI, Web Server (v1.0.27+28).
+- [ ] Push commit ke GitHub repository `maoneart/WhatsAuto` dan trigger GitHub Actions build APK v1.0.27.
+- [ ] Unduh APK rilis `v1.0.27` ke `/sdcard/Download/MaoneAuto.apk` dan verifikasi integritas.
 
 
 

@@ -177,13 +177,6 @@ class AutoReplyEngine {
           if (rule.useAiReply && reply.trim().isEmpty) {
             reply = '🤖 [Balasan otomatis oleh AI]';
           }
-          if (rule.useGoogleSheets) {
-            final sheetRep = _matchSheetItem(cleanMsg, normalizedMsg, paddedMsg);
-            if (sheetRep.isNotEmpty) {
-              _sessions[senderId] = 'idle';
-              return applyTags(sheetRep, senderId: senderId, incomingMessage: cleanMsg);
-            }
-          }
           // Reset sesi menu menjadi idle
           _sessions[senderId] = 'idle';
           if (reply.trim().isNotEmpty) {
@@ -216,13 +209,6 @@ class AutoReplyEngine {
           }
           if (rule.useAiReply && reply.trim().isEmpty) {
             reply = '🤖 [Balasan otomatis oleh AI]';
-          }
-          if (rule.useGoogleSheets) {
-            final sheetRep = _matchSheetItem(cleanMsg, normalizedMsg, paddedMsg);
-            if (sheetRep.isNotEmpty) {
-              _sessions[senderId] = 'idle';
-              return applyTags(sheetRep, senderId: senderId, incomingMessage: cleanMsg);
-            }
           }
           // Reset sesi menu menjadi idle
           _sessions[senderId] = 'idle';
@@ -381,13 +367,6 @@ class AutoReplyEngine {
         if (wildcardRule.useAiReply && reply.trim().isEmpty) {
           reply = '🤖 [Balasan otomatis oleh AI]';
         }
-        if (wildcardRule.useGoogleSheets) {
-          final sheetRep = _matchSheetItem(cleanMsg, normalizedMsg, paddedMsg);
-          if (sheetRep.isNotEmpty) {
-            _sessions[senderId] = 'idle';
-            return applyTags(sheetRep, senderId: senderId, incomingMessage: cleanMsg);
-          }
-        }
         _sessions[senderId] = 'idle';
         if (reply.trim().isNotEmpty) {
           return reply;
@@ -443,43 +422,5 @@ class AutoReplyEngine {
     }
 
     return buffer.toString().trim();
-  }
-
-  String _matchSheetItem(String cleanMsg, String normalizedMsg, String paddedMsg) {
-    if (sheetItems.isEmpty) return '';
-    String? wildcardReply;
-
-    // 1. Exact Match di Sheet
-    for (final item in sheetItems) {
-      final rawKw = item.keyword.trim();
-      if (rawKw == '*') {
-        wildcardReply = item.reply;
-        continue;
-      }
-      if (item.matchOption != 0) continue;
-      final kwList = rawKw.split(',').map((e) => e.replaceAll(RegExp(r'[?!.]'), '').trim().toLowerCase()).where((k) => k.isNotEmpty);
-      if (kwList.any((kw) => kw == normalizedMsg)) {
-        return item.reply;
-      }
-    }
-
-    // 2. Contains Match di Sheet
-    for (final item in sheetItems) {
-      final rawKw = item.keyword.trim();
-      if (rawKw == '*') {
-        wildcardReply = item.reply;
-        continue;
-      }
-      if (item.matchOption != 1) continue;
-      final kwList = rawKw.split(',').map((e) => e.replaceAll(RegExp(r'[?!.]'), '').trim().toLowerCase()).where((k) => k.isNotEmpty);
-      if (kwList.any((kw) => paddedMsg.contains(" $kw ") || normalizedMsg.contains(kw))) {
-        return item.reply;
-      }
-    }
-
-    if (wildcardReply != null && wildcardReply.trim().isNotEmpty) {
-      return wildcardReply;
-    }
-    return '';
   }
 }
