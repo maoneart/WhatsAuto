@@ -27,6 +27,26 @@
 ---
 
 ## 🚀 Recent Milestones
+### 📱 Fitur Menu Titik 3 AppBar (Akses Notifikasi & Tentang Aplikasi) + Pembersihan Tab Alat (v1.0.34+35 - 16 Oktober 2026)
+- **Problem**:
+  1. Tombol titik 3 (⋮) di AppBar `HomeTab` & `ToolsTab` belum difungsikan.
+  2. Tab Alat masih memiliki card redundan "Akses Notifikasi HP" di atas grid 9 alat cerdas.
+  3. Pengguna membutuhkan halaman khusus "Tentang Aplikasi" (About) full-page yang memuat info pembuat (Hermawan), versi, bahasa/engine yang digunakan, dan tombol close/kembali, serta memindahkan menu Akses Notifikasi HP ke titik 3.
+- **Solusi & Implementasi**:
+  1. **Halaman `AboutScreen` Full-Page Baru** (`lib/screens/about_screen.dart`):
+     - Dibuat full screen Scaffold dengan dark theme `#0B141B`, AppBar `#111B21`, dan tombol Close `[X]`.
+     - Hero header monogram MaoneAuto dengan chip badge `v1.0.34 • Official Release`.
+     - Card spesifikasi: Pembuat (`Hermawan (MaoneArt)`), Versi (`v1.0.34`), Bahasa & Engine (`Flutter (Dart) & Native Android (Kotlin)`), Desain UI (`MaoneArt Glassmorphism Dark`), Target OS (`Android 8.0 s/d Android 15+`).
+     - Card arsitektur & fitur unggulan (Background RemoteInput, Tree Menu, Multi AI, Webhook, Google Sheets).
+     - Tombol 100% simetris 2-kolom grid: `[Akses Notifikasi]` dan `[Tutup Halaman]`.
+  2. **Menu Titik Tiga (⋮) di AppBar**:
+     - Mengubah `IconButton(Icons.more_vert)` di `HomeTab` & `ToolsTab` menjadi `PopupMenuButton<String>`.
+     - Menyediakan opsi: `Akses Notifikasi HP` (membuka Glassmorphism dialog izin & setting Android) dan `Tentang Aplikasi` (navigasi ke `AboutScreen`).
+  3. **Pembersihan Tab Alat (`tools_tab.dart`)**:
+     - Menghapus card status `Akses Notifikasi HP` dari body `tools_tab.dart` sehingga profil Hermawan langsung tersambung rapi ke Grid 9 Alat Cerdas.
+  4. **Bump Versi**:
+     - Versi dinaikkan ke `v1.0.34+35` di `pubspec.yaml`.
+
 ### 🌟 Inisialisasi Proyek WhatsAuto Flutter (v1.0.0+1 - 14 Oktober 2026)
 - **Problem**: Pengguna menginginkan aplikasi Android mandiri seperti WhatsAuto dengan UI Beranda, Alat, dan editor pohon Menu Balas yang kompatibel dengan data CSV WhatsAuto (Kaido).
 - **Solusi**:

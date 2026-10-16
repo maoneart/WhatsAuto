@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../models/app_settings.dart';
@@ -9,6 +10,7 @@ import 'keyword_reply_list_screen.dart';
 import 'spreadsheet_sync_screen.dart';
 import 'ai_reply_screen.dart';
 import 'diagnostic_log_screen.dart';
+import 'about_screen.dart';
 
 class HomeTab extends StatefulWidget {
   final AppSettings settings;
@@ -17,6 +19,7 @@ class HomeTab extends StatefulWidget {
   final bool isListenerConnected;
   final VoidCallback? onRequestPermission;
   final VoidCallback? onOpenAppDetails;
+  final VoidCallback? onRebindService;
 
   const HomeTab({
     super.key,
@@ -26,6 +29,7 @@ class HomeTab extends StatefulWidget {
     this.isListenerConnected = false,
     this.onRequestPermission,
     this.onOpenAppDetails,
+    this.onRebindService,
   });
 
   @override
@@ -184,9 +188,60 @@ class _HomeTabState extends State<HomeTab> {
             },
             tooltip: 'Status Gateway',
           ),
-          IconButton(
+          PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert, color: Colors.white70),
-            onPressed: () {},
+            color: const Color(0xFF111B21),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+              side: BorderSide(color: Colors.white.withOpacity(0.1)),
+            ),
+            offset: const Offset(0, 48),
+            onSelected: (val) {
+              if (val == 'notif') {
+                _showNotificationAccessModal(context);
+              } else if (val == 'about') {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const AboutScreen()),
+                );
+              }
+            },
+            itemBuilder: (ctx) => [
+              PopupMenuItem(
+                value: 'notif',
+                child: Row(
+                  children: [
+                    Icon(
+                      widget.isNotificationPermissionGranted
+                          ? Icons.notifications_active_outlined
+                          : Icons.notification_important_outlined,
+                      color: widget.isNotificationPermissionGranted
+                          ? const Color(0xFF00A884)
+                          : const Color(0xFFF59E0B),
+                      size: 20,
+                    ),
+                    const SizedBox(width: 12),
+                    const Text(
+                      'Akses Notifikasi HP',
+                      style: TextStyle(color: Colors.white, fontSize: 13.5, fontWeight: FontWeight.w500),
+                    ),
+                  ],
+                ),
+              ),
+              const PopupMenuDivider(height: 1),
+              const PopupMenuItem(
+                value: 'about',
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline_rounded, color: Color(0xFF38BDF8), size: 20),
+                    SizedBox(width: 12),
+                    Text(
+                      'Tentang Aplikasi',
+                      style: TextStyle(color: Colors.white, fontSize: 13.5, fontWeight: FontWeight.w500),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -887,6 +942,166 @@ class _HomeTabState extends State<HomeTab> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showNotificationAccessModal(BuildContext context) {
+    final isGranted = widget.isNotificationPermissionGranted;
+
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) => BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+        child: Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 22, vertical: 24),
+          child: Container(
+            padding: const EdgeInsets.all(22),
+            decoration: BoxDecoration(
+              color: const Color(0xFF111B21).withOpacity(0.95),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.12),
+                width: 1.2,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.5),
+                  blurRadius: 25,
+                  spreadRadius: 2,
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: isGranted
+                        ? const Color(0xFF00A884).withOpacity(0.15)
+                        : const Color(0xFFF59E0B).withOpacity(0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    isGranted ? Icons.notifications_active : Icons.notification_important,
+                    color: isGranted ? const Color(0xFF00A884) : const Color(0xFFF59E0B),
+                    size: 32,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  isGranted ? 'Akses Notifikasi Aktif' : 'Izin Akses Notifikasi Diperlukan',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  isGranted
+                      ? 'MaoneAuto telah memiliki izin untuk membaca notifikasi dan membalas WhatsApp di latar belakang.\n\nJika balasan sempat tidak merespons, Anda dapat menghubungkan ulang layanan di bawah.'
+                      : 'MaoneAuto wajib diberi izin "Akses Notifikasi" agar dapat mendeteksi chat WhatsApp masuk dan mengirim balasan.\n\n⚠️ Khusus Android 13/14/15:\nJika sakelar di pengaturan abu-abu, buka "Info Aplikasi" lalu tekan titik 3 (⋮) di pojok kanan atas dan pilih "Izinkan setelan yang dibatasi".',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.white.withOpacity(0.75),
+                    height: 1.45,
+                  ),
+                ),
+                const SizedBox(height: 22),
+                // 100% Simetris 2-Kolom Grid
+                Row(
+                  children: [
+                    Expanded(
+                      child: SizedBox(
+                        height: 46,
+                        child: OutlinedButton.icon(
+                          onPressed: () {
+                            Navigator.of(ctx).pop();
+                            if (widget.onOpenAppDetails != null) {
+                              widget.onOpenAppDetails!();
+                            } else {
+                              const MethodChannel('com.maoneart.maoneauto/service')
+                                  .invokeMethod('openAppDetailsSettings');
+                            }
+                          },
+                          icon: const Icon(Icons.info_outline, size: 16, color: Colors.white70),
+                          label: const Text(
+                            'Info Aplikasi',
+                            style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(color: Colors.white.withOpacity(0.2)),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: SizedBox(
+                        height: 46,
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            Navigator.of(ctx).pop();
+                            if (widget.onRequestPermission != null) {
+                              widget.onRequestPermission!();
+                            } else {
+                              const MethodChannel('com.maoneart.maoneauto/service')
+                                  .invokeMethod('openNotificationSettings');
+                            }
+                          },
+                          icon: const Icon(Icons.settings, size: 16),
+                          label: const Text(
+                            'Pengaturan',
+                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF00A884),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  height: 42,
+                  child: TextButton.icon(
+                    onPressed: () {
+                      Navigator.of(ctx).pop();
+                      if (widget.onRebindService != null) {
+                        widget.onRebindService!();
+                      } else {
+                        const MethodChannel('com.maoneart.maoneauto/service')
+                            .invokeMethod('rebindNotificationListener');
+                      }
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Layanan notifikasi dihubungkan ulang.'),
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.sync, size: 16, color: Color(0xFF38BDF8)),
+                    label: const Text(
+                      'Hubungkan Ulang Layanan (Force Reconnect)',
+                      style: TextStyle(color: Color(0xFF38BDF8), fontSize: 12, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

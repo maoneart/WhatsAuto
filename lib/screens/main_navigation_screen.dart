@@ -128,6 +128,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> with Widget
         isListenerConnected: _isListenerConnected,
         onRequestPermission: _openSettings,
         onOpenAppDetails: _openAppDetails,
+        onRebindService: _rebindService,
       ),
       ContactsTab(settings: _settings, onSettingsChanged: _onSettingsChanged),
       ToolsTab(

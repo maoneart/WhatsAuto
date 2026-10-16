@@ -11,6 +11,7 @@ import 'spreadsheet_sync_screen.dart';
 import 'welcome_message_screen.dart';
 import 'webhook_server_screen.dart';
 import 'quick_notes_screen.dart';
+import 'about_screen.dart';
 
 class ToolsTab extends StatefulWidget {
   final AppSettings settings;
@@ -237,9 +238,60 @@ class _ToolsTabState extends State<ToolsTab> {
             },
             tooltip: 'Status Server',
           ),
-          IconButton(
+          PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert, color: Colors.white70),
-            onPressed: () {},
+            color: const Color(0xFF111B21),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+              side: BorderSide(color: Colors.white.withOpacity(0.1)),
+            ),
+            offset: const Offset(0, 48),
+            onSelected: (val) {
+              if (val == 'notif') {
+                _showNotificationAccessModal(context);
+              } else if (val == 'about') {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const AboutScreen()),
+                );
+              }
+            },
+            itemBuilder: (ctx) => [
+              PopupMenuItem(
+                value: 'notif',
+                child: Row(
+                  children: [
+                    Icon(
+                      widget.isNotificationPermissionGranted
+                          ? Icons.notifications_active_outlined
+                          : Icons.notification_important_outlined,
+                      color: widget.isNotificationPermissionGranted
+                          ? const Color(0xFF00A884)
+                          : const Color(0xFFF59E0B),
+                      size: 20,
+                    ),
+                    const SizedBox(width: 12),
+                    const Text(
+                      'Akses Notifikasi HP',
+                      style: TextStyle(color: Colors.white, fontSize: 13.5, fontWeight: FontWeight.w500),
+                    ),
+                  ],
+                ),
+              ),
+              const PopupMenuDivider(height: 1),
+              const PopupMenuItem(
+                value: 'about',
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline_rounded, color: Color(0xFF38BDF8), size: 20),
+                    SizedBox(width: 12),
+                    Text(
+                      'Tentang Aplikasi',
+                      style: TextStyle(color: Colors.white, fontSize: 13.5, fontWeight: FontWeight.w500),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -390,9 +442,7 @@ class _ToolsTabState extends State<ToolsTab> {
             ),
             const SizedBox(height: 14),
 
-            // Card Status Akses Notifikasi HP (Permanen & Interaktif)
-            _buildNotificationAccessCard(),
-            const SizedBox(height: 18),
+
 
             // Grid Menu 9 Alat Cerdas (Elevated Bento-Style)
             GridView.count(
@@ -584,90 +634,7 @@ class _ToolsTabState extends State<ToolsTab> {
     );
   }
 
-  Widget _buildNotificationAccessCard() {
-    final isGranted = widget.isNotificationPermissionGranted;
-    final color = isGranted ? const Color(0xFF00A884) : const Color(0xFFF59E0B);
 
-    return InkWell(
-      onTap: () => _showNotificationAccessModal(context),
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        decoration: BoxDecoration(
-          color: const Color(0xFF111B21),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: color.withOpacity(0.35),
-            width: 1.2,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: color.withOpacity(0.08),
-              blurRadius: 12,
-              spreadRadius: 1,
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.15),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                isGranted ? Icons.notifications_active : Icons.notification_important,
-                color: color,
-                size: 22,
-              ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Text(
-                        'Akses Notifikasi HP',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        width: 7,
-                        height: 7,
-                        decoration: BoxDecoration(
-                          color: color,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    isGranted
-                        ? 'Layanan aktif & siap membalas pesan'
-                        : 'Belum aktif • Ketuk untuk izinkan',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: isGranted ? const Color(0xFF00A884) : const Color(0xFFF59E0B),
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Icon(Icons.chevron_right, color: Colors.white.withOpacity(0.4), size: 20),
-          ],
-        ),
-      ),
-    );
-  }
 
   void _showNotificationAccessModal(BuildContext context) {
     final isGranted = widget.isNotificationPermissionGranted;
