@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../models/app_settings.dart';
 import '../services/storage_service.dart';
 import '../services/webhook_service.dart';
+import '../utils/webhook_code_templates.dart';
 import '../widgets/glassmorphism_modal.dart';
 
 class WebhookServerScreen extends StatefulWidget {
@@ -115,15 +117,19 @@ class _WebhookServerScreenState extends State<WebhookServerScreen> {
             _buildUrlInputCard(),
             const SizedBox(height: 16),
 
-            // 3. Preset Cepat Port Lokal Termux
+            // 3. Template Script Webhook Siap Pakai
+            _buildTemplatesCard(),
+            const SizedBox(height: 16),
+
+            // 4. Preset Cepat Port Lokal Termux
             _buildLocalPresets(),
             const SizedBox(height: 16),
 
-            // 4. Spesifikasi Payload JSON
+            // 5. Spesifikasi Payload JSON
             _buildPayloadSpecs(),
             const SizedBox(height: 16),
 
-            // 5. Tombol Uji Ping Webhook
+            // 6. Tombol Uji Ping Webhook
             _buildTestButton(),
           ],
         ),
@@ -347,6 +353,366 @@ class _WebhookServerScreenState extends State<WebhookServerScreen> {
           ),
         ],
       ],
+    );
+  }
+
+  Widget _buildTemplatesCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF111B21),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFF00A884).withOpacity(0.35)),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF00A884).withOpacity(0.08),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF00A884).withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.code_rounded, color: Color(0xFF00A884), size: 20),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Template Script Webhook Siap Pakai',
+                      style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+                    ),
+                    SizedBox(height: 2),
+                    Text(
+                      'Google Apps Script (Gratis), PHP, Node.js & Python',
+                      style: TextStyle(color: Colors.white60, fontSize: 11),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            'Bingung cara membuat webhook? Tinggal salin script siap pakai ke Google Apps Script (100% gratis tanpa sewa hosting) atau web server hosting Anda!',
+            style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.4),
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: SizedBox(
+                  height: 42,
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF00A884),
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    onPressed: () => _showCodeTemplatesModal(context),
+                    icon: const Icon(Icons.content_copy_rounded, color: Colors.white, size: 16),
+                    label: const Text(
+                      'Salin Template',
+                      style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: SizedBox(
+                  height: 42,
+                  child: OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      side: const BorderSide(color: Colors.white24),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    onPressed: () {
+                      Clipboard.setData(const ClipboardData(text: WebhookCodeTemplates.githubTemplatesUrl));
+                      GlassmorphismModal.showAlertModal(
+                        context: context,
+                        title: 'Link GitHub Disalin',
+                        message: 'Link repositori template script webhook telah disalin ke clipboard:\n\n${WebhookCodeTemplates.githubTemplatesUrl}\n\nAnda dapat membuka link ini di browser untuk mengunduh semua file template secara langsung.',
+                        iconColor: const Color(0xFF00A884),
+                        icon: Icons.check_circle_outline,
+                      );
+                    },
+                    icon: const Icon(Icons.open_in_browser_rounded, color: Colors.white70, size: 16),
+                    label: const Text(
+                      'Link GitHub',
+                      style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showCodeTemplatesModal(BuildContext context) {
+    int selectedIndex = 0;
+    final List<Map<String, dynamic>> templates = [
+      {
+        'title': 'Google Apps Script',
+        'badge': 'Gratis 100%',
+        'code': WebhookCodeTemplates.gasTemplate,
+        'info': 'Buka script.google.com -> Buat project -> Paste kode -> Deploy as Web App (Who has access: Anyone) -> Salin Web App URL ke aplikasi ini.',
+      },
+      {
+        'title': 'PHP',
+        'badge': 'Hosting/Apache',
+        'code': WebhookCodeTemplates.phpTemplate,
+        'info': 'Upload ke cPanel/Apache/Nginx di hosting Anda (misal https://domainanda.com/webhook.php).',
+      },
+      {
+        'title': 'Node.js',
+        'badge': 'Express',
+        'code': WebhookCodeTemplates.nodeTemplate,
+        'info': 'Jalankan di VPS, PC lokal, atau Termux. Install express lalu jalankan server node.',
+      },
+      {
+        'title': 'Python',
+        'badge': 'Flask',
+        'code': WebhookCodeTemplates.pythonTemplate,
+        'info': 'Jalankan di server Python menggunakan Flask (pip install flask).',
+      },
+    ];
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (modalContext, setModalState) {
+            final current = templates[selectedIndex];
+            return Container(
+              height: MediaQuery.of(context).size.height * 0.85,
+              decoration: const BoxDecoration(
+                color: Color(0xFF111B21),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                border: Border(
+                  top: BorderSide(color: Color(0xFF00A884), width: 1.5),
+                  left: BorderSide(color: Colors.white12),
+                  right: BorderSide(color: Colors.white12),
+                ),
+              ),
+              child: Column(
+                children: [
+                  // Handle bar
+                  Center(
+                    child: Container(
+                      margin: const EdgeInsets.only(top: 10, bottom: 8),
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.white24,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+
+                  // Header
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.code_rounded, color: Color(0xFF00A884), size: 24),
+                        const SizedBox(width: 10),
+                        const Expanded(
+                          child: Text(
+                            'Template Kode Webhook',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close_rounded, color: Colors.white60),
+                          onPressed: () => Navigator.pop(ctx),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Tab Chips
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    child: Row(
+                      children: List.generate(templates.length, (index) {
+                        final isSelected = selectedIndex == index;
+                        final item = templates[index];
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: ChoiceChip(
+                            label: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(item['title'] as String),
+                                const SizedBox(width: 6),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: isSelected
+                                        ? Colors.white.withOpacity(0.2)
+                                        : const Color(0xFF00A884).withOpacity(0.2),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    item['badge'] as String,
+                                    style: TextStyle(
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.bold,
+                                      color: isSelected ? Colors.white : const Color(0xFF00A884),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            selected: isSelected,
+                            selectedColor: const Color(0xFF00A884),
+                            backgroundColor: const Color(0xFF1F2C34),
+                            labelStyle: TextStyle(
+                              color: isSelected ? Colors.white : Colors.white70,
+                              fontSize: 12,
+                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                            ),
+                            onSelected: (selected) {
+                              if (selected) {
+                                setModalState(() {
+                                  selectedIndex = index;
+                                });
+                              }
+                            },
+                          ),
+                        );
+                      }),
+                    ),
+                  ),
+
+                  // Info box singkat
+                  Container(
+                    margin: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1F2C34),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.white10),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(Icons.info_outline, color: Color(0xFF00A884), size: 16),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            current['info'] as String,
+                            style: const TextStyle(color: Colors.white70, fontSize: 11, height: 1.3),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Code preview box
+                  Expanded(
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 16),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0B141B),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.white12),
+                      ),
+                      child: SingleChildScrollView(
+                        child: SelectableText(
+                          current['code'] as String,
+                          style: const TextStyle(
+                            color: Color(0xFFE9EDEF),
+                            fontSize: 11,
+                            fontFamily: 'monospace',
+                            height: 1.4,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  // Bottom action buttons (Glassmorphism 2-column symmetric)
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: SizedBox(
+                            height: 46,
+                            child: ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF00A884),
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                              onPressed: () {
+                                Clipboard.setData(ClipboardData(text: current['code'] as String));
+                                Navigator.pop(ctx);
+                                GlassmorphismModal.showAlertModal(
+                                  context: context,
+                                  title: 'Kode Berhasil Disalin!',
+                                  message: 'Template kode ${current['title']} telah disalin ke clipboard.\n\nSilakan paste ke platform tujuan Anda, lalu salin URL webhook yang dihasilkan ke MaoneAuto.',
+                                  iconColor: const Color(0xFF00A884),
+                                  icon: Icons.check_circle_outline,
+                                );
+                              },
+                              icon: const Icon(Icons.copy_rounded, size: 18),
+                              label: const Text('Salin Kode', style: TextStyle(fontWeight: FontWeight.bold)),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: SizedBox(
+                            height: 46,
+                            child: OutlinedButton(
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: Colors.white70,
+                                side: const BorderSide(color: Colors.white24),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                              onPressed: () => Navigator.pop(ctx),
+                              child: const Text('Tutup', style: TextStyle(fontWeight: FontWeight.bold)),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }

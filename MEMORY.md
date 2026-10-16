@@ -522,20 +522,30 @@
      - Menambahkan native helper `queryAi` di Kotlin service untuk memproses balasan ChatGPT / 9Router AI secara langsung di background.
 - **Versi**: Dinaikkan ke `v1.0.28+29`.
 
+### 🌐 Template Webhook Siap Pakai & Modal Generator (v1.0.29+30 - 16 Oktober 2026)
+- **Konteks & Kebutuhan Pengguna**:
+  - Pengguna meminta contoh kodingan webhook lengkap (Google Apps Script, website PHP, GitHub/Node.js/Python) agar orang yang ingin memakai webhook tidak bingung dan tinggal copy-paste kode serta menyalin URL-nya ke MaoneAuto.
+- **Penyelarasan & Implementasi**:
+  1. **Koleksi File Template Webhook**:
+     - Dibuatkan folder `/sdcard/www/WhatsAuto/webhook_templates/`:
+       * `google_apps_script.js`: Solusi 100% gratis tanpa butuh server/hosting (deploy Web App doPost).
+       * `php_webhook.php`: Script PHP siap upload ke cPanel/Apache.
+       * `nodejs_server.js`: Script Express.js siap jalankan di VPS/Termux.
+       * `python_flask.py`: Script Flask Python.
+       * `README.md`: Panduan lengkap bahasa Indonesia langkah demi langkah.
+  2. **Utilitas Dart & UI Card di Aplikasi**:
+     - `lib/utils/webhook_code_templates.dart`: Menampung seluruh template script dan tautan GitHub.
+     - `lib/screens/webhook_server_screen.dart`:
+       * Menambahkan kartu visual "Template Script Webhook Siap Pakai".
+       * Tombol `[Salin Template]`: Membuka modal bottom sheet interaktif 4-tab dengan syntax view dan tombol salin 1-klik bersuara dialog MaoneArt Glassmorphism.
+       * Tombol `[Link GitHub]`: Menyalin tautan repositori GitHub template ke clipboard dengan alert modal MaoneArt.
+- **Versi**: Dinaikkan ke `v1.0.29+30`.
+
 ---
 
 ## 📋 Active Tasks / Next Steps
 - [x] Opsi balasan single choice (pilih salah 1): Menu Balas, ChatGPT/AI, Web Server (v1.0.27+28).
 - [x] Auto-fill & lock field balasan saat opsi balasan aktif (v1.0.28+29).
-- [ ] Push commit ke GitHub repository `maoneart/WhatsAuto` dan trigger GitHub Actions build APK v1.0.28.
-- [ ] Unduh APK rilis `v1.0.28` ke `/sdcard/Download/MaoneAuto.apk` dan verifikasi integritas.
-
-
-
-
-
-
-
-
-
-
+- [x] Template webhook lengkap (Google Apps Script, PHP, Node.js, Python, README) & Modal 1-klik salin di Webhook Screen (v1.0.29+30).
+- [ ] Push commit ke GitHub repository `maoneart/WhatsAuto` dan trigger GitHub Actions build APK v1.0.29.
+- [ ] Unduh APK rilis `v1.0.29` ke `/sdcard/Download/MaoneAuto.apk` dan verifikasi integritas.
